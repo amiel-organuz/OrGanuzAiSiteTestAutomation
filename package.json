@@ -1,0 +1,30 @@
+{
+  "name": "organuz-ai-site-test-automation",
+  "version": "1.0.0",
+  "description": "Playwright TypeScript E2E automation for www.organuz.ai",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed --workers=1",
+    "test:parallel": "playwright test --workers=4",
+    "test:ui": "playwright test --project=chromium",
+    "report": "playwright show-report playwright-report",
+    "report:allure": "{ test -d allure-report/history && cp -r allure-report/history allure-results/; } 2>/dev/null || true && npx allure generate allure-results -o allure-report --clean && npx allure open allure-report",
+    "report:allure:ci": "npx allure generate allure-results -o allure-report --clean",
+    "lint": "eslint src tests --ext .ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.53.0",
+    "@types/node": "^20.12.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "allure-commandline": "^2.42.0",
+    "allure-js-commons": "^3.9.0",
+    "allure-playwright": "^3.9.0",
+    "dotenv": "^16.4.5",
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "playwright": "^1.53.0"
+  }
+}

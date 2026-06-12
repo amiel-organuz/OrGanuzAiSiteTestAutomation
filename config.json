@@ -1,0 +1,15 @@
+{
+  "web": {
+    "baseUrl": "https://www.organuz.ai"
+  },
+  "api": {
+    "baseUrl": "https://jsonplaceholder.typicode.com",
+    "timeout": 15000
+  },
+  "playwright": {
+    "defaultTimeout": 30000,
+    "navigationTimeout": 30000,
+    "workers": 4,
+    "browser": "chromium"
+  }
+}

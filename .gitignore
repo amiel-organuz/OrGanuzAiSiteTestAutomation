@@ -1,0 +1,9 @@
+node_modules
+
+# Test output
+test-results/
+playwright-report/
+allure-results/
+allure-report/
+blob-report/
+.cache/
