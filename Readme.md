@@ -7,6 +7,7 @@ Playwright TypeScript automation for `www.organuz.ai`, with a supporting Docker 
 - Playwright for UI and API tests
 - TypeScript for test and framework code
 - FastAPI service for local API endpoints and health checks
+- In-memory JSONPlaceholder mock for deterministic API tests in CI
 - Swagger UI for OpenAPI documentation
 - Prometheus for metrics scraping
 - Grafana for metrics dashboards
@@ -19,6 +20,9 @@ Playwright TypeScript automation for `www.organuz.ai`, with a supporting Docker 
 |-- Dockerfile
 |-- docker-compose.yml
 |-- playwright.config.ts
+|-- mocks/
+|   |-- jsonplaceholder-db.json
+|   `-- jsonplaceholder-mock.mjs
 |-- scripts/
 |   `-- run-all-tests.sh
 |-- server/
@@ -67,6 +71,15 @@ Run only UI tests:
 npm run test:ui
 ```
 
+Run API tests against a local JSONPlaceholder-compatible mock:
+
+```bash
+MOCK_PORT=3001 node mocks/jsonplaceholder-mock.mjs
+API_BASE_URL=http://127.0.0.1:3001 npx playwright test --project=api
+```
+
+The mock is in-memory and does not persist writes. It returns JSONPlaceholder-style fake write responses for `POST`, `PUT`, `PATCH`, and `DELETE`.
+
 Run type checking:
 
 ```bash
@@ -114,6 +127,8 @@ docker compose up -d allure
 
 Grafana is mapped to host port `3001` because port `3000` is commonly used by local frontend dev servers. Inside Docker Compose, Grafana still listens on `grafana:3000`.
 
+In GitHub Actions, the API matrix job also uses port `3001` for the JSONPlaceholder mock. That does not conflict with Grafana because the mock and Grafana run in separate jobs.
+
 ## Reports
 
 Docker test runs write reports back to the host through bind mounts:
@@ -153,6 +168,14 @@ Allure:   http://localhost:5050
 
 The script preserves the Playwright exit code. Even when tests fail, it still attempts to generate and serve the Allure report before exiting.
 
+The UI suite includes `tests/ui/intentionally-failing.spec.ts`, an expected-failure test tagged `@intentionally-failing`. It validates the failure-capture pipeline without making CI red. If you want to skip it locally:
+
+```bash
+npx playwright test --grep-invert "@intentionally-failing"
+```
+
+Failure artifacts are collected by `src/fixtures/index.ts` and attached to Allure when Playwright records screenshots, videos, traces, or other attachments.
+
 ## Configuration
 
 Runtime configuration is read from environment variables with fallbacks in `config.json`.
@@ -179,6 +202,9 @@ Local service URL variables used by `scripts/run-all-tests.sh`:
 | `GRAFANA_URL` | `http://localhost:3001` |
 | `ALLURE_URL` | `http://localhost:5050` |
 | `AUTO_START_API` | `true` |
+| `MOCK_HOST` | `127.0.0.1` |
+| `MOCK_PORT` | `3001` |
+| `MOCK_DB_PATH` | `mocks/jsonplaceholder-db.json` |
 
 ## GitHub Actions
 
@@ -186,10 +212,13 @@ The parallel pipeline in `.github/workflows/parallel-tests.yml` runs:
 
 - `typecheck`
 - Playwright `api` and `chromium` projects in parallel
+- JSONPlaceholder mock startup for the `api` matrix job
 - FastAPI, Swagger, Prometheus, and Grafana service smoke checks
 - Allure 3 report generation
 - GitHub Pages deployment for the Allure report on `main` or `master`
 - GitHub Actions summary links for Allure, FastAPI, Swagger, and Grafana
+
+The `api` matrix job starts `mocks/jsonplaceholder-mock.mjs`, waits for `http://127.0.0.1:3001/posts/1`, then runs with `API_BASE_URL=http://127.0.0.1:3001`. The mock log is uploaded as `jsonplaceholder-mock-log`.
 
 The workflow summary includes:
 
