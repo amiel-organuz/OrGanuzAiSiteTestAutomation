@@ -79,8 +79,27 @@ jobs:
       - name: Start JSONPlaceholder mock (in-memory, no persistence)
         if: matrix.project == 'api'
         run: |
-          nohup node mocks/jsonplaceholder-mock.mjs > mock.log 2>&1 &
-          npx wait-on -t 60000 http://127.0.0.1:3001/posts/1
+          set -euo pipefail
+          ls -la mocks/
+          node --version
+          node mocks/jsonplaceholder-mock.mjs > mock.log 2>&1 &
+          MOCK_PID=$!
+          echo "Mock PID: $MOCK_PID"
+          for i in $(seq 1 30); do
+            if ! kill -0 "$MOCK_PID" 2>/dev/null; then
+              echo "::error::Mock crashed at startup. Log follows:"
+              cat mock.log
+              exit 1
+            fi
+            if curl -fsS http://127.0.0.1:3001/posts/1 >/dev/null 2>&1; then
+              echo "Mock is ready at http://127.0.0.1:3001 (took ${i}s)"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::Mock did not respond in 30s. Log follows:"
+          cat mock.log
+          exit 1
 
       - name: Run Playwright project
         env:
