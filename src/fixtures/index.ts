@@ -48,36 +48,32 @@ const pagesTest = base.extend<Pages & ApiFixtures>({
 });
 
 export const test = pagesTest.extend<AutoFixtures>({
-  _failureCapture: [async ({ page }, use, testInfo) => {
+  _failureCapture: [async ({}, use, testInfo) => {
     await use(undefined as unknown as void);
 
     if (testInfo.status === testInfo.expectedStatus) return;
 
     logger.fail(`Test "${testInfo.title}"`, testInfo.errors[0]?.message);
 
-    try {
-      const screenshot = await page.screenshot({ fullPage: true });
-      await testInfo.attach('failure-screenshot', { body: screenshot, contentType: 'image/png' });
-      await allureAttachment('Last screenshot', screenshot, 'image/png');
-      logger.info('Screenshot captured');
-    } catch {
-      logger.warn('Screenshot unavailable (page already closed)');
-    }
+    const allureNames: Record<string, string> = {
+      screenshot: 'Last screenshot',
+      video: 'Failure video',
+      trace: 'Trace',
+    };
 
-    try {
-      const videoPath = await page.video()?.path();
-      if (videoPath && fs.existsSync(videoPath)) {
-        await allureAttachment('Failure video', fs.readFileSync(videoPath), 'video/webm');
-        logger.info(`Video: ${videoPath}`);
+    for (const att of testInfo.attachments) {
+      if (!att.path || !fs.existsSync(att.path)) continue;
+      try {
+        const body = fs.readFileSync(att.path);
+        await allureAttachment(
+          allureNames[att.name] ?? att.name,
+          body,
+          att.contentType || 'application/octet-stream',
+        );
+        logger.info(`Attached ${att.name}: ${att.path}`);
+      } catch {
+        logger.warn(`Could not attach ${att.name}`);
       }
-    } catch {
-      logger.warn('Video unavailable');
-    }
-
-    const traceAttachment = testInfo.attachments.find(a => a.name === 'trace');
-    if (traceAttachment?.path && fs.existsSync(traceAttachment.path)) {
-      await allureAttachment('Trace', fs.readFileSync(traceAttachment.path), 'application/zip');
-      logger.info(`Trace: ${traceAttachment.path}`);
     }
   }, { auto: true }],
 });
