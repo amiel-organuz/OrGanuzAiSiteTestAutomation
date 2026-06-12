@@ -87,37 +87,30 @@ export class HomePage extends BasePage {
     this.nav = selfHeal(
       page.getByRole('navigation'),
       page.locator('nav').first(),
-      page.locator('header').first(),
     );
     this.navWhyLink = selfHeal(
       this.nav.getByRole('link', { name: 'למה Organuz' }),
       this.nav.getByRole('link', { name: /למה/ }),
-      page.getByRole('link', { name: /למה Organuz/ }),
     );
     this.navOrLink = selfHeal(
       this.nav.getByRole('link', { name: 'הכירו את אור' }),
       this.nav.getByRole('link', { name: /הכירו/ }),
-      page.getByRole('link', { name: /הכירו את אור/ }),
     );
     this.navAgentsLink = selfHeal(
       this.nav.getByRole('link', { name: 'הסוכנים' }),
       this.nav.getByRole('link', { name: /סוכנ/ }),
-      page.getByRole('link', { name: /הסוכנים/ }),
     );
     this.navProjectsLink = selfHeal(
       this.nav.getByRole('link', { name: 'פרויקטים לדוגמא' }),
       this.nav.getByRole('link', { name: /פרויקטים/ }),
-      page.getByRole('link', { name: /פרויקטים לדוגמא/ }),
     );
     this.navBlogLink = selfHeal(
       this.nav.getByRole('link', { name: 'מרכז הידע' }),
       this.nav.getByRole('link', { name: /מרכז/ }),
-      page.getByRole('link', { name: /מרכז הידע/ }),
     );
     this.navFaqLink = selfHeal(
       this.nav.getByRole('link', { name: 'שאלות נפוצות' }),
       this.nav.getByRole('link', { name: /שאלות/ }),
-      page.getByRole('link', { name: /שאלות נפוצות/ }),
     );
     this.languageButton = selfHeal(
       page.getByRole('button', { name: 'EN' }),
@@ -142,32 +135,26 @@ export class HomePage extends BasePage {
     this.userTypeBtnPrivateHomes = selfHeal(
       page.getByRole('button', { name: 'בתים פרטיים' }),
       page.getByRole('button', { name: /בתים פרטיים/ }),
-      page.getByText('בתים פרטיים').first(),
     );
     this.userTypeBtnResidentialBuildings = selfHeal(
       page.getByRole('button', { name: 'בנייני מגורים' }),
       page.getByRole('button', { name: /בנייני מגורים/ }),
-      page.getByText('בנייני מגורים').first(),
     );
     this.userTypeBtnBusinesses = selfHeal(
       page.getByRole('button', { name: 'עסקים' }),
       page.getByRole('button', { name: /עסקים/ }),
-      page.getByText('עסקים').first(),
     );
     this.userTypeBtnAgriculture = selfHeal(
       page.getByRole('button', { name: 'חקלאות' }),
       page.getByRole('button', { name: /חקלאות/ }),
-      page.getByText('חקלאות').first(),
     );
     this.userTypeBtnAuthorities = selfHeal(
       page.getByRole('button', { name: 'רשויות', exact: true }),
       page.getByRole('button', { name: /^רשויות$/ }),
-      page.getByText('רשויות').first(),
     );
     this.userTypeBtnMarketPlayers = selfHeal(
       page.getByRole('button', { name: 'שחקני שוק' }),
       page.getByRole('button', { name: /שחקני שוק/ }),
-      page.getByText('שחקני שוק').first(),
     );
     this.startNowLink = selfHeal(
       page.getByRole('link', { name: 'התחילו עכשיו' }),
@@ -178,8 +165,7 @@ export class HomePage extends BasePage {
     this.whySectionHeading = selfHeal(
       page.getByRole('heading', { name: 'למה Organuz?' }),
       page.getByRole('heading', { name: /למה Organuz/ }),
-      page.getByRole('heading', { name: /למה/ }),
-    );
+    ).first();
     this.whyTabPropertyOwners = selfHeal(
       page.getByRole('button', { name: 'בעלי נכסים' }),
       page.getByRole('button', { name: /בעלי נכסים/ }),
@@ -201,7 +187,6 @@ export class HomePage extends BasePage {
     this.orSectionHeading = selfHeal(
       page.getByRole('heading', { name: 'סוכן אחד. בכל שלב במסע האנרגיה שלכם.' }),
       page.getByRole('heading', { name: /סוכן אחד/ }),
-      page.getByRole('heading', { name: /מסע האנרגיה/ }),
     );
     this.talkToOrLink = selfHeal(
       page.getByRole('link', { name: 'דברו עם אור' }),
@@ -212,7 +197,6 @@ export class HomePage extends BasePage {
     this.agentsSectionHeading = selfHeal(
       page.getByRole('heading', { name: 'סוכן לכל תרחיש שימוש' }),
       page.getByRole('heading', { name: /סוכן לכל/ }),
-      page.getByRole('heading', { name: /תרחיש שימוש/ }),
     );
     this.agentSolaraWattson = selfHeal(
       page.getByRole('heading', { name: 'Solara Wattson' }),
@@ -257,7 +241,6 @@ export class HomePage extends BasePage {
     this.blogSectionHeading = selfHeal(
       page.getByRole('heading', { name: 'משאבים להשגת המטרות שלכם' }),
       page.getByRole('heading', { name: /משאבים להשגת/ }),
-      page.getByRole('heading', { name: /המטרות שלכם/ }),
     );
     this.blogFilterAll = selfHeal(
       page.getByRole('button', { name: 'הכל' }),
@@ -294,32 +277,26 @@ export class HomePage extends BasePage {
     this.contactFormHeading = selfHeal(
       page.getByRole('heading', { name: 'שלח לנו הודעה' }),
       page.getByRole('heading', { name: /שלח לנו/ }),
-      page.getByRole('heading', { name: /הודעה/ }),
     );
     this.nameInput = selfHeal(
       page.getByRole('textbox', { name: 'שם מלא' }),
-      page.getByRole('textbox', { name: /שם/ }),
-      page.locator('input[name*="name"], input[placeholder*="שם"]').first(),
+      page.getByRole('textbox', { name: /שם מלא/ }),
     );
     this.emailInput = selfHeal(
       page.getByRole('textbox', { name: 'כתובת אימייל' }),
-      page.getByRole('textbox', { name: /אימייל/ }),
-      page.locator('input[type="email"]').first(),
+      page.getByRole('textbox', { name: /כתובת אימייל/ }),
     );
     this.phoneInput = selfHeal(
       page.getByRole('textbox', { name: 'טלפון' }),
       page.getByRole('textbox', { name: /טלפון/ }),
-      page.locator('input[type="tel"]').first(),
     );
     this.messageInput = selfHeal(
       page.getByRole('textbox', { name: 'הודעה' }),
       page.getByRole('textbox', { name: /הודעה/ }),
-      page.locator('textarea').first(),
     );
     this.submitButton = selfHeal(
       page.getByRole('button', { name: 'שלח הודעה' }),
-      page.getByRole('button', { name: /שלח/ }),
-      page.locator('form button[type="submit"]').first(),
+      page.getByRole('button', { name: /שלח הודעה/ }),
     );
 
     // Newsletter

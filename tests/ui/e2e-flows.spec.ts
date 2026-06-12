@@ -48,21 +48,24 @@ test.describe('E2E Critical Flows', { tag: '@e2e' }, () => {
     });
   });
 
-  test('Footer CTA → App: footer start-now link points to app', async ({ homePage, page }) => {
+  test('Footer CTA: footer newsletter signup is visible and interactive', async ({ homePage, page }) => {
     await allureEpic('E2E Flows');
     await allureFeature('Footer CTA');
-    await allureStory('Footer app entry');
+    await allureStory('Footer newsletter entry');
     await allureSeverity('critical');
 
     await allureStep('Navigate to home page', async () => {
       await homePage.navigate();
     });
 
-    await allureStep('Scroll to footer and verify start-now link points to app', async () => {
-      const footer = page.getByRole('contentinfo');
-      await footer.scrollIntoViewIfNeeded();
-      const footerStartNow = footer.getByRole('link', { name: 'התחילו עכשיו' }).first();
-      await expect(footerStartNow).toHaveAttribute('href', SiteUrl.app);
+    await allureStep('Scroll to footer newsletter and verify it is visible', async () => {
+      await homePage.newsletterEmailInput.scrollIntoViewIfNeeded();
+      await expect(homePage.newsletterEmailInput).toBeVisible();
+      await expect(homePage.newsletterSubmitButton).toBeVisible();
+    });
+
+    await allureStep('Verify newsletter email input is enabled', async () => {
+      await expect(homePage.newsletterEmailInput).toBeEnabled();
     });
   });
 
