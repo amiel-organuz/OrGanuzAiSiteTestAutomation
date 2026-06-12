@@ -89,6 +89,7 @@ jobs:
 
       - name: Upload mock server log
         if: matrix.project == 'api' && always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: jsonplaceholder-mock-log
@@ -98,6 +99,7 @@ jobs:
 
       - name: Upload Playwright report
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report-${{ matrix.project }}
@@ -107,6 +109,7 @@ jobs:
 
       - name: Upload test results
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: test-results-${{ matrix.project }}
@@ -116,6 +119,7 @@ jobs:
 
       - name: Upload Allure results
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: allure-results-${{ matrix.project }}
@@ -125,6 +129,7 @@ jobs:
 
       - name: Upload blob report
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: blob-report-${{ matrix.project }}
@@ -181,12 +186,14 @@ jobs:
 
       - name: Upload service logs
         if: always()
+        continue-on-error: true
         run: |
           mkdir -p service-logs
           docker compose logs api swagger prometheus grafana > service-logs/docker-compose-services.log
 
       - name: Store service logs
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: service-logs
@@ -249,6 +256,7 @@ jobs:
 
       - name: Upload generated Allure report
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: allure-report
