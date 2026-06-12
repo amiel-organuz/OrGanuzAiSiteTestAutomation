@@ -1,0 +1,65 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    image: organuz-ai-fastapi-server
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  swagger:
+    image: swaggerapi/swagger-ui:v5.17.14
+    ports:
+      - "8080:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      URLS: '[{"name":"FastAPI","url":"http://localhost:8000/openapi.json"}]'
+      URLS_PRIMARY_NAME: "FastAPI"
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    ports:
+      - "9090:9090"
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ./server/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: organuz-ai-site-tests
+    working_dir: /app
+    entrypoint: ["bash", "/app/scripts/run-all-tests.sh"]
+    depends_on:
+      api:
+        condition: service_healthy
+      swagger:
+        condition: service_started
+      prometheus:
+        condition: service_started
+    environment:
+      CI: "true"
+      PLAYWRIGHT_MERGE_REPORTS: "false"
+      API_BASE_URL: "http://api:8000"
+      SWAGGER_URL: "http://swagger:8080"
+      PROMETHEUS_URL: "http://prometheus:9090"
+    volumes:
+      - ./test-results:/app/test-results
+      - ./playwright-report:/app/playwright-report
+      - ./allure-results:/app/allure-results
+      - ./allure-report:/app/allure-report
+      - ./blob-report:/app/blob-report
