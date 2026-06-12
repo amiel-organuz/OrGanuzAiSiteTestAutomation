@@ -8,14 +8,26 @@ npx tsc --noEmit
 
 API_BASE_URL="${API_BASE_URL:-http://localhost:8000}"
 AUTO_START_API="${AUTO_START_API:-true}"
+FASTAPI_URL="${FASTAPI_URL:-http://localhost:8000}"
+SWAGGER_URL="${SWAGGER_URL:-http://localhost:8080}"
+PROMETHEUS_URL="${PROMETHEUS_URL:-http://localhost:9092}"
+GRAFANA_URL="${GRAFANA_URL:-http://localhost:3001}"
+ALLURE_URL="${ALLURE_URL:-http://localhost:5050}"
 
 api_ready() {
   curl -fsS "${API_BASE_URL}/health" >/dev/null 2>&1
 }
 
-if [ "$AUTO_START_API" = "true" ] && [ "$API_BASE_URL" = "http://localhost:8000" ] && ! api_ready; then
-  echo "Starting local FastAPI server with Docker Compose..."
-  docker compose up -d --build api
+stack_ready() {
+  api_ready \
+    && curl -fsS "${SWAGGER_URL}" >/dev/null 2>&1 \
+    && curl -fsS "${PROMETHEUS_URL}/-/ready" >/dev/null 2>&1 \
+    && curl -fsS "${GRAFANA_URL}/api/health" >/dev/null 2>&1
+}
+
+if [ "$AUTO_START_API" = "true" ] && [ "$API_BASE_URL" = "http://localhost:8000" ] && ! stack_ready; then
+  echo "Starting local FastAPI, Swagger, Prometheus, and Grafana servers with Docker Compose..."
+  docker compose up -d --build api swagger prometheus grafana
 fi
 
 echo "Waiting for FastAPI server at ${API_BASE_URL}/health..."
@@ -33,7 +45,10 @@ for i in $(seq 1 30); do
 done
 
 echo "Running all Playwright tests..."
+set +e
 npx playwright test --project=chromium --project=api
+TEST_EXIT_CODE=$?
+set -e
 
 if [ -d allure-results ] && [ "$(find allure-results -mindepth 1 -print -quit)" ]; then
   echo "Generating Allure 3 report..."
@@ -41,4 +56,47 @@ if [ -d allure-results ] && [ "$(find allure-results -mindepth 1 -print -quit)" 
   npx -y -p allure@3 allure generate allure-results --output allure-report
 fi
 
+if [ "$AUTO_START_API" = "true" ] && [ "$API_BASE_URL" = "http://localhost:8000" ]; then
+  echo "Starting local Allure report server..."
+  docker compose up -d allure || echo "Allure report server could not start on ${ALLURE_URL}."
+fi
+
+echo
+echo "Local servers:"
+echo "  FastAPI:     ${FASTAPI_URL}"
+echo "  Swagger:     ${SWAGGER_URL}"
+echo "  Prometheus:  ${PROMETHEUS_URL}"
+echo "  Grafana:     ${GRAFANA_URL}"
+echo "  Allure:      ${ALLURE_URL}"
+echo
+
+OPEN_BROWSER="${OPEN_BROWSER:-auto}"
+if [ "$OPEN_BROWSER" = "auto" ]; then
+  if [ -n "${CI:-}" ] || [ -f /.dockerenv ]; then
+    OPEN_BROWSER="false"
+  else
+    OPEN_BROWSER="true"
+  fi
+fi
+
+if [ "$OPEN_BROWSER" = "true" ]; then
+  if command -v open >/dev/null 2>&1; then
+    OPENER="open"
+  elif command -v xdg-open >/dev/null 2>&1; then
+    OPENER="xdg-open"
+  else
+    OPENER=""
+  fi
+
+  if [ -n "$OPENER" ]; then
+    echo "Opening servers in browser..."
+    for url in "${FASTAPI_URL}/docs" "${SWAGGER_URL}" "${PROMETHEUS_URL}" "${GRAFANA_URL}" "${ALLURE_URL}"; do
+      "$OPENER" "$url" >/dev/null 2>&1 || true
+    done
+  else
+    echo "No browser opener found (set OPEN_BROWSER=false to silence)."
+  fi
+fi
+
 echo "Test run complete."
+exit "$TEST_EXIT_CODE"

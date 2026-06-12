@@ -5,294 +5,612 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>OrGanuz AI Test Automation Architecture</title>
   <style>
-    :root {
-      color-scheme: light;
-      --bg: #f7f8fb;
-      --panel: #ffffff;
-      --ink: #172033;
-      --muted: #5e6a7d;
-      --line: #cfd7e6;
-      --api: #0f766e;
-      --test: #2563eb;
-      --docs: #7c3aed;
-      --metrics: #dc2626;
-      --report: #b45309;
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
-    * {
-      box-sizing: border-box;
+    :root {
+      color-scheme: light;
+      --bg: #fff7fb;
+      --bg-2: #f4fbff;
+      --ink: #243047;
+      --muted: #68758d;
+      --line: #dfe7f3;
+      --panel: rgba(255, 255, 255, 0.82);
+      --panel-strong: #ffffff;
+      --pink: #f8b4d9;
+      --rose: #ffd6d6;
+      --peach: #ffd9b8;
+      --yellow: #ffeaa7;
+      --mint: #bff4dc;
+      --aqua: #b9edf7;
+      --blue: #c7dcff;
+      --lavender: #d9c7ff;
+      --violet: #c9b6ff;
+      --green: #96e6b3;
+      --shadow: 0 18px 50px rgba(108, 119, 145, 0.16);
     }
 
     body {
-      margin: 0;
-      background: var(--bg);
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 8% 8%, rgba(255, 214, 214, 0.72), transparent 26%),
+        radial-gradient(circle at 88% 10%, rgba(201, 182, 255, 0.62), transparent 24%),
+        radial-gradient(circle at 78% 82%, rgba(185, 237, 247, 0.72), transparent 26%),
+        linear-gradient(135deg, var(--bg), var(--bg-2));
       color: var(--ink);
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      line-height: 1.5;
+      line-height: 1.55;
     }
 
-    main {
-      width: min(1180px, calc(100% - 40px));
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      min-height: 58px;
+      padding: 0 28px;
+      background: rgba(255, 255, 255, 0.78);
+      border-bottom: 1px solid rgba(223, 231, 243, 0.92);
+      backdrop-filter: blur(16px);
+    }
+
+    nav .logo {
+      margin-right: 8px;
+      font-weight: 800;
+      color: #5d4fb3;
+      white-space: nowrap;
+    }
+
+    nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    nav a:hover {
+      color: #5d4fb3;
+    }
+
+    .page {
+      width: min(1180px, calc(100% - 36px));
       margin: 0 auto;
-      padding: 40px 0 56px;
+      padding: 34px 0 56px;
     }
 
-    header {
-      margin-bottom: 28px;
+    .hero {
+      padding: 34px;
+      background: rgba(255, 255, 255, 0.64);
+      border: 1px solid rgba(223, 231, 243, 0.9);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: #fff2b8;
+      color: #765900;
+      font-size: 13px;
+      font-weight: 800;
     }
 
     h1 {
-      margin: 0 0 8px;
-      font-size: clamp(30px, 4vw, 48px);
-      line-height: 1.08;
+      max-width: 860px;
+      font-size: clamp(34px, 5vw, 64px);
+      line-height: 1.02;
       letter-spacing: 0;
+      color: #26324c;
     }
 
     .subtitle {
-      max-width: 760px;
-      margin: 0;
+      max-width: 820px;
+      margin-top: 14px;
       color: var(--muted);
-      font-size: 17px;
-    }
-
-    .diagram {
-      display: grid;
-      grid-template-columns: minmax(220px, 1fr) 80px minmax(260px, 1.1fr) 80px minmax(220px, 1fr);
-      gap: 0;
-      align-items: center;
-      margin: 30px 0;
-      padding: 26px;
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      box-shadow: 0 16px 40px rgba(23, 32, 51, 0.08);
-      overflow-x: auto;
-    }
-
-    .column {
-      display: grid;
-      gap: 16px;
-    }
-
-    .node {
-      min-height: 110px;
-      padding: 18px;
-      border: 2px solid var(--line);
-      border-left-width: 6px;
-      border-radius: 8px;
-      background: #fff;
-    }
-
-    .node h2 {
-      margin: 0 0 8px;
       font-size: 18px;
+    }
+
+    h2 {
+      margin: 42px 0 16px;
+      font-size: 24px;
       letter-spacing: 0;
+      color: #283552;
     }
 
-    .node p {
-      margin: 0;
+    h3 {
+      margin-bottom: 8px;
+      font-size: 16px;
+      color: #283552;
+    }
+
+    p, li {
       color: var(--muted);
       font-size: 14px;
     }
 
-    .node ul {
-      margin: 12px 0 0;
+    ul {
       padding-left: 18px;
-      color: var(--muted);
-      font-size: 14px;
     }
 
-    .test {
-      border-left-color: var(--test);
-    }
-
-    .api {
-      border-left-color: var(--api);
-    }
-
-    .docs {
-      border-left-color: var(--docs);
-    }
-
-    .metrics {
-      border-left-color: var(--metrics);
-    }
-
-    .report {
-      border-left-color: var(--report);
-    }
-
-    .arrow {
-      position: relative;
-      height: 2px;
-      min-width: 80px;
-      background: var(--line);
-    }
-
-    .arrow::after {
-      content: "";
-      position: absolute;
-      right: -1px;
-      top: 50%;
-      width: 10px;
-      height: 10px;
-      border-top: 2px solid var(--line);
-      border-right: 2px solid var(--line);
-      transform: translateY(-50%) rotate(45deg);
-      background: var(--bg);
-    }
-
-    .sections {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 18px;
-    }
-
-    section {
-      padding: 20px;
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-    }
-
-    section h2 {
-      margin: 0 0 10px;
-      font-size: 18px;
-    }
-
-    section p,
-    section li {
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    section ul {
-      margin: 0;
-      padding-left: 18px;
+    li {
+      margin: 6px 0;
     }
 
     code {
-      padding: 2px 5px;
-      border-radius: 4px;
-      background: #eef2f7;
-      color: #101827;
+      padding: 2px 6px;
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(223, 231, 243, 0.9);
+      color: #303a52;
       font-family: "SFMono-Regular", Consolas, monospace;
-      font-size: 0.92em;
+      font-size: 0.9em;
     }
 
-    @media (max-width: 860px) {
-      main {
-        width: min(100% - 24px, 720px);
-        padding-top: 28px;
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+      margin: 18px 0;
+    }
+
+    .card,
+    .panel,
+    .tile {
+      background: var(--panel);
+      border: 1px solid rgba(223, 231, 243, 0.96);
+      border-radius: 18px;
+      box-shadow: 0 12px 32px rgba(108, 119, 145, 0.1);
+    }
+
+    .card {
+      min-height: 148px;
+      padding: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 7px;
+      background: var(--accent, var(--blue));
+    }
+
+    .card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 8px 0 8px;
+      font-weight: 800;
+      color: #27324a;
+    }
+
+    .card-desc {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 38px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      color: #41506d;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .services {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .tile {
+      padding: 14px;
+    }
+
+    .tile strong {
+      display: block;
+      margin-bottom: 5px;
+      color: #27324a;
+      font-size: 14px;
+    }
+
+    .tile code {
+      display: inline-block;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      font-size: 12px;
+    }
+
+    .panel {
+      padding: 18px;
+    }
+
+    .arch-wrap {
+      padding: 18px;
+      overflow-x: auto;
+    }
+
+    .arch-wrap svg {
+      display: block;
+      width: 100%;
+      min-width: 880px;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+
+    .step {
+      padding: 16px;
+      border-radius: 16px;
+      border: 1px solid rgba(223, 231, 243, 0.96);
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .step-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      margin-bottom: 8px;
+      border-radius: 50%;
+      background: var(--accent, var(--blue));
+      color: #27324a;
+      font-weight: 900;
+      font-size: 13px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(223, 231, 243, 0.96);
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(223, 231, 243, 0.86);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #eef5ff;
+      color: #40506b;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .tree {
+      padding: 18px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(223, 231, 243, 0.96);
+      color: #40506b;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.8;
+      overflow-x: auto;
+    }
+
+    .tree .dir {
+      color: #5d4fb3;
+      font-weight: 800;
+    }
+
+    .tree .file {
+      color: #40506b;
+    }
+
+    footer {
+      margin-top: 42px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 880px) {
+      nav {
+        overflow-x: auto;
+        padding: 0 16px;
       }
 
-      .diagram {
-        grid-template-columns: 1fr;
-        gap: 14px;
-        padding: 18px;
+      .hero {
+        padding: 24px;
       }
 
-      .arrow {
-        width: 2px;
-        height: 34px;
-        min-width: 2px;
-        margin: 0 auto;
-      }
-
-      .arrow::after {
-        right: auto;
-        top: auto;
-        bottom: -1px;
-        left: 50%;
-        transform: translateX(-50%) rotate(135deg);
-      }
-
-      .sections {
+      .services,
+      .grid-2 {
         grid-template-columns: 1fr;
       }
     }
   </style>
 </head>
 <body>
-  <main>
-    <header>
-      <h1>OrGanuz AI Test Automation Architecture</h1>
-      <p class="subtitle">Docker Compose runs a local FastAPI service, Swagger UI, Prometheus, and the Playwright test container. Test reports are written back to the host workspace.</p>
+  <nav>
+    <span class="logo">OrGanuz Automation</span>
+    <a href="#overview">Overview</a>
+    <a href="#diagram">Diagram</a>
+    <a href="#flow">Flow</a>
+    <a href="#services">Services</a>
+    <a href="#ci">CI/CD</a>
+    <a href="#structure">Structure</a>
+  </nav>
+
+  <main class="page">
+    <header class="hero" id="overview">
+      <span class="eyebrow">Pastel architecture map</span>
+      <h1>Playwright automation with FastAPI, Swagger, Grafana, Prometheus, and Allure 3</h1>
+      <p class="subtitle">
+        A single-file architecture view for the OrGanuz AI site automation stack. Local runs start the runtime services, execute the Playwright projects, generate Allure 3, and print the main service links. GitHub Actions runs the same projects in parallel and publishes Allure to GitHub Pages.
+      </p>
+
+      <div class="services" id="services" aria-label="Local service links">
+        <div class="tile" style="border-top: 6px solid var(--mint)">
+          <strong>FastAPI</strong>
+          <code>http://localhost:8000</code>
+        </div>
+        <div class="tile" style="border-top: 6px solid var(--lavender)">
+          <strong>Swagger</strong>
+          <code>http://localhost:8080</code>
+        </div>
+        <div class="tile" style="border-top: 6px solid var(--yellow)">
+          <strong>Prometheus</strong>
+          <code>http://localhost:9092</code>
+        </div>
+        <div class="tile" style="border-top: 6px solid var(--aqua)">
+          <strong>Grafana</strong>
+          <code>http://localhost:3001</code>
+        </div>
+        <div class="tile" style="border-top: 6px solid var(--pink)">
+          <strong>Allure</strong>
+          <code>http://localhost:5050</code>
+        </div>
+      </div>
     </header>
 
-    <div class="diagram" aria-label="Architecture diagram">
-      <div class="column">
-        <div class="node test">
-          <h2>Playwright Tests</h2>
-          <p><code>tests</code> service runs <code>scripts/run-all-tests.sh</code>.</p>
-          <ul>
-            <li>TypeScript typecheck</li>
-            <li>UI project: chromium</li>
-            <li>API project: api</li>
-          </ul>
-        </div>
+    <h2>Stack Overview</h2>
+    <div class="cards">
+      <div class="card" style="--accent: var(--blue)">
+        <div class="card-title"><span class="badge">TS</span> Playwright Tests</div>
+        <p class="card-desc">Runs UI tests in the <code>chromium</code> project and API tests in the <code>api</code> project, with retries enabled in CI.</p>
       </div>
-
-      <div class="arrow" aria-hidden="true"></div>
-
-      <div class="column">
-        <div class="node api">
-          <h2>FastAPI</h2>
-          <p><code>api:8000</code> serves health, OpenAPI, docs, and Prometheus metrics.</p>
-          <ul>
-            <li><code>/health</code></li>
-            <li><code>/openapi.json</code></li>
-            <li><code>/metrics</code></li>
-          </ul>
-        </div>
+      <div class="card" style="--accent: var(--mint)">
+        <div class="card-title"><span class="badge">PY</span> FastAPI</div>
+        <p class="card-desc">Provides <code>/health</code>, <code>/metrics</code>, <code>/openapi.json</code>, and built-in docs at <code>/docs</code>.</p>
       </div>
-
-      <div class="arrow" aria-hidden="true"></div>
-
-      <div class="column">
-        <div class="node docs">
-          <h2>Swagger UI</h2>
-          <p><code>localhost:8080</code> loads the FastAPI OpenAPI schema.</p>
-        </div>
-        <div class="node metrics">
-          <h2>Prometheus</h2>
-          <p><code>localhost:9092</code> scrapes <code>api:8000/metrics</code>.</p>
-        </div>
-        <div class="node report">
-          <h2>Reports</h2>
-          <p>Playwright, Allure, JSON, JUnit, and blob reports are mounted back to the host.</p>
-        </div>
+      <div class="card" style="--accent: var(--lavender)">
+        <div class="card-title"><span class="badge">DOC</span> Swagger UI</div>
+        <p class="card-desc">External Swagger UI reads the FastAPI OpenAPI schema from <code>localhost:8000/openapi.json</code>.</p>
+      </div>
+      <div class="card" style="--accent: var(--yellow)">
+        <div class="card-title"><span class="badge">MON</span> Prometheus</div>
+        <p class="card-desc">Scrapes FastAPI metrics from <code>api:8000/metrics</code> through <code>server/prometheus.yml</code>.</p>
+      </div>
+      <div class="card" style="--accent: var(--aqua)">
+        <div class="card-title"><span class="badge">MON</span> Grafana</div>
+        <p class="card-desc">Runs on host port <code>3001</code> with a provisioned Prometheus datasource. Container port stays <code>3000</code>.</p>
+      </div>
+      <div class="card" style="--accent: var(--pink)">
+        <div class="card-title"><span class="badge">REP</span> Allure 3</div>
+        <p class="card-desc">Generated by the CLI and CI workflow, served locally by Nginx, and published by GitHub Pages on main branches.</p>
       </div>
     </div>
 
-    <div class="sections">
-      <section>
-        <h2>Runtime Services</h2>
-        <ul>
-          <li><code>api</code>: FastAPI app built from <code>server/Dockerfile</code>.</li>
-          <li><code>swagger</code>: Swagger UI container using <code>swaggerapi/swagger-ui</code>.</li>
-          <li><code>prometheus</code>: metrics server using <code>server/prometheus.yml</code>.</li>
-        </ul>
-      </section>
+    <h2 id="diagram">Architecture Diagram</h2>
+    <div class="panel arch-wrap">
+      <svg viewBox="0 0 1020 520" role="img" aria-label="OrGanuz test automation architecture diagram" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#8391aa"/>
+          </marker>
+          <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#7c8aa6" flood-opacity="0.18"/>
+          </filter>
+        </defs>
 
-      <section>
-        <h2>Test Flow</h2>
-        <ul>
-          <li>The API health check must pass before dependent services start.</li>
-          <li>The test container runs after API, Swagger, and Prometheus are available.</li>
-          <li>Reports are persisted through Docker bind mounts.</li>
-        </ul>
-      </section>
+        <rect x="25" y="24" width="970" height="472" rx="28" fill="#ffffff" opacity="0.68" stroke="#dfe7f3"/>
 
-      <section>
+        <rect x="70" y="70" width="250" height="98" rx="20" fill="#c7dcff" filter="url(#softShadow)"/>
+        <text x="195" y="106" text-anchor="middle" font-size="18" font-weight="800" fill="#27324a">Playwright</text>
+        <text x="195" y="132" text-anchor="middle" font-size="13" fill="#40506b">chromium + api projects</text>
+        <text x="195" y="152" text-anchor="middle" font-size="12" fill="#40506b">reports: html, junit, json, allure, blob</text>
+
+        <rect x="385" y="70" width="250" height="98" rx="20" fill="#bff4dc" filter="url(#softShadow)"/>
+        <text x="510" y="106" text-anchor="middle" font-size="18" font-weight="800" fill="#27324a">FastAPI</text>
+        <text x="510" y="132" text-anchor="middle" font-size="13" fill="#40506b">health, OpenAPI, metrics</text>
+        <text x="510" y="152" text-anchor="middle" font-size="12" fill="#40506b">localhost:8000</text>
+
+        <rect x="700" y="70" width="250" height="98" rx="20" fill="#d9c7ff" filter="url(#softShadow)"/>
+        <text x="825" y="106" text-anchor="middle" font-size="18" font-weight="800" fill="#27324a">Swagger UI</text>
+        <text x="825" y="132" text-anchor="middle" font-size="13" fill="#40506b">external API docs</text>
+        <text x="825" y="152" text-anchor="middle" font-size="12" fill="#40506b">localhost:8080</text>
+
+        <rect x="225" y="245" width="250" height="98" rx="20" fill="#ffeaa7" filter="url(#softShadow)"/>
+        <text x="350" y="281" text-anchor="middle" font-size="18" font-weight="800" fill="#27324a">Prometheus</text>
+        <text x="350" y="307" text-anchor="middle" font-size="13" fill="#40506b">scrapes /metrics</text>
+        <text x="350" y="327" text-anchor="middle" font-size="12" fill="#40506b">localhost:9092</text>
+
+        <rect x="545" y="245" width="250" height="98" rx="20" fill="#b9edf7" filter="url(#softShadow)"/>
+        <text x="670" y="281" text-anchor="middle" font-size="18" font-weight="800" fill="#27324a">Grafana</text>
+        <text x="670" y="307" text-anchor="middle" font-size="13" fill="#40506b">Prometheus datasource</text>
+        <text x="670" y="327" text-anchor="middle" font-size="12" fill="#40506b">localhost:3001</text>
+
+        <rect x="225" y="395" width="250" height="72" rx="18" fill="#f8b4d9" filter="url(#softShadow)"/>
+        <text x="350" y="425" text-anchor="middle" font-size="17" font-weight="800" fill="#27324a">Allure Server</text>
+        <text x="350" y="449" text-anchor="middle" font-size="12" fill="#40506b">localhost:5050</text>
+
+        <rect x="545" y="395" width="250" height="72" rx="18" fill="#ffd9b8" filter="url(#softShadow)"/>
+        <text x="670" y="425" text-anchor="middle" font-size="17" font-weight="800" fill="#27324a">GitHub Actions</text>
+        <text x="670" y="449" text-anchor="middle" font-size="12" fill="#40506b">parallel jobs + Pages deploy</text>
+
+        <path d="M 320 119 L 385 119" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
+        <path d="M 635 119 L 700 119" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
+        <path d="M 510 168 L 380 245" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
+        <path d="M 475 294 L 545 294" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
+        <path d="M 195 168 L 300 395" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
+        <path d="M 350 343 L 350 395" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
+        <path d="M 510 168 L 655 395" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
+      </svg>
+    </div>
+
+    <h2 id="flow">CLI Flow</h2>
+    <div class="flow">
+      <div class="step" style="--accent: var(--blue)">
+        <div class="step-num">1</div>
+        <h3>Typecheck</h3>
+        <p><code>npx tsc --noEmit</code> validates the TypeScript framework before tests run.</p>
+      </div>
+      <div class="step" style="--accent: var(--mint)">
+        <div class="step-num">2</div>
+        <h3>Start stack</h3>
+        <p>The script starts FastAPI, Swagger, Prometheus, and Grafana when local endpoints are not ready.</p>
+      </div>
+      <div class="step" style="--accent: var(--lavender)">
+        <div class="step-num">3</div>
+        <h3>Run tests</h3>
+        <p>Playwright executes the <code>chromium</code> and <code>api</code> projects with configured reporters.</p>
+      </div>
+      <div class="step" style="--accent: var(--pink)">
+        <div class="step-num">4</div>
+        <h3>Serve reports</h3>
+        <p>Allure 3 is generated and served through the local Nginx <code>allure</code> service.</p>
+      </div>
+    </div>
+
+    <h2>Runtime Services</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Service</th>
+          <th>Container</th>
+          <th>Host URL</th>
+          <th>Purpose</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>api</code></td>
+          <td><code>organuz-ai-fastapi-server</code></td>
+          <td><code>http://localhost:8000</code></td>
+          <td>FastAPI health, OpenAPI, docs, and Prometheus metrics.</td>
+        </tr>
+        <tr>
+          <td><code>swagger</code></td>
+          <td><code>swaggerapi/swagger-ui:v5.17.14</code></td>
+          <td><code>http://localhost:8080</code></td>
+          <td>Standalone Swagger UI pointed at FastAPI OpenAPI JSON.</td>
+        </tr>
+        <tr>
+          <td><code>prometheus</code></td>
+          <td><code>prom/prometheus:v2.55.1</code></td>
+          <td><code>http://localhost:9092</code></td>
+          <td>Scrapes FastAPI metrics from <code>api:8000/metrics</code>.</td>
+        </tr>
+        <tr>
+          <td><code>grafana</code></td>
+          <td><code>grafana/grafana:11.3.0</code></td>
+          <td><code>http://localhost:3001</code></td>
+          <td>Dashboard server with a provisioned Prometheus datasource.</td>
+        </tr>
+        <tr>
+          <td><code>allure</code></td>
+          <td><code>nginx:1.27-alpine</code></td>
+          <td><code>http://localhost:5050</code></td>
+          <td>Static server for <code>allure-report/</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="grid-2">
+      <div class="panel">
+        <h2 id="ci">GitHub Actions</h2>
+        <ul>
+          <li><code>typecheck</code> validates TypeScript.</li>
+          <li><code>tests</code> runs <code>api</code> and <code>chromium</code> in a matrix.</li>
+          <li><code>services-smoke</code> starts FastAPI, Swagger, Prometheus, and Grafana.</li>
+          <li><code>publish-allure</code> merges Allure artifacts and generates Allure 3.</li>
+          <li><code>deploy-allure</code> publishes the report to GitHub Pages on <code>main</code> or <code>master</code>.</li>
+          <li><code>report-summary</code> writes Allure, FastAPI, Swagger, and Grafana links into the Actions summary.</li>
+        </ul>
+      </div>
+
+      <div class="panel">
         <h2>Key Commands</h2>
         <ul>
-          <li><code>docker compose up --build api swagger prometheus</code></li>
+          <li><code>./scripts/run-all-tests.sh</code></li>
+          <li><code>docker compose up --build api swagger prometheus grafana allure</code></li>
           <li><code>docker compose run --rm tests</code></li>
+          <li><code>npm run typecheck</code></li>
           <li><code>npm run report</code></li>
         </ul>
-      </section>
+      </div>
     </div>
+
+    <h2 id="structure">Project Structure</h2>
+    <div class="tree">
+      <span class="dir">.</span><br>
+      |-- <span class="file">Dockerfile</span><br>
+      |-- <span class="file">docker-compose.yml</span><br>
+      |-- <span class="file">playwright.config.ts</span><br>
+      |-- <span class="dir">scripts/</span><br>
+      |   `-- <span class="file">run-all-tests.sh</span><br>
+      |-- <span class="dir">server/</span><br>
+      |   |-- <span class="file">Dockerfile</span><br>
+      |   |-- <span class="dir">app/</span><br>
+      |   |   `-- <span class="file">main.py</span><br>
+      |   |-- <span class="dir">grafana/provisioning/datasources/</span><br>
+      |   |   `-- <span class="file">prometheus.yml</span><br>
+      |   `-- <span class="file">prometheus.yml</span><br>
+      |-- <span class="dir">src/</span><br>
+      |   |-- <span class="dir">api/</span><br>
+      |   |-- <span class="dir">fixtures/</span><br>
+      |   |-- <span class="dir">pages/</span><br>
+      |   `-- <span class="dir">utils/</span><br>
+      `-- <span class="dir">tests/</span><br>
+          |-- <span class="dir">api/</span><br>
+          `-- <span class="dir">ui/</span>
+    </div>
+
+    <footer>
+      Single-file HTML architecture document. No external assets required.
+    </footer>
   </main>
 </body>
 </html>

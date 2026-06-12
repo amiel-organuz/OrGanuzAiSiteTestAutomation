@@ -37,6 +37,28 @@ services:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
 
+  grafana:
+    image: grafana/grafana:11.3.0
+    ports:
+      - "3001:3000"
+    depends_on:
+      prometheus:
+        condition: service_started
+    environment:
+      GF_SECURITY_ADMIN_USER: "admin"
+      GF_SECURITY_ADMIN_PASSWORD: "admin"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
+    volumes:
+      - ./server/grafana/provisioning:/etc/grafana/provisioning:ro
+
+  allure:
+    image: nginx:1.27-alpine
+    ports:
+      - "5050:80"
+    volumes:
+      - ./allure-report:/usr/share/nginx/html:ro
+
   tests:
     build:
       context: .
@@ -51,12 +73,15 @@ services:
         condition: service_started
       prometheus:
         condition: service_started
+      grafana:
+        condition: service_started
     environment:
       CI: "true"
       PLAYWRIGHT_MERGE_REPORTS: "false"
       API_BASE_URL: "http://api:8000"
       SWAGGER_URL: "http://swagger:8080"
       PROMETHEUS_URL: "http://prometheus:9090"
+      GRAFANA_URL: "http://grafana:3000"
     volumes:
       - ./test-results:/app/test-results
       - ./playwright-report:/app/playwright-report
