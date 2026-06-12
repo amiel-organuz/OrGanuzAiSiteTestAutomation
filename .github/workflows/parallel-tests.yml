@@ -76,11 +76,10 @@ jobs:
         if: matrix.project == 'chromium'
         run: npx playwright install --with-deps chromium
 
-      - name: Start JSONPlaceholder mock (json-server)
+      - name: Start JSONPlaceholder mock (in-memory, no persistence)
         if: matrix.project == 'api'
         run: |
-          nohup npx json-server --watch mocks/jsonplaceholder-db.json --port 3001 --host 127.0.0.1 \
-            > json-server.log 2>&1 &
+          nohup node mocks/jsonplaceholder-mock.mjs > mock.log 2>&1 &
           npx wait-on -t 60000 http://127.0.0.1:3001/posts/1
 
       - name: Run Playwright project
@@ -88,12 +87,12 @@ jobs:
           API_BASE_URL: ${{ matrix.project == 'api' && 'http://127.0.0.1:3001' || '' }}
         run: npx playwright test --project=${{ matrix.project }}
 
-      - name: Upload json-server log
+      - name: Upload mock server log
         if: matrix.project == 'api' && always()
         uses: actions/upload-artifact@v4
         with:
-          name: json-server-log
-          path: json-server.log
+          name: jsonplaceholder-mock-log
+          path: mock.log
           if-no-files-found: ignore
           retention-days: 7
 
