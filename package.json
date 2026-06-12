@@ -22,7 +22,9 @@
     "allure-js-commons": "^3.9.0",
     "allure-playwright": "^3.9.0",
     "dotenv": "^16.4.5",
-    "typescript": "^5.4.5"
+    "json-server": "^0.17.4",
+    "typescript": "^5.4.5",
+    "wait-on": "^7.2.0"
   },
   "dependencies": {
     "playwright": "^1.53.0"

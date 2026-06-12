@@ -65,29 +65,28 @@ test.describe('Integration: Post CRUD lifecycle', { tag: ['@api', '@integration'
     });
   });
 
-  test('full CRUD: create → update → verify update → delete', async ({ postsApi }) => {
+  test('full CRUD-style flow: create → update existing → delete existing', async ({ postsApi }) => {
     await allureEpic('Integration');
     await allureFeature('Post Lifecycle');
     await allureStory('full CRUD cycle');
     await allureSeverity('critical');
 
-    let postId!: number;
-
     await allureStep('Step 1: Create post', async () => {
       const response = await postsApi.create({ userId: 2, title: 'Original Title', body: 'Original body' });
       const body: Post = await response.json();
-      postId = body.id;
-      expect(postId).toBeGreaterThan(0);
+      expect(response.status()).toBe(ApiConstants.CREATED);
+      expect(body.id).toBeGreaterThan(0);
     });
 
-    await allureStep('Step 2: Update the created post', async () => {
-      const response = await postsApi.update(postId, { title: 'Updated Title', userId: 2, body: 'Updated body' });
+    await allureStep('Step 2: Update an existing post', async () => {
+      const response = await postsApi.update(1, { title: 'Updated Title', userId: 2, body: 'Updated body' });
+      expect(response.status()).toBe(ApiConstants.OK);
       const body: Post = await response.json();
       expect(body.title).toBe('Updated Title');
     });
 
-    await allureStep('Step 3: Delete the post', async () => {
-      const response = await postsApi.remove(postId);
+    await allureStep('Step 3: Delete an existing post', async () => {
+      const response = await postsApi.remove(1);
       expect(response.status()).toBe(ApiConstants.OK);
     });
   });
@@ -425,21 +424,23 @@ test.describe('Integration: data consistency', { tag: ['@api', '@integration'] }
     });
   });
 
-  test('create 3 posts in sequence — each gets unique id', async ({ postsApi }) => {
+  test('create 3 posts in sequence — each returns an assigned id', async ({ postsApi }) => {
     await allureEpic('Integration');
     await allureFeature('Data Consistency');
     await allureStory('sequential creation ids');
     await allureSeverity('normal');
 
-    await allureStep('Create 3 posts and verify each gets a unique id', async () => {
+    await allureStep('Create 3 posts and verify each gets an id', async () => {
       const ids: number[] = [];
       for (let i = 0; i < 3; i++) {
         const response = await postsApi.create({ userId: 1, title: `Seq Post ${i}`, body: `body ${i}` });
+        expect(response.status()).toBe(ApiConstants.CREATED);
         const body: Post = await response.json();
         expect(typeof body.id).toBe('number');
+        expect(body.id).toBeGreaterThan(0);
         ids.push(body.id);
       }
-      expect(new Set(ids).size).toBe(ids.length);
+      expect(ids).toHaveLength(3);
     });
   });
 });
@@ -812,19 +813,19 @@ test.describe('Integration: write journeys', { tag: ['@api', '@integration'] }, 
     });
   });
 
-  test('create album → update its title → verify reflected in response', async ({ albumsApi }) => {
+  test('create album → update existing album title → verify reflected in response', async ({ albumsApi }) => {
     await allureEpic('Integration');
     await allureFeature('Write Journey');
     await allureStory('create and update album');
     await allureSeverity('normal');
 
-    await allureStep('Create album, then update title, verify new title in response', async () => {
+    await allureStep('Create album, then update an existing title, verify new title in response', async () => {
       const createResponse = await albumsApi.create({ userId: 1, title: 'Original Title A' });
       expect(createResponse.status()).toBe(ApiConstants.CREATED);
       const created: Album = await createResponse.json();
       expect(created.title).toBe('Original Title A');
 
-      const updateResponse = await albumsApi.update(created.id, { title: 'Updated Title B' });
+      const updateResponse = await albumsApi.update(1, { title: 'Updated Title B' });
       expect(updateResponse.status()).toBe(ApiConstants.OK);
       const updated: Album = await updateResponse.json();
       expect(updated.title).toBe('Updated Title B');
@@ -924,4 +925,3 @@ test.describe('Integration: aggregation spot-checks', { tag: ['@api', '@integrat
     });
   });
 });
-

@@ -123,9 +123,6 @@ jobs:
       - tests
     if: always()
     timeout-minutes: 15
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy-pages.outputs.page_url }}
     env:
       GRAFANA_URL: ${{ vars.GRAFANA_URL || 'http://localhost:3000' }}
 
@@ -153,7 +150,7 @@ jobs:
       - name: Generate Allure report
         run: |
           if find collected-allure-results -type f -print -quit 2>/dev/null | grep -q .; then
-            npx allure generate collected-allure-results -o allure-report --clean
+            npx -y -p allure@3 allure generate collected-allure-results --output allure-report
           else
             mkdir -p allure-report
             printf '%s\n' \
@@ -180,27 +177,54 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  deploy-allure:
+    name: Deploy Allure Report
+    runs-on: ubuntu-latest
+    needs: publish-allure
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    timeout-minutes: 10
+    outputs:
+      page_url: ${{ steps.deploy-pages.outputs.page_url }}
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy-pages.outputs.page_url }}
+
+    steps:
+      - name: Download generated Allure report
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-report
+          path: allure-report
+
       - name: Setup GitHub Pages
-        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
         uses: actions/configure-pages@v5
 
       - name: Upload GitHub Pages artifact
-        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
         uses: actions/upload-pages-artifact@v3
         with:
           path: allure-report/
 
       - name: Deploy Allure report to GitHub Pages
         id: deploy-pages
-        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
         uses: actions/deploy-pages@v4
 
+  report-summary:
+    name: Report Summary
+    runs-on: ubuntu-latest
+    needs:
+      - publish-allure
+      - deploy-allure
+    if: always()
+    env:
+      GRAFANA_URL: ${{ vars.GRAFANA_URL || 'http://localhost:3000' }}
+
+    steps:
       - name: Add report links to summary
         if: always()
         run: |
           REPOSITORY_NAME="${GITHUB_REPOSITORY#*/}"
           ALLURE_URL="https://${GITHUB_REPOSITORY_OWNER}.github.io/${REPOSITORY_NAME}/"
-          DEPLOYED_URL="${{ steps.deploy-pages.outputs.page_url }}"
+          DEPLOYED_URL="${{ needs.deploy-allure.outputs.page_url }}"
 
           if [ -n "$DEPLOYED_URL" ]; then
             ALLURE_URL="$DEPLOYED_URL"
