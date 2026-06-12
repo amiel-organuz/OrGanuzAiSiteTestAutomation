@@ -16,14 +16,18 @@ test.describe('Intentionally Failing E2E', { tag: ['@ui', '@intentionally-failin
     await homePage.navigate();
   });
 
-  test('homepage H1 should equal a string that does not exist on the page', async ({ page }) => {
+  // test.fail() = this assertion is expected to fail. Playwright counts it
+  // as passing when it fails — keeps the failure-capture demo without
+  // turning CI red. If the assertion ever starts passing, Playwright
+  // surfaces it as "unexpected pass" so we know to remove this.
+  test.fail('homepage H1 should equal a string that does not exist on the page', async ({ page }) => {
     await allureEpic('Homepage');
     await allureFeature('Failure pipeline');
     await allureStory('Assertion failure');
     await allureSeverity('trivial');
 
     await allureStep('Assert H1 equals a non-existent literal', async () => {
-      await expect(page.locator('h1').first()).toHaveText('THIS HEADING DOES NOT EXIST');
+      await expect(page.locator('h1').first()).toHaveText('THIS HEADING DOES NOT EXIST', { timeout: 3000 });
     });
   });
 });
