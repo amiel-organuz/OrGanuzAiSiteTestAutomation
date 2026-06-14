@@ -68,6 +68,10 @@ export default defineConfig({
         baseURL: config.api.baseUrl,
       },
     },
+    {
+      name: 'agent',
+      testMatch: 'tests/agent/**/*.spec.ts',
+    },
     // {
     //   name: 'firefox',
     //   use: { ...devices['Desktop Firefox'], baseURL: config.web.baseUrl },

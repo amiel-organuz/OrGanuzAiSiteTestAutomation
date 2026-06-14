@@ -377,9 +377,9 @@
   <main class="page">
     <header class="hero" id="overview">
       <span class="eyebrow">Pastel architecture map</span>
-      <h1>Playwright automation with FastAPI, Swagger, Grafana, Prometheus, JSONPlaceholder mock, and Allure 3</h1>
+      <h1>Playwright automation with QA orchestration, FastAPI, Swagger, Grafana, Prometheus, JSONPlaceholder mock, and Allure 3</h1>
       <p class="subtitle">
-        A single-file architecture view for the OrGanuz AI site automation stack. Local runs start the runtime services, execute the Playwright projects, generate Allure 3, and print the main service links. GitHub Actions runs the same projects in parallel, uses an in-memory JSONPlaceholder mock for API tests, and publishes Allure to GitHub Pages.
+        A single-file architecture view for the OrGanuz AI site automation stack. Local runs start the runtime services, execute the Playwright projects, generate Allure 3, and print the main service links. The QA agent can now invoke the real Playwright CLI through an orchestrator case mapping, while GitHub Actions runs the same projects in parallel, uses an in-memory JSONPlaceholder mock for API tests, and publishes Allure to GitHub Pages.
       </p>
 
       <div class="services" id="services" aria-label="Local service links">
@@ -410,7 +410,7 @@
     <div class="cards">
       <div class="card" style="--accent: var(--blue)">
         <div class="card-title"><span class="badge">TS</span> Playwright Tests</div>
-        <p class="card-desc">Runs UI tests in the <code>chromium</code> project and API tests in the <code>api</code> project, with retries enabled in CI.</p>
+        <p class="card-desc">Runs UI tests in the <code>chromium</code> project, API tests in the <code>api</code> project, and orchestrator regression specs in the <code>agent</code> project.</p>
       </div>
       <div class="card" style="--accent: var(--mint)">
         <div class="card-title"><span class="badge">PY</span> FastAPI</div>
@@ -440,6 +440,10 @@
         <div class="card-title"><span class="badge">FAIL</span> Failure Capture</div>
         <p class="card-desc"><code>tests/ui/intentionally-failing.spec.ts</code> is an expected-failure test that verifies screenshots, videos, traces, and Allure attachments.</p>
       </div>
+      <div class="card" style="--accent: var(--violet)">
+        <div class="card-title"><span class="badge">AGENT</span> QA Orchestrator</div>
+        <p class="card-desc">Coordinates Azure DevOps, Google Sheets, Playwright, and OneDrive. The CLI-backed runner maps orchestrator cases to real Playwright projects and reports pass/fail evidence back through the agent loop.</p>
+      </div>
     </div>
 
     <h2 id="diagram">Architecture Diagram</h2>
@@ -458,7 +462,7 @@
 
         <rect x="70" y="70" width="250" height="98" rx="20" fill="#c7dcff" filter="url(#softShadow)"/>
         <text x="195" y="106" text-anchor="middle" font-size="18" font-weight="800" fill="#27324a">Playwright</text>
-        <text x="195" y="132" text-anchor="middle" font-size="13" fill="#40506b">chromium + api projects</text>
+        <text x="195" y="132" text-anchor="middle" font-size="13" fill="#40506b">chromium + api + agent projects</text>
         <text x="195" y="152" text-anchor="middle" font-size="12" fill="#40506b">reports: html, junit, json, allure, blob</text>
 
         <rect x="385" y="70" width="250" height="98" rx="20" fill="#bff4dc" filter="url(#softShadow)"/>
@@ -501,7 +505,57 @@
         <path d="M 350 343 L 350 395" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
         <path d="M 510 168 L 610 395" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
         <path d="M 760 431 L 730 431" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
-      </svg>
+    </div>
+
+    <h2>QA Agent Orchestrator Stack</h2>
+    <div class="panel" style="margin-bottom: 24px;">
+      <p style="margin-bottom: 14px;"><strong>The QA Agent Orchestrator</strong> coordinates multiple testing tools and integrations to automate the verification pipeline:</p>
+      <div class="cards" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+        <div class="step" style="--accent: var(--violet)">
+          <strong>Azure DevOps</strong>
+          <p>System of record. The orchestrator reads test plans, writes back outcomes, and files bugs idempotently (guards against duplicates).</p>
+        </div>
+        <div class="step" style="--accent: var(--mint)">
+          <strong>Google Sheets</strong>
+          <p>Provides parameterized input/expected values and environment configurations, and logs live results.</p>
+        </div>
+        <div class="step" style="--accent: var(--blue)">
+          <strong>Playwright Runner</strong>
+          <p><code>CliPlaywrightRunner</code> invokes <code>npx playwright test</code> for mapped projects, reads <code>test-results/results.json</code>, and returns normalized execution results to the orchestrator.</p>
+        </div>
+        <div class="step" style="--accent: var(--peach)">
+          <strong>OneDrive Store</strong>
+          <p>Durable evidence storage. Returns shareable links that are linked in reported DevOps bugs.</p>
+        </div>
+        <div class="step" style="--accent: var(--rose)">
+          <strong>Current Test Mapping</strong>
+          <p><code>npm run agent:current-tests</code> maps <code>PW-API</code>, <code>PW-CHROMIUM</code>, and <code>PW-AGENT</code> to the real Playwright <code>api</code>, <code>chromium</code>, and <code>agent</code> projects.</p>
+        </div>
+      </div>
+    </div>
+
+    <h2>Agent Current-Test Flow</h2>
+    <div class="flow">
+      <div class="step" style="--accent: var(--violet)">
+        <div class="step-num">1</div>
+        <h3>Build agent</h3>
+        <p><code>npm run agent:current-tests</code> first compiles TypeScript with <code>tsc -p tsconfig.json</code>.</p>
+      </div>
+      <div class="step" style="--accent: var(--mint)">
+        <div class="step-num">2</div>
+        <h3>Create suite</h3>
+        <p><code>run-current-tests.ts</code> creates stubbed ADO/Sheets/OneDrive connectors and a generated suite for the repository's Playwright projects.</p>
+      </div>
+      <div class="step" style="--accent: var(--blue)">
+        <div class="step-num">3</div>
+        <h3>Run projects</h3>
+        <p><code>CliPlaywrightRunner</code> executes <code>--project=api</code>, <code>--project=chromium</code>, and <code>--project=agent</code> as orchestrator cases.</p>
+      </div>
+      <div class="step" style="--accent: var(--pink)">
+        <div class="step-num">4</div>
+        <h3>Report outcome</h3>
+        <p>The orchestrator uploads report artifacts, writes case results, files bugs for failures, logs Sheets rows, and returns a JSON run summary.</p>
+      </div>
     </div>
 
     <h2 id="flow">CLI Flow</h2>
@@ -519,7 +573,7 @@
       <div class="step" style="--accent: var(--lavender)">
         <div class="step-num">3</div>
         <h3>Run tests</h3>
-        <p>Playwright executes the <code>chromium</code> and <code>api</code> projects with configured reporters.</p>
+        <p>Playwright executes the <code>chromium</code>, <code>api</code>, and focused <code>agent</code> projects with configured reporters.</p>
       </div>
       <div class="step" style="--accent: var(--pink)">
         <div class="step-num">4</div>
@@ -603,6 +657,7 @@
         <ul>
           <li><code>typecheck</code> validates TypeScript.</li>
           <li><code>tests</code> runs <code>api</code> and <code>chromium</code> in a matrix.</li>
+          <li>The repository also has a local <code>agent</code> Playwright project for orchestrator regression coverage.</li>
           <li>The <code>api</code> job starts the in-memory JSONPlaceholder mock and uploads <code>mock.log</code>.</li>
           <li><code>services-smoke</code> starts FastAPI, Swagger, Prometheus, and Grafana.</li>
           <li><code>publish-allure</code> merges Allure artifacts and generates Allure 3.</li>
@@ -618,6 +673,8 @@
           <li><code>docker compose up --build api swagger prometheus grafana allure</code></li>
           <li><code>docker compose run --rm tests</code></li>
           <li><code>npm run typecheck</code></li>
+          <li><code>npx playwright test --project=agent</code></li>
+          <li><code>npm run agent:current-tests</code></li>
           <li><code>npm run report</code></li>
         </ul>
       </div>
@@ -642,11 +699,13 @@
       |   |   `-- <span class="file">prometheus.yml</span><br>
       |   `-- <span class="file">prometheus.yml</span><br>
       |-- <span class="dir">src/</span><br>
+      |   |-- <span class="dir">agent/</span><br>
       |   |-- <span class="dir">api/</span><br>
       |   |-- <span class="dir">fixtures/</span><br>
       |   |-- <span class="dir">pages/</span><br>
       |   `-- <span class="dir">utils/</span><br>
       `-- <span class="dir">tests/</span><br>
+          |-- <span class="dir">agent/</span><br>
           |-- <span class="dir">api/</span><br>
           `-- <span class="dir">ui/</span>
     </div>

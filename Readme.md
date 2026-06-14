@@ -4,7 +4,7 @@ Playwright TypeScript automation for `www.organuz.ai`, with a supporting Docker 
 
 ## Stack
 
-- Playwright for UI and API tests
+- Playwright for UI, API, and agent-orchestrator regression tests
 - TypeScript for test and framework code
 - FastAPI service for local API endpoints and health checks
 - In-memory JSONPlaceholder mock for deterministic API tests in CI
@@ -12,6 +12,7 @@ Playwright TypeScript automation for `www.organuz.ai`, with a supporting Docker 
 - Prometheus for metrics scraping
 - Grafana for metrics dashboards
 - Allure and Playwright HTML reports for test results
+- A QA agent orchestrator (`src/agent/`) that coordinates Azure DevOps, Playwright, OneDrive, and Google Sheets, can enrich test cases from PDF/DOCX/XLSX requirements documents, and can run the repository's current Playwright projects through a real CLI-backed runner
 
 ## Project Structure
 
@@ -33,12 +34,18 @@ Playwright TypeScript automation for `www.organuz.ai`, with a supporting Docker 
 |   |-- requirements.txt
 |   `-- app/
 |       `-- main.py
+|-- test-requirements-docs/   # sample requirements docs for the QA agent (generated)
 |-- src/
+|   |-- agent/                # QA agent orchestrator (see src/agent/README.md)
+|   |   |-- connectors/       # Azure DevOps, Google Sheets, OneDrive, Playwright (+ stubs)
+|   |   |-- utils/            # RequirementsReader (PDF/DOCX/XLSX parsing)
+|   |   `-- demo/             # seed data, offline demo, sample-doc generator
 |   |-- api/
 |   |-- fixtures/
 |   |-- pages/
 |   `-- utils/
 `-- tests/
+    |-- agent/                # orchestrator specs (Playwright `agent` project)
     |-- api/
     `-- ui/
 ```
@@ -57,13 +64,15 @@ Run all tests locally with the project defaults:
 npm test
 ```
 
+`npm test` runs every project configured in `playwright.config.ts`: `chromium`, `api`, and `agent`.
+
 Run the full local automation flow:
 
 ```bash
 ./scripts/run-all-tests.sh
 ```
 
-This script typechecks the project, starts the local runtime stack when needed, runs the Playwright `chromium` and `api` projects, generates an Allure 3 report, starts the Allure static server, and prints the main service URLs at the end.
+This script typechecks the project, starts the local runtime stack when needed, runs the Playwright `chromium` and `api` projects, generates an Allure 3 report, starts the Allure static server, and prints the main service URLs at the end. It intentionally does not run the `agent` project; run that directly with `npx playwright test --project=agent`.
 
 Run only UI tests:
 
@@ -80,11 +89,58 @@ API_BASE_URL=http://127.0.0.1:3001 npx playwright test --project=api
 
 The mock is in-memory and does not persist writes. It returns JSONPlaceholder-style fake write responses for `POST`, `PUT`, `PATCH`, and `DELETE`.
 
+Run the agent regression tests:
+
+```bash
+npx playwright test --project=agent
+```
+
 Run type checking:
 
 ```bash
 npm run typecheck
 ```
+
+## QA Agent
+
+The repository includes a QA agent orchestrator under `src/agent/`. It coordinates four systems — Azure DevOps (system of record), Playwright (execution), OneDrive (evidence store), and Google Sheets (test data and results log) — and runs the suite end-to-end: read cases, optionally enrich acceptance criteria from requirements docs, pull data, execute, push evidence, write results back, file bugs idempotently, re-run flaky failures once, and emit a summary.
+
+Run the offline demo (everything wired to in-memory stubs, no credentials needed):
+
+```bash
+npm run agent:demo
+```
+
+Run the repository's real Playwright projects through the agent (stubbed Azure DevOps/Sheets/OneDrive, real Playwright CLI):
+
+```bash
+npm run agent:current-tests
+```
+
+`agent:current-tests` generates one orchestrator case per current Playwright project:
+
+| Case | Command |
+| --- | --- |
+| `PW-API` | `npx playwright test --project=api` |
+| `PW-CHROMIUM` | `npx playwright test --project=chromium` |
+| `PW-AGENT` | `npx playwright test --project=agent` |
+
+The command exits non-zero if any mapped project fails or is blocked.
+
+Generate a sample set of requirements documents and run with enrichment enabled:
+
+```bash
+npm run agent:build && node dist/src/agent/demo/generate-test-files.js
+QA_REQUIREMENTS_PATH=test-requirements-docs npm run agent:demo
+```
+
+The agent has its own Playwright project (`agent`, matching `tests/agent/**/*.spec.ts`) for orchestrator regression coverage:
+
+```bash
+npx playwright test --project=agent
+```
+
+Configuration is env-driven via `ADO_*` and `QA_*` variables (see `.env.example`). Full design notes, the connector interfaces, and the path from stubs to real backends are documented in [`src/agent/README.md`](src/agent/README.md).
 
 ## Docker Compose
 
@@ -190,7 +246,17 @@ Runtime configuration is read from environment variables with fallbacks in `conf
 | `WORKERS` | Playwright worker count |
 | `BROWSER` | Browser project selection |
 
+The default Playwright projects are:
+
+| Project | Test files | Typical command |
+| --- | --- | --- |
+| `chromium` | `tests/ui/**/*.spec.ts` | `npx playwright test --project=chromium` |
+| `api` | `tests/api/**/*.spec.ts` | `npx playwright test --project=api` |
+| `agent` | `tests/agent/**/*.spec.ts` | `npx playwright test --project=agent` |
+
 Inside Docker Compose, the `tests` service points `API_BASE_URL` to `http://api:8000`.
+
+The QA agent reads its own variables (`ADO_PLAN_ID`, `ADO_SUITE_ID`, `ADO_START_READONLY`, `QA_ENVIRONMENT`, `QA_RERUN_FLAKY`, `QA_FLAKY_TAG`, `QA_FILE_BUGS`, `QA_MAX_CASES`, `QA_EVIDENCE_PREFIX`, `QA_REQUIREMENTS_PATH`, `QA_REQUIREMENTS_SOURCE`). They are listed with defaults and purpose in [`src/agent/README.md`](src/agent/README.md) and seeded in `.env.example`. `agent:current-tests` also respects the normal Playwright target variables such as `WEB_BASE_URL` and `API_BASE_URL`.
 
 Local service URL variables used by `scripts/run-all-tests.sh`:
 
@@ -212,6 +278,7 @@ The parallel pipeline in `.github/workflows/parallel-tests.yml` runs:
 
 - `typecheck`
 - Playwright `api` and `chromium` projects in parallel
+- Agent orchestrator regression tests are available locally as the `agent` project; add them to CI separately if you want the pipeline to gate on orchestrator behavior.
 - JSONPlaceholder mock startup for the `api` matrix job
 - FastAPI, Swagger, Prometheus, and Grafana service smoke checks
 - Allure 3 report generation
@@ -243,4 +310,6 @@ Set these repository variables when the summary should point to externally reach
 
 ## Architecture
 
-Open [Architecture.html](Architecture.html) in a browser for a pastel, single-file visual overview of the Docker Compose services, CLI flow, GitHub Actions pipeline, report publishing, and project structure.
+Open [Architecture.html](Architecture.html) in a browser for a pastel, single-file visual overview of the Docker Compose services, CLI flow, GitHub Actions pipeline, report publishing, the QA agent orchestrator, and project structure.
+
+For the QA agent specifically — its architecture diagram, the orchestration loop, the design decisions it encodes, and how to swap stubs for real connectors — see [`src/agent/README.md`](src/agent/README.md).
