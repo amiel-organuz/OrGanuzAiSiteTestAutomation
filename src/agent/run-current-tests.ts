@@ -11,62 +11,72 @@ import {
   StubOneDriveConnector,
 } from './connectors';
 import { Orchestrator } from './Orchestrator';
-import type { DataRow, RunEnvironment, TestSuite } from './types';
+import type { AcceptanceCriterion, DataRow, RunEnvironment, TestCase, TestSuite } from './types';
+
+interface ProjectMapping {
+  id: string;
+  title: string;
+  project: string;
+  tags: string[];
+  acceptanceCriterion: AcceptanceCriterion;
+}
 
 const environment: RunEnvironment = {
   name: agentConfig.run.environment,
   baseUrl: process.env.WEB_BASE_URL || 'https://www.organuz.ai',
 };
 
+const projectMappings: ProjectMapping[] = [
+  {
+    id: 'PW-API',
+    title: 'Run API Playwright project',
+    project: 'api',
+    tags: ['@playwright', '@api'],
+    acceptanceCriterion: { id: 'AC-API', description: 'API project exits successfully' },
+  },
+  {
+    id: 'PW-CHROMIUM',
+    title: 'Run Chromium UI Playwright project',
+    project: 'chromium',
+    tags: ['@playwright', '@ui'],
+    acceptanceCriterion: { id: 'AC-UI', description: 'Chromium project exits successfully' },
+  },
+  {
+    id: 'PW-AGENT',
+    title: 'Run agent regression Playwright project',
+    project: 'agent',
+    tags: ['@playwright', '@agent'],
+    acceptanceCriterion: { id: 'AC-AGENT', description: 'Agent regression project exits successfully' },
+  },
+];
+
 const currentTestsSuite: TestSuite = {
   planId: agentConfig.azureDevOps.planId,
   suiteId: agentConfig.azureDevOps.suiteId,
   name: 'Current repository Playwright tests',
-  cases: [
-    {
-      id: 'PW-API',
-      title: 'Run API Playwright project',
-      steps: ['Run npx playwright test --project=api'],
-      acceptanceCriteria: [{ id: 'AC-API', description: 'API project exits successfully' }],
-      tags: ['@playwright', '@api'],
-    },
-    {
-      id: 'PW-CHROMIUM',
-      title: 'Run Chromium UI Playwright project',
-      steps: ['Run npx playwright test --project=chromium'],
-      acceptanceCriteria: [{ id: 'AC-UI', description: 'Chromium project exits successfully' }],
-      tags: ['@playwright', '@ui'],
-    },
-    {
-      id: 'PW-AGENT',
-      title: 'Run agent regression Playwright project',
-      steps: ['Run npx playwright test --project=agent'],
-      acceptanceCriteria: [{ id: 'AC-AGENT', description: 'Agent regression project exits successfully' }],
-      tags: ['@playwright', '@agent'],
-    },
-  ],
+  cases: projectMappings.map(toTestCase),
 };
 
-const rows: DataRow[] = [
-  {
-    caseId: 'PW-API',
+const rows: DataRow[] = projectMappings.map(toDataRow);
+
+function toTestCase(mapping: ProjectMapping): TestCase {
+  return {
+    id: mapping.id,
+    title: mapping.title,
+    steps: [`Run npx playwright test --project=${mapping.project}`],
+    acceptanceCriteria: [mapping.acceptanceCriterion],
+    tags: mapping.tags,
+  };
+}
+
+function toDataRow(mapping: ProjectMapping): DataRow {
+  return {
+    caseId: mapping.id,
     environment: environment.name,
-    inputs: { project: 'api' },
+    inputs: { project: mapping.project },
     expected: { exitCode: '0' },
-  },
-  {
-    caseId: 'PW-CHROMIUM',
-    environment: environment.name,
-    inputs: { project: 'chromium' },
-    expected: { exitCode: '0' },
-  },
-  {
-    caseId: 'PW-AGENT',
-    environment: environment.name,
-    inputs: { project: 'agent' },
-    expected: { exitCode: '0' },
-  },
-];
+  };
+}
 
 async function main(): Promise<void> {
   const ado = new StubAzureDevOpsConnector(currentTestsSuite);

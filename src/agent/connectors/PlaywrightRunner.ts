@@ -6,6 +6,7 @@ import type { DataRow, ExecutionResult, LocalArtifact, RunEnvironment, StepResul
 import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
+const PLAYWRIGHT_JSON_REPORT_PATH = 'test-results/results.json';
 
 /**
  * The execution engine. Given a case, its data row, and the target environment,
@@ -55,94 +56,48 @@ interface PlaywrightJsonResult {
   errors?: Array<{ message?: string }>;
 }
 
-/**
- * Real Playwright CLI-backed runner.
- *
- * The orchestrator still drives one logical TestCase at a time, while the row
- * decides which Playwright slice that case maps to:
- *   - inputs.project: comma-separated Playwright project names, e.g. "api,chromium"
- *   - inputs.testFile: optional spec file or directory
- *   - inputs.grep / inputs.grepInvert: optional Playwright filters
- */
-export class CliPlaywrightRunner implements PlaywrightRunner {
+interface PlaywrightCommandResult {
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+}
+
+export interface PlaywrightCommandRunner {
+  run(args: string[], env: NodeJS.ProcessEnv): Promise<PlaywrightCommandResult>;
+}
+
+export class ExecFilePlaywrightCommandRunner implements PlaywrightCommandRunner {
   constructor(private readonly cwd = process.cwd()) {}
 
-  async execute(testCase: TestCase, dataRow: DataRow | undefined, env: RunEnvironment): Promise<ExecutionResult> {
-    if (!dataRow) {
-      return {
-        caseId: testCase.id,
-        status: 'blocked',
-        durationMs: 0,
-        steps: [],
-        errorMessage: 'No matching data row for case/environment',
-        localArtifacts: [],
-      };
-    }
-
-    const args = this.toArgs(dataRow);
-    logger.step(`Playwright CLI: case ${testCase.id} "${testCase.title}" -> npx playwright test ${args.join(' ')}`);
-
-    const started = Date.now();
-    let stdout = '';
-    let stderr = '';
-    let exitCode = 0;
-
+  async run(args: string[], env: NodeJS.ProcessEnv): Promise<PlaywrightCommandResult> {
     try {
       const result = await execFileAsync('npx', ['playwright', 'test', ...args], {
         cwd: this.cwd,
-        env: {
-          ...process.env,
-          WEB_BASE_URL: env.baseUrl,
-        },
+        env,
         maxBuffer: 50 * 1024 * 1024,
       });
-      stdout = result.stdout;
-      stderr = result.stderr;
+      return {
+        stdout: result.stdout,
+        stderr: result.stderr,
+        exitCode: 0,
+      };
     } catch (err) {
       const failed = err as NodeJS.ErrnoException & {
         stdout?: string;
         stderr?: string;
         code?: number;
       };
-      stdout = failed.stdout ?? '';
-      stderr = failed.stderr ?? failed.message;
-      exitCode = typeof failed.code === 'number' ? failed.code : 1;
+      return {
+        stdout: failed.stdout ?? '',
+        stderr: failed.stderr ?? failed.message,
+        exitCode: typeof failed.code === 'number' ? failed.code : 1,
+      };
     }
-
-    const report = await this.readJsonReport(stdout);
-    const stats = report?.stats;
-    const failedCount = stats?.unexpected ?? (exitCode === 0 ? 0 : 1);
-    const skippedCount = stats?.skipped ?? 0;
-    const totalCount = (stats?.expected ?? 0) + failedCount + (stats?.flaky ?? 0) + skippedCount;
-    const status = exitCode === 0 ? 'passed' : 'failed';
-    const durationMs = Math.round(stats?.duration ?? Date.now() - started);
-    const errorMessage = status === 'failed' ? this.errorMessage(report, stderr, exitCode) : undefined;
-
-    const steps: StepResult[] = [
-      {
-        description: `playwright test ${args.join(' ')}`.trim(),
-        expected: 'exit code 0',
-        actual: `exit code ${exitCode}; total=${totalCount} failed=${failedCount} skipped=${skippedCount}`,
-        passed: status === 'passed',
-      },
-    ];
-
-    const localArtifacts: LocalArtifact[] = [
-      { kind: 'html-report', name: `case-${testCase.id}-playwright-report`, path: join(this.cwd, 'playwright-report') },
-      { kind: 'log', name: `case-${testCase.id}-playwright-results.json`, path: join(this.cwd, 'test-results/results.json') },
-    ];
-
-    return {
-      caseId: testCase.id,
-      status,
-      durationMs,
-      steps,
-      errorMessage,
-      localArtifacts,
-    };
   }
+}
 
-  private toArgs(dataRow: DataRow): string[] {
+export class PlaywrightCliArgsBuilder {
+  build(dataRow: DataRow): string[] {
     const args: string[] = [];
     const testFile = dataRow.inputs.testFile?.trim();
     if (testFile) args.push(testFile);
@@ -166,8 +121,23 @@ export class CliPlaywrightRunner implements PlaywrightRunner {
       .map((v) => v.trim())
       .filter(Boolean);
   }
+}
 
-  private parseReport(stdout: string): PlaywrightJsonReport | undefined {
+export class PlaywrightJsonReportReader {
+  constructor(private readonly cwd = process.cwd()) {}
+
+  async read(stdout: string): Promise<PlaywrightJsonReport | undefined> {
+    const fromStdout = this.parseStdout(stdout);
+    if (fromStdout) return fromStdout;
+
+    try {
+      return JSON.parse(await readFile(join(this.cwd, PLAYWRIGHT_JSON_REPORT_PATH), 'utf8')) as PlaywrightJsonReport;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private parseStdout(stdout: string): PlaywrightJsonReport | undefined {
     const firstBrace = stdout.indexOf('{');
     const lastBrace = stdout.lastIndexOf('}');
     if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) return undefined;
@@ -178,19 +148,10 @@ export class CliPlaywrightRunner implements PlaywrightRunner {
       return undefined;
     }
   }
+}
 
-  private async readJsonReport(stdout: string): Promise<PlaywrightJsonReport | undefined> {
-    const fromStdout = this.parseReport(stdout);
-    if (fromStdout) return fromStdout;
-
-    try {
-      return JSON.parse(await readFile(join(this.cwd, 'test-results/results.json'), 'utf8')) as PlaywrightJsonReport;
-    } catch {
-      return undefined;
-    }
-  }
-
-  private errorMessage(report: PlaywrightJsonReport | undefined, stderr: string, exitCode: number): string {
+export class PlaywrightFailureFormatter {
+  message(report: PlaywrightJsonReport | undefined, stderr: string, exitCode: number): string {
     const reporterError = [
       ...(report?.errors?.map((e) => e.message).filter(Boolean) ?? []),
       ...this.failedTestErrors(report).slice(0, 5),
@@ -220,6 +181,91 @@ export class CliPlaywrightRunner implements PlaywrightRunner {
     for (const suite of report?.suites ?? []) visitSuite(suite);
     return messages;
   }
+}
+
+/**
+ * Real Playwright CLI-backed runner.
+ *
+ * The orchestrator still drives one logical TestCase at a time, while the row
+ * decides which Playwright slice that case maps to:
+ *   - inputs.project: comma-separated Playwright project names, e.g. "api,chromium"
+ *   - inputs.testFile: optional spec file or directory
+ *   - inputs.grep / inputs.grepInvert: optional Playwright filters
+ */
+export class CliPlaywrightRunner implements PlaywrightRunner {
+  private readonly commandRunner: PlaywrightCommandRunner;
+  private readonly argsBuilder: PlaywrightCliArgsBuilder;
+  private readonly reportReader: PlaywrightJsonReportReader;
+  private readonly failureFormatter: PlaywrightFailureFormatter;
+
+  constructor(
+    private readonly cwd = process.cwd(),
+    commandRunner?: PlaywrightCommandRunner,
+    argsBuilder = new PlaywrightCliArgsBuilder(),
+    reportReader = new PlaywrightJsonReportReader(cwd),
+    failureFormatter = new PlaywrightFailureFormatter(),
+  ) {
+    this.commandRunner = commandRunner ?? new ExecFilePlaywrightCommandRunner(cwd);
+    this.argsBuilder = argsBuilder;
+    this.reportReader = reportReader;
+    this.failureFormatter = failureFormatter;
+  }
+
+  async execute(testCase: TestCase, dataRow: DataRow | undefined, env: RunEnvironment): Promise<ExecutionResult> {
+    if (!dataRow) {
+      return {
+        caseId: testCase.id,
+        status: 'blocked',
+        durationMs: 0,
+        steps: [],
+        errorMessage: 'No matching data row for case/environment',
+        localArtifacts: [],
+      };
+    }
+
+    const args = this.argsBuilder.build(dataRow);
+    logger.step(`Playwright CLI: case ${testCase.id} "${testCase.title}" -> npx playwright test ${args.join(' ')}`);
+
+    const started = Date.now();
+    const commandResult = await this.commandRunner.run(args, {
+      ...process.env,
+      WEB_BASE_URL: env.baseUrl,
+    });
+    const report = await this.reportReader.read(commandResult.stdout);
+    const stats = report?.stats;
+    const failedCount = stats?.unexpected ?? (commandResult.exitCode === 0 ? 0 : 1);
+    const skippedCount = stats?.skipped ?? 0;
+    const totalCount = (stats?.expected ?? 0) + failedCount + (stats?.flaky ?? 0) + skippedCount;
+    const status = commandResult.exitCode === 0 ? 'passed' : 'failed';
+    const durationMs = Math.round(stats?.duration ?? Date.now() - started);
+    const errorMessage = status === 'failed'
+      ? this.failureFormatter.message(report, commandResult.stderr, commandResult.exitCode)
+      : undefined;
+
+    const steps: StepResult[] = [
+      {
+        description: `playwright test ${args.join(' ')}`.trim(),
+        expected: 'exit code 0',
+        actual: `exit code ${commandResult.exitCode}; total=${totalCount} failed=${failedCount} skipped=${skippedCount}`,
+        passed: status === 'passed',
+      },
+    ];
+
+    const localArtifacts: LocalArtifact[] = [
+      { kind: 'html-report', name: `case-${testCase.id}-playwright-report`, path: join(this.cwd, 'playwright-report') },
+      { kind: 'log', name: `case-${testCase.id}-playwright-results.json`, path: join(this.cwd, PLAYWRIGHT_JSON_REPORT_PATH) },
+    ];
+
+    return {
+      caseId: testCase.id,
+      status,
+      durationMs,
+      steps,
+      errorMessage,
+      localArtifacts,
+    };
+  }
+
 }
 
 /**
