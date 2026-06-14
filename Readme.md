@@ -174,6 +174,9 @@ docker compose up -d allure
 | --- | --- |
 | FastAPI root | `http://localhost:8000/` |
 | FastAPI health | `http://localhost:8000/health` |
+| Automation overview | `http://localhost:8000/automation` |
+| Playwright project metadata | `http://localhost:8000/automation/playwright-projects` |
+| QA agent command metadata | `http://localhost:8000/automation/qa-agent` |
 | FastAPI metrics | `http://localhost:8000/metrics` |
 | FastAPI built-in Swagger | `http://localhost:8000/docs` |
 | External Swagger UI | `http://localhost:8080` |
