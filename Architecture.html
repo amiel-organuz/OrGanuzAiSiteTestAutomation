@@ -573,7 +573,7 @@
       <div class="step" style="--accent: var(--lavender)">
         <div class="step-num">3</div>
         <h3>Run tests</h3>
-        <p>Playwright executes the <code>chromium</code>, <code>api</code>, and focused <code>agent</code> projects with configured reporters.</p>
+        <p><code>npm test</code> executes <code>chromium</code>, <code>api</code>, and <code>agent</code>. The local shell flow runs <code>chromium</code> and <code>api</code> while service containers are online.</p>
       </div>
       <div class="step" style="--accent: var(--pink)">
         <div class="step-num">4</div>
@@ -670,6 +670,7 @@
         <h2>Key Commands</h2>
         <ul>
           <li><code>./scripts/run-all-tests.sh</code></li>
+          <li><code>npm test</code></li>
           <li><code>docker compose up --build api swagger prometheus grafana allure</code></li>
           <li><code>docker compose run --rm tests</code></li>
           <li><code>npm run typecheck</code></li>
