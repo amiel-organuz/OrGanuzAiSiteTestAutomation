@@ -15,10 +15,12 @@ import type {
   RunEnvironment,
   RunSummary,
   TestCase,
-  TestSuite,
-  RequirementsSummary,
 } from './types';
-import { RequirementsReader } from './utils/RequirementsReader';
+import { appendError, errorMessage } from './services/ErrorUtils';
+import { RequirementsEnricher } from './services/RequirementsEnricher';
+import { ResultTextFormatter } from './services/ResultTextFormatter';
+import { RunSummaryBuilder } from './services/RunSummaryBuilder';
+import { RunSummaryLogger } from './services/RunSummaryLogger';
 
 /** The four connectors the orchestrator depends on, injected for testability. */
 export interface OrchestratorDeps {
@@ -26,6 +28,9 @@ export interface OrchestratorDeps {
   sheets: GoogleSheetsConnector;
   oneDrive: OneDriveConnector;
   runner: PlaywrightRunner;
+  formatter?: ResultTextFormatter;
+  summaryBuilder?: RunSummaryBuilder;
+  summaryLogger?: RunSummaryLogger;
 }
 
 /**
@@ -48,11 +53,19 @@ export interface OrchestratorDeps {
  * write access for the reporting step (step 5).
  */
 export class Orchestrator {
-  constructor(private readonly deps: OrchestratorDeps, private readonly config: AgentConfig) {}
+  private readonly formatter: ResultTextFormatter;
+  private readonly summaryBuilder: RunSummaryBuilder;
+  private readonly summaryLogger: RunSummaryLogger;
+
+  constructor(private readonly deps: OrchestratorDeps, private readonly config: AgentConfig) {
+    this.formatter = deps.formatter ?? new ResultTextFormatter();
+    this.summaryBuilder = deps.summaryBuilder ?? new RunSummaryBuilder();
+    this.summaryLogger = deps.summaryLogger ?? new RunSummaryLogger();
+  }
 
   async run(): Promise<RunSummary> {
     const { ado, sheets } = this.deps;
-    const { azureDevOps, run, evidence, requirements } = this.config;
+    const { azureDevOps, run, evidence } = this.config;
     const startedAt = new Date().toISOString();
 
     // --- Step 1: read the suite (read-only scope). -------------------------
@@ -61,23 +74,10 @@ export class Orchestrator {
     const cases = run.maxCases > 0 ? suite.cases.slice(0, run.maxCases) : suite.cases;
 
     // --- Step 1.5: optionally read requirements docs. -----------------------
-    let requirementsSummary: RequirementsSummary | undefined;
-    if (requirements?.path) {
-      let preloadedFiles: Array<{ name: string; content: Buffer }> | undefined;
-      if (requirements.source === 'onedrive') {
-        preloadedFiles = await this.deps.oneDrive.downloadFiles(requirements.path);
-      }
-
-      const reader = new RequirementsReader(requirements.path, preloadedFiles);
-      const files = await reader.load();
-      if (files.length > 0) {
-        reader.matchAndEnrich(cases, files);
-        requirementsSummary = {
-          path: requirements.path,
-          files,
-        };
-      }
-    }
+    const requirementsSummary = await new RequirementsEnricher(
+      this.deps.oneDrive,
+      this.config.requirements,
+    ).enrich(cases);
 
     // --- Step 2: resolve environment + pull data rows. ---------------------
     const env = await sheets.getEnvironment(run.environment);
@@ -94,8 +94,16 @@ export class Orchestrator {
     }
 
     const finishedAt = new Date().toISOString();
-    const summary = this.summarise(suite, env, startedAt, finishedAt, results, bugsFiled, requirementsSummary);
-    this.logSummary(summary);
+    const summary = this.summaryBuilder.build(
+      suite,
+      env,
+      startedAt,
+      finishedAt,
+      results,
+      bugsFiled,
+      requirementsSummary,
+    );
+    this.summaryLogger.log(summary);
     return summary;
   }
 
@@ -135,7 +143,7 @@ export class Orchestrator {
       execution = {
         ...execution,
         status: execution.status === 'passed' ? 'blocked' : execution.status,
-        errorMessage: this.appendError(execution.errorMessage, `Evidence upload failed: ${this.errorMessage(err)}`),
+        errorMessage: appendError(execution.errorMessage, `Evidence upload failed: ${errorMessage(err)}`),
       };
       logger.fail(`Evidence upload failed for case ${testCase.id}`, err);
     }
@@ -144,7 +152,7 @@ export class Orchestrator {
     let bug: BugItem | undefined;
     try {
       ado.setReadOnly(false); // widen scope only now, for the reporting step.
-      const comment = this.resultComment(execution, artifacts);
+      const comment = this.formatter.resultComment(execution, artifacts);
       await ado.reportCaseResult(testCase.id, execution.status, comment);
 
       if (execution.status === 'failed' && run.fileBugs) {
@@ -155,7 +163,7 @@ export class Orchestrator {
       execution = {
         ...execution,
         status: execution.status === 'passed' ? 'blocked' : execution.status,
-        errorMessage: this.appendError(execution.errorMessage, `Azure DevOps reporting failed: ${this.errorMessage(err)}`),
+        errorMessage: appendError(execution.errorMessage, `Azure DevOps reporting failed: ${errorMessage(err)}`),
       };
       logger.fail(`Azure DevOps reporting failed for case ${testCase.id}`, err);
     } finally {
@@ -189,7 +197,7 @@ export class Orchestrator {
     try {
       return await this.deps.runner.execute(testCase, dataRow, env);
     } catch (err) {
-      const message = this.errorMessage(err);
+      const message = errorMessage(err);
       logger.fail(`Playwright execution crashed for case ${testCase.id}`, err);
       return {
         caseId: testCase.id,
@@ -223,97 +231,10 @@ export class Orchestrator {
     const bug: BugItem = {
       caseId: testCase.id,
       title: `[QA] ${testCase.title} failed on ${env.name}`,
-      reproSteps: this.reproSteps(testCase, execution, env),
+      reproSteps: this.formatter.reproSteps(testCase, execution, env),
       environment: env.name,
       evidence,
     };
     return this.deps.ado.fileBug(bug);
-  }
-
-  private reproSteps(testCase: TestCase, execution: ExecutionResult, env: RunEnvironment): string {
-    const steps = testCase.steps.map((s, i) => `${i + 1}. ${s}`).join('\n');
-    const asserts = execution.steps
-      .filter((s) => !s.passed)
-      .map((s) => `- ${s.description}: expected "${s.expected}", got "${s.actual}"`)
-      .join('\n');
-    return [
-      `**Environment:** ${env.name} (${env.baseUrl})`,
-      '',
-      '**Steps:**',
-      steps,
-      '',
-      '**Failed assertions:**',
-      asserts || '- (none captured)',
-      '',
-      execution.errorMessage ? `**Error:** ${execution.errorMessage}` : '',
-    ]
-      .filter(Boolean)
-      .join('\n');
-  }
-
-  private resultComment(execution: ExecutionResult, artifacts: Artifact[]): string {
-    const links = artifacts.map((a) => `${a.kind}: ${a.url}`).join(' | ');
-    return `Automated run: ${execution.status} in ${execution.durationMs}ms. ${links}`.trim();
-  }
-
-  private appendError(current: string | undefined, next: string): string {
-    return current ? `${current}\n${next}` : next;
-  }
-
-  private errorMessage(err: unknown): string {
-    return err instanceof Error ? err.message : String(err);
-  }
-
-  private summarise(
-    suite: TestSuite,
-    env: RunEnvironment,
-    startedAt: string,
-    finishedAt: string,
-    results: CaseResult[],
-    bugsFiled: BugItem[],
-    requirementsSummary?: RequirementsSummary,
-  ): RunSummary {
-    const totals = {
-      total: results.length,
-      passed: results.filter((r) => r.status === 'passed').length,
-      failed: results.filter((r) => r.status === 'failed').length,
-      flaky: results.filter((r) => r.status === 'flaky').length,
-      skipped: results.filter((r) => r.status === 'skipped').length,
-      blocked: results.filter((r) => r.status === 'blocked').length,
-    };
-    return {
-      planId: suite.planId,
-      suiteId: suite.suiteId,
-      suiteName: suite.name,
-      environment: env.name,
-      startedAt,
-      finishedAt,
-      totals,
-      results,
-      bugsFiled,
-      requirementsSummary,
-    };
-  }
-
-  private logSummary(s: RunSummary): void {
-    const { totals } = s;
-    logger.step(`Run summary — ${s.suiteName} on ${s.environment}`);
-    logger.info(
-      `total=${totals.total} passed=${totals.passed} failed=${totals.failed} ` +
-        `flaky=${totals.flaky} blocked=${totals.blocked} skipped=${totals.skipped}`,
-    );
-    if (s.requirementsSummary) {
-      const filesStr = s.requirementsSummary.files
-        .map((f) => `${f.name} (${f.matchedCases.length} case(s) matched)`)
-        .join(', ');
-      logger.info(
-        `Requirements docs: read ${s.requirementsSummary.files.length} file(s) from "${s.requirementsSummary.path}" -> [${filesStr}]`
-      );
-    }
-    if (s.bugsFiled.length) {
-      logger.warn(`bugs filed: ${s.bugsFiled.map((b) => b.id).join(', ')}`);
-    }
-    if (totals.failed > 0) logger.fail(`${totals.failed} case(s) failed`);
-    else logger.pass('no hard failures');
   }
 }
