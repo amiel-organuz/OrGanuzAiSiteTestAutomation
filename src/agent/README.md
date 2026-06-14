@@ -190,6 +190,7 @@ src/agent/
   index.ts                 barrel exports
   run-current-tests.ts     run the repo's Playwright projects via the agent
   connectors/              AzureDevOps, GoogleSheets, OneDrive, Playwright (+ stubs)
+  services/                orchestration helpers for requirements, summaries, and text formatting
   utils/RequirementsReader.ts   PDF/DOCX/XLSX parsing + case matching
   demo/                    seed data, offline demo, sample-doc generator
 tests/agent/               orchestrator unit/integration specs (Playwright `agent` project)
