@@ -9,3 +9,11 @@ export { StubOneDriveConnector } from './OneDriveConnector';
 
 export type { PlaywrightRunner } from './PlaywrightRunner';
 export { CliPlaywrightRunner, StubPlaywrightRunner } from './PlaywrightRunner';
+
+export type {
+  GitHubActionsConnector,
+  GitHubActionsConfig,
+  WorkflowDispatchInput,
+  WorkflowDispatchResult,
+} from './GitHubActionsConnector';
+export { HttpGitHubActionsConnector, StubGitHubActionsConnector } from './GitHubActionsConnector';

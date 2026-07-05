@@ -54,6 +54,22 @@ export const agentConfig = {
     /** Source of the requirements documents ('local' or 'onedrive'). */
     source: env('QA_REQUIREMENTS_SOURCE', 'local') as 'local' | 'onedrive',
   },
+  github: {
+    /** Repository owner the workflow lives under. */
+    owner: env('GITHUB_OWNER', 'amiel-organuz'),
+    /** Repository name the workflow lives under. */
+    repo: env('GITHUB_REPO', 'OrGanuzAiSiteTestAutomation'),
+    /** Workflow file under .github/workflows to dispatch. */
+    workflowFile: env('GITHUB_WORKFLOW_FILE', 'parallel-tests.yml'),
+    /** Branch/tag to dispatch the workflow against. */
+    ref: env('GITHUB_WORKFLOW_REF', 'main'),
+    /**
+     * Dispatch the GitHub Actions workflow after a run completes. Off by default
+     * so local runs stay self-contained; set GITHUB_TRIGGER_WORKFLOW=1 to enable.
+     * The token itself is read from GITHUB_TOKEN at the entry point, never here.
+     */
+    triggerWorkflow: boolEnv('GITHUB_TRIGGER_WORKFLOW', false),
+  },
 } as const;
 
 export type AgentConfig = typeof agentConfig;

@@ -2,6 +2,7 @@ import { logger } from '../utils/logger';
 import type { AgentConfig } from './config';
 import type {
   AzureDevOpsConnector,
+  GitHubActionsConnector,
   GoogleSheetsConnector,
   OneDriveConnector,
   PlaywrightRunner,
@@ -28,6 +29,8 @@ export interface OrchestratorDeps {
   sheets: GoogleSheetsConnector;
   oneDrive: OneDriveConnector;
   runner: PlaywrightRunner;
+  /** Optional: dispatch a GitHub Actions workflow after the run (CI pipeline). */
+  github?: GitHubActionsConnector;
   formatter?: ResultTextFormatter;
   summaryBuilder?: RunSummaryBuilder;
   summaryLogger?: RunSummaryLogger;
@@ -104,7 +107,32 @@ export class Orchestrator {
       requirementsSummary,
     );
     this.summaryLogger.log(summary);
+
+    // --- Optional: dispatch the GitHub Actions workflow (CI pipeline). ------
+    await this.maybeTriggerWorkflow();
+
     return summary;
+  }
+
+  /**
+   * When a GitHub connector is wired in and github.triggerWorkflow is enabled,
+   * dispatch the configured workflow. Failures here are logged but never fail
+   * the local run — the run summary is already complete by this point.
+   */
+  private async maybeTriggerWorkflow(): Promise<void> {
+    const { github } = this.deps;
+    const { triggerWorkflow, workflowFile, ref } = this.config.github;
+    if (!github || !triggerWorkflow) return;
+
+    try {
+      const result = await github.triggerWorkflow({ ref });
+      logger.info(
+        `GitHub Actions workflow ${result.workflowFile} dispatched on ${result.ref}` +
+          (result.runUrl ? ` — ${result.runUrl}` : ''),
+      );
+    } catch (err) {
+      logger.fail(`Failed to dispatch GitHub Actions workflow ${workflowFile}`, err);
+    }
   }
 
   /** Runs steps 3–6 for a single case. */

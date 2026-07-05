@@ -92,12 +92,15 @@ This keeps Azure DevOps, Google Sheets, and OneDrive stubbed, but uses
 `CliPlaywrightRunner` to invoke the real Playwright CLI. The generated suite
 currently maps one orchestrator case to each Playwright project:
 
-- `PW-API` -> `npx playwright test --project=api`
+- `PW-ORGANUZ-API` -> `npx playwright test --project=organuz-api`
 - `PW-CHROMIUM` -> `npx playwright test --project=chromium`
+- `PW-PRODUCT` -> `npx playwright test --project=product`
 - `PW-AGENT` -> `npx playwright test --project=agent`
 
-Set `WEB_BASE_URL` / `API_BASE_URL` before running if you want to point the UI
-or API projects at non-default targets. The command exits non-zero if any mapped
+Set `WEB_BASE_URL`, `QA_TARGET_ENV`, or `APP_BASE_URL` before running if you want
+to point the UI or product projects at non-default targets. The product
+project keeps live browser flows gated unless `PRODUCT_E2E_ENABLED=true` and
+persona credentials are present. The command exits non-zero if any mapped
 project fails or becomes blocked.
 
 The current-test runner keeps the external systems stubbed:
@@ -109,9 +112,9 @@ The current-test runner keeps the external systems stubbed:
 | OneDrive | Synthetic evidence URLs for Playwright HTML report and JSON result artifacts. |
 | Playwright | Real CLI execution of configured projects. |
 
-In restricted sandboxes, `api` can fail on DNS/network access and `chromium` can
-fail on browser launch permissions. On a normal local run, those same projects
-should behave like direct Playwright commands.
+In restricted sandboxes, `organuz-api` can fail on DNS/network access and
+browser projects can fail on launch permissions. On a normal local run, those
+same projects should behave like direct Playwright commands.
 
 ## Requirements-document enrichment
 
@@ -156,8 +159,8 @@ local filesystem, or from buffers the `OneDriveConnector` hands it.
 
 | Input key | Example | Effect |
 | --- | --- | --- |
-| `project` | `api,chromium` | Adds one `--project=` argument per comma-separated project. |
-| `testFile` | `tests/api/posts.spec.ts` | Runs a specific file or directory. |
+| `project` | `organuz-api,chromium` | Adds one `--project=` argument per comma-separated project. |
+| `testFile` | `tests/organuz-api/contracts/projects-contract.spec.ts` | Runs a specific file or directory. |
 | `grep` | `@smoke` | Adds Playwright `--grep`. |
 | `grepInvert` | `@intentionally-failing` | Adds Playwright `--grep-invert`. |
 
@@ -193,5 +196,5 @@ src/agent/
   services/                orchestration helpers for requirements, summaries, and text formatting
   utils/RequirementsReader.ts   PDF/DOCX/XLSX parsing + case matching
   demo/                    seed data, offline demo, sample-doc generator
-tests/agent/               orchestrator unit/integration specs (Playwright `agent` project)
+tests/agent/orchestrator/  orchestrator unit/integration specs (Playwright `agent` project)
 ```

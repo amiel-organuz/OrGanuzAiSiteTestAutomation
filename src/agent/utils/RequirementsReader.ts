@@ -1,7 +1,7 @@
 import { stat, readdir, readFile } from 'node:fs/promises';
 import { join, basename, extname } from 'node:path';
 import { logger } from '../../utils/logger';
-import type { TestCase, AcceptanceCriterion, RequirementsFileSummary } from '../types';
+import type { TestCase, RequirementsFileSummary } from '../types';
 
 const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');

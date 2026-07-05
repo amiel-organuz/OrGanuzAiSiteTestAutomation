@@ -1,15 +1,15 @@
 import { expect, test } from '@playwright/test';
-import { Orchestrator } from '../../src/agent/Orchestrator';
-import { agentConfig } from '../../src/agent/config';
+import { Orchestrator } from '../../../src/agent/Orchestrator';
+import { agentConfig } from '../../../src/agent/config';
 import {
   StubAzureDevOpsConnector,
   StubGoogleSheetsConnector,
   StubOneDriveConnector,
-} from '../../src/agent/connectors';
+} from '../../../src/agent/connectors';
 import type {
   AzureDevOpsConnector,
   PlaywrightRunner,
-} from '../../src/agent/connectors';
+} from '../../../src/agent/connectors';
 import type {
   BugItem,
   CaseResult,
@@ -19,7 +19,7 @@ import type {
   RunEnvironment,
   TestCase,
   TestSuite,
-} from '../../src/agent/types';
+} from '../../../src/agent/types';
 
 const env: RunEnvironment = { name: 'staging', baseUrl: 'https://staging.example.test' };
 
