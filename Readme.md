@@ -1,16 +1,15 @@
 # OrGanuz AI Site Test Automation
 
-Playwright TypeScript automation for `www.organuz.ai`, with a supporting Docker Compose stack for API documentation, observability, and containerized test execution.
+Playwright TypeScript automation for `www.organuz.ai` and the Organuz product application, with a supporting Docker Compose stack for API documentation, observability, and containerized test execution.
 
 ## Stack
 
-- Playwright for UI, API, and agent-orchestrator regression tests
+- Playwright for marketing UI, product E2E matrix, Organuz backend API, and agent-orchestrator regression tests
 - TypeScript for test and framework code
 - FastAPI service for local API endpoints and health checks
-- In-memory JSONPlaceholder mock for deterministic API tests in CI
-- Swagger UI for OpenAPI documentation
+- Scalar API reference for external OpenAPI documentation
 - Prometheus for metrics scraping
-- Grafana for metrics dashboards
+- Grafana for metrics dashboards, including the provisioned OrGanuz QA Dashboard
 - Allure and Playwright HTML reports for test results
 - A QA agent orchestrator (`src/agent/`) that coordinates Azure DevOps, Playwright, OneDrive, and Google Sheets, can enrich test cases from PDF/DOCX/XLSX requirements documents, and can run the repository's current Playwright projects through a real CLI-backed runner
 
@@ -21,9 +20,6 @@ Playwright TypeScript automation for `www.organuz.ai`, with a supporting Docker 
 |-- Dockerfile
 |-- docker-compose.yml
 |-- playwright.config.ts
-|-- mocks/
-|   |-- jsonplaceholder-db.json
-|   `-- jsonplaceholder-mock.mjs
 |-- scripts/
 |   `-- run-all-tests.sh
 |-- server/
@@ -32,6 +28,7 @@ Playwright TypeScript automation for `www.organuz.ai`, with a supporting Docker 
 |   |   `-- provisioning/
 |   |-- prometheus.yml
 |   |-- requirements.txt
+|   |-- scalar/
 |   `-- app/
 |       `-- main.py
 |-- test-requirements-docs/   # sample requirements docs for the QA agent (generated)
@@ -45,9 +42,24 @@ Playwright TypeScript automation for `www.organuz.ai`, with a supporting Docker 
 |   |-- pages/
 |   `-- utils/
 `-- tests/
-    |-- agent/                # orchestrator specs (Playwright `agent` project)
-    |-- api/
-    `-- ui/
+    |-- agent/
+    |   `-- orchestrator/      # QA agent orchestrator specs
+    |-- organuz-api/
+    |   |-- contracts/         # Supabase/PostgREST projects schema + contract coverage
+    |   |-- resources/         # projects query behaviours (select, order, filter, count)
+    |   |-- security/          # anon auth, RLS, and negative cases
+    |   `-- functions/         # edge-function CORS preflight checks
+    |-- product/
+    |   |-- matrix/            # product E2E matrix data + specs (credential-gated)
+    |   |-- flows/             # gated full-flow sanity spec
+    |   |-- smoke/             # credential-free public calculator shell checks
+    |   `-- support/           # product app page helpers, ProductFlows, fixtures
+    |-- ui/
+    |   |-- content/           # blog, FAQ, agents, projects, static pages
+    |   |-- diagnostics/       # expected-failure pipeline checks
+    |   |-- flows/             # cross-section critical user journeys
+    |   `-- homepage/          # hero, navigation, contact
+    `-- constants.ts
 ```
 
 ## Local Setup
@@ -64,7 +76,7 @@ Run all tests locally with the project defaults:
 npm test
 ```
 
-`npm test` runs every project configured in `playwright.config.ts`: `chromium`, `api`, and `agent`.
+`npm test` runs the projects configured in `playwright.config.ts`: `chromium`, `product`, and `organuz-api` (the `agent` orchestrator project is defined but internal/commented).
 
 Run the full local automation flow:
 
@@ -72,7 +84,7 @@ Run the full local automation flow:
 ./scripts/run-all-tests.sh
 ```
 
-This script typechecks the project, starts the local runtime stack when needed, runs the Playwright `chromium` and `api` projects, generates an Allure 3 report, starts the Allure static server, and prints the main service URLs at the end. It intentionally does not run the `agent` project; run that directly with `npx playwright test --project=agent`.
+This script typechecks the project, starts the local runtime stack when needed, runs the Playwright `chromium` and `organuz-api` projects, restarts the `api` container so Grafana picks up fresh results, generates an Allure 3 report, starts the Allure static server, opens the Grafana dashboard, and prints the main service URLs at the end. It intentionally does not run the `product` or `agent` projects by default; run those directly with `npm run test:product` and `npx playwright test --project=agent`, or through `npm run agent:current-tests`.
 
 Run only UI tests:
 
@@ -80,14 +92,46 @@ Run only UI tests:
 npm run test:ui
 ```
 
-Run API tests against a local JSONPlaceholder-compatible mock:
+Run the product E2E matrix:
 
 ```bash
-MOCK_PORT=3001 node mocks/jsonplaceholder-mock.mjs
-API_BASE_URL=http://127.0.0.1:3001 npx playwright test --project=api
+npm run test:product
 ```
 
-The mock is in-memory and does not persist writes. It returns JSONPlaceholder-style fake write responses for `POST`, `PUT`, `PATCH`, and `DELETE`.
+The product matrix is data-driven from `tests/product/matrix/e2e-matrix.data.ts`. It includes:
+
+- 12 main `CALC-ROOF-*` characterization scenarios from the working document.
+- 4 personas per main scenario: customer, consultant, company, and company employee.
+- Property types: private house, residential building, commercial, agricultural, and public.
+- Polygon behavior: building, parking, sports court, and mixed building + parking/sports-court flows.
+- Roof/surface types: concrete, tiles, iscoverit, parking, and sports court.
+- Negative coverage for fewer than 5 panels.
+- UI-only tracking for the no-panel case, where the request should not be sent.
+
+The `product` project also includes a credential-free smoke spec (`tests/product/smoke/product-app.smoke.spec.ts`) that runs unconditionally. It exercises the public calculator shell served before login — the Organuz title, arena entry points, register/login entry, the four-step characterization stepper, the address step, and the disabled "continue" state — so the project has real runnable coverage even without persona credentials.
+
+The live persona browser flows are opt-in until live app credentials and stable selectors are available:
+
+```bash
+PRODUCT_E2E_ENABLED=true \
+CUSTOMER_PHONE=... CUSTOMER_OTP_CODE=... \
+CONSULTANT_PHONE=... CONSULTANT_OTP_CODE=... \
+COMPANY_PHONE=... COMPANY_OTP_CODE=... \
+COMPANY_EMPLOYEE_PHONE=... COMPANY_EMPLOYEE_OTP_CODE=... \
+npm run test:product
+```
+
+Email/password variables are still supported as a fallback, but the live app currently exposes a phone/OTP login path.
+
+By default, broad lower-priority marketing suites tagged `@low-priority` are excluded. Set `INCLUDE_LOW_PRIORITY_TESTS=true` to include them.
+
+Run the Organuz backend API tests:
+
+```bash
+npx playwright test --project=organuz-api
+```
+
+The `organuz-api` project targets the Organuz Supabase/PostgREST backend (`config.json → organuzApi`). It exercises the `/rest/v1/projects` REST resource (contracts, query behaviours, anon-key auth/RLS) and the edge-function CORS preflights, using the public `anon` key baked into the site bundle. Tests are read-only; they never POST to the edge functions.
 
 Run the agent regression tests:
 
@@ -100,6 +144,14 @@ Run type checking:
 ```bash
 npm run typecheck
 ```
+
+Run the linter:
+
+```bash
+npm run lint
+```
+
+Linting uses ESLint's flat config (`eslint.config.mjs`) with the `typescript-eslint` recommended ruleset over `src/` and `tests/`.
 
 ## QA Agent
 
@@ -121,8 +173,9 @@ npm run agent:current-tests
 
 | Case | Command |
 | --- | --- |
-| `PW-API` | `npx playwright test --project=api` |
+| `PW-ORGANUZ-API` | `npx playwright test --project=organuz-api` |
 | `PW-CHROMIUM` | `npx playwright test --project=chromium` |
+| `PW-PRODUCT` | `npx playwright test --project=product` |
 | `PW-AGENT` | `npx playwright test --project=agent` |
 
 The command exits non-zero if any mapped project fails or is blocked.
@@ -179,14 +232,36 @@ docker compose up -d allure
 | QA agent command metadata | `http://localhost:8000/automation/qa-agent` |
 | FastAPI metrics | `http://localhost:8000/metrics` |
 | FastAPI built-in Swagger | `http://localhost:8000/docs` |
-| External Swagger UI | `http://localhost:8080` |
+| External Scalar API reference | `http://localhost:8080` |
 | Prometheus | `http://localhost:9092` |
 | Grafana | `http://localhost:3001` |
+| Grafana QA dashboard | `http://localhost:3001/d/organuz-qa-dashboard/organuz-qa-dashboard` |
 | Allure report server | `http://localhost:5050` |
 
 Grafana is mapped to host port `3001` because port `3000` is commonly used by local frontend dev servers. Inside Docker Compose, Grafana still listens on `grafana:3000`.
 
-In GitHub Actions, the API matrix job also uses port `3001` for the JSONPlaceholder mock. That does not conflict with Grafana because the mock and Grafana run in separate jobs.
+## Grafana QA Dashboard
+
+The provisioned QA dashboard reads Prometheus metrics from the FastAPI `/metrics` endpoint. FastAPI parses the latest Playwright JSON report at `test-results/results.json` and exposes:
+
+| Metric | Query example |
+| --- | --- |
+| Test totals by project/status | `sum by(project, status)(qa_playwright_tests_total)` |
+| Failed tests | `sum(qa_playwright_tests_total{status="failed"})` |
+| Pass rate by project | `100 * sum by(project)(qa_playwright_tests_total{status="passed"}) / sum by(project)(qa_playwright_tests_total)` |
+| Run duration by project | `qa_playwright_duration_seconds` |
+| Report age | `time() - qa_playwright_last_run_timestamp_seconds` |
+| Report loaded flag | `qa_playwright_report_present` |
+
+The API container reads `test-results/results.json` through a read-only Docker volume. Run any Playwright project before opening the dashboard if you want fresh numbers.
+
+Open it locally after the stack is running:
+
+```bash
+docker compose up -d --build api prometheus grafana
+```
+
+Then browse to `http://localhost:3001/d/organuz-qa-dashboard/organuz-qa-dashboard`.
 
 ## Reports
 
@@ -220,14 +295,14 @@ At the end of the run it prints:
 
 ```text
 FastAPI:  http://localhost:8000
-Swagger:  http://localhost:8080
+Scalar:   http://localhost:8080
 Grafana:  http://localhost:3001
 Allure:   http://localhost:5050
 ```
 
 The script preserves the Playwright exit code. Even when tests fail, it still attempts to generate and serve the Allure report before exiting.
 
-The UI suite includes `tests/ui/intentionally-failing.spec.ts`, an expected-failure test tagged `@intentionally-failing`. It validates the failure-capture pipeline without making CI red. If you want to skip it locally:
+The UI suite includes `tests/ui/diagnostics/intentionally-failing.spec.ts`, an expected-failure test tagged `@intentionally-failing`. It validates the failure-capture pipeline without making CI red. If you want to skip it locally:
 
 ```bash
 npx playwright test --grep-invert "@intentionally-failing"
@@ -242,24 +317,30 @@ Runtime configuration is read from environment variables with fallbacks in `conf
 | Variable | Purpose |
 | --- | --- |
 | `WEB_BASE_URL` | Base URL for UI tests |
-| `API_BASE_URL` | Base URL for API tests |
-| `API_TIMEOUT` | API request timeout |
+| `QA_TARGET_ENV` | Product target environment (`dev` \| `test` \| `prod`, default `dev`), resolved from `config.json → environments` |
+| `APP_BASE_URL` / `APP_ADMIN_URL` | Explicit overrides for the product app / admin URLs |
+| `ORGANUZ_API_ANON_KEY` | Overrides the public Supabase anon key used by the `organuz-api` tests |
 | `DEFAULT_TIMEOUT` | Playwright default timeout |
 | `NAVIGATION_TIMEOUT` | Navigation timeout |
 | `WORKERS` | Playwright worker count |
 | `BROWSER` | Browser project selection |
+| `INCLUDE_LOW_PRIORITY_TESTS` | Include broad marketing suites tagged `@low-priority` |
+| `PRODUCT_E2E_ENABLED` | Enables live product browser flows when credentials are present |
+| `QA_PLAYWRIGHT_RESULTS_PATH` | Path read by FastAPI for the latest Playwright JSON report; defaults to `test-results/results.json` |
 
-The default Playwright projects are:
+The Playwright projects are:
 
-| Project | Test files | Typical command |
-| --- | --- | --- |
-| `chromium` | `tests/ui/**/*.spec.ts` | `npx playwright test --project=chromium` |
-| `api` | `tests/api/**/*.spec.ts` | `npx playwright test --project=api` |
-| `agent` | `tests/agent/**/*.spec.ts` | `npx playwright test --project=agent` |
+| Project | Test files | Target | Typical command |
+| --- | --- | --- | --- |
+| `chromium` | `tests/ui/**/*.spec.ts` | Marketing site `https://www.organuz.ai` (prod) | `npx playwright test --project=chromium` |
+| `product` | `tests/product/**/*.spec.ts` | Product calculator app, environment from `QA_TARGET_ENV` (default dev `https://dev1.app.organize.organuz.com`) | `npx playwright test --project=product` |
+| `organuz-api` | `tests/organuz-api/**/*.spec.ts` | Organuz Supabase/PostgREST backend (`/rest/v1/projects`, edge functions) | `npx playwright test --project=organuz-api` |
 
-Inside Docker Compose, the `tests` service points `API_BASE_URL` to `http://api:8000`.
+The `agent` project (`tests/agent/**/*.spec.ts`) also exists for orchestrator regression coverage but is internal.
 
-The QA agent reads its own variables (`ADO_PLAN_ID`, `ADO_SUITE_ID`, `ADO_START_READONLY`, `QA_ENVIRONMENT`, `QA_RERUN_FLAKY`, `QA_FLAKY_TAG`, `QA_FILE_BUGS`, `QA_MAX_CASES`, `QA_EVIDENCE_PREFIX`, `QA_REQUIREMENTS_PATH`, `QA_REQUIREMENTS_SOURCE`). They are listed with defaults and purpose in [`src/agent/README.md`](src/agent/README.md) and seeded in `.env.example`. `agent:current-tests` also respects the normal Playwright target variables such as `WEB_BASE_URL` and `API_BASE_URL`.
+Real credentials and local overrides live only in a gitignored `.env` (Restricted). The dev and test product apps sit behind a shared password gate; dev login uses phone + a fixed OTP `7777`. `.env.example` documents every variable with placeholders — never commit `.env` or move secrets into tracked files.
+
+The QA agent reads its own variables (`ADO_PLAN_ID`, `ADO_SUITE_ID`, `ADO_START_READONLY`, `QA_ENVIRONMENT`, `QA_RERUN_FLAKY`, `QA_FLAKY_TAG`, `QA_FILE_BUGS`, `QA_MAX_CASES`, `QA_EVIDENCE_PREFIX`, `QA_REQUIREMENTS_PATH`, `QA_REQUIREMENTS_SOURCE`). They are listed with defaults and purpose in [`src/agent/README.md`](src/agent/README.md) and seeded in `.env.example`. `agent:current-tests` also respects the normal Playwright target variables such as `WEB_BASE_URL`, `QA_TARGET_ENV`, and `APP_BASE_URL`.
 
 Local service URL variables used by `scripts/run-all-tests.sh`:
 
@@ -271,24 +352,18 @@ Local service URL variables used by `scripts/run-all-tests.sh`:
 | `GRAFANA_URL` | `http://localhost:3001` |
 | `ALLURE_URL` | `http://localhost:5050` |
 | `AUTO_START_API` | `true` |
-| `MOCK_HOST` | `127.0.0.1` |
-| `MOCK_PORT` | `3001` |
-| `MOCK_DB_PATH` | `mocks/jsonplaceholder-db.json` |
 
 ## GitHub Actions
 
 The parallel pipeline in `.github/workflows/parallel-tests.yml` runs:
 
 - `typecheck`
-- Playwright `api` and `chromium` projects in parallel
-- Agent orchestrator regression tests are available locally as the `agent` project; add them to CI separately if you want the pipeline to gate on orchestrator behavior.
-- JSONPlaceholder mock startup for the `api` matrix job
-- FastAPI, Swagger, Prometheus, and Grafana service smoke checks
+- Playwright `chromium` and `organuz-api` projects in parallel
+- Product matrix and agent orchestrator regression tests are available locally as the `product` and `agent` projects; add them to CI separately if you want the pipeline to gate on those flows.
+- FastAPI, Scalar API reference, Prometheus, and Grafana service smoke checks
 - Allure 3 report generation
 - GitHub Pages deployment for the Allure report on `main` or `master`
-- GitHub Actions summary links for Allure, FastAPI, Swagger, and Grafana
-
-The `api` matrix job starts `mocks/jsonplaceholder-mock.mjs`, waits for `http://127.0.0.1:3001/posts/1`, then runs with `API_BASE_URL=http://127.0.0.1:3001`. The mock log is uploaded as `jsonplaceholder-mock-log`.
+- GitHub Actions summary links for Allure, FastAPI, Scalar, and Grafana
 
 The workflow summary includes:
 
@@ -296,7 +371,7 @@ The workflow summary includes:
 | --- | --- |
 | Allure 3 report | GitHub Pages deploy output, or the repository Pages URL fallback |
 | FastAPI server | `FASTAPI_URL` repository variable, or `http://localhost:8000` fallback |
-| Swagger server | `SWAGGER_URL` repository variable, or `http://localhost:8080` fallback |
+| Scalar API reference | `SWAGGER_URL` repository variable, or `http://localhost:8080` fallback |
 | Grafana dashboard | `GRAFANA_URL` repository variable, or `http://localhost:3001` fallback |
 
 Set these repository variables when the summary should point to externally reachable services:
@@ -313,6 +388,8 @@ Set these repository variables when the summary should point to externally reach
 
 ## Architecture
 
-Open [Architecture.html](Architecture.html) in a browser for a pastel, single-file visual overview of the Docker Compose services, CLI flow, GitHub Actions pipeline, report publishing, the QA agent orchestrator, and project structure.
+Open [Architecture.html](Architecture.html) in a browser for a pastel, single-file visual overview of the Docker Compose services, CLI flow, GitHub Actions pipeline, report publishing, the QA agent orchestrator, product matrix, QA dashboard, and project structure.
+
+The test suite is organized by subject under `tests/`: UI homepage/content/flows/diagnostics, Organuz backend API contracts/resources/security/functions, product matrix/flows/smoke/support, and agent orchestrator coverage.
 
 For the QA agent specifically — its architecture diagram, the orchestration loop, the design decisions it encodes, and how to swap stubs for real connectors — see [`src/agent/README.md`](src/agent/README.md).

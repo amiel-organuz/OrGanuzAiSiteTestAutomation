@@ -3,6 +3,20 @@ dist
 __pycache__/
 *.py[cod]
 
+# Local env / secrets (dev & test credentials are Restricted — never commit)
+.env
+.env.local
+.env.*.local
+
+# Playwright MCP session artifacts (snapshots/console dumps)
+.playwright-mcp/
+
+# Editor
+.vscode/
+
+# Restricted internal doc — contains dev/test credentials, never commit
+Organuz Environments.html
+
 # Test output
 test-results/
 playwright-report/
@@ -10,3 +24,6 @@ allure-results/
 allure-report/
 blob-report/
 .cache/
+
+# Claude Code local settings (machine-specific)
+.claude/settings.local.json
