@@ -12,6 +12,7 @@ FASTAPI_URL="${FASTAPI_URL:-http://localhost:8000}"
 SWAGGER_URL="${SWAGGER_URL:-http://localhost:8080}"
 PROMETHEUS_URL="${PROMETHEUS_URL:-http://localhost:9092}"
 GRAFANA_URL="${GRAFANA_URL:-http://localhost:3001}"
+GRAFANA_DASHBOARD_URL="${GRAFANA_DASHBOARD_URL:-${GRAFANA_URL}/d/organuz-system-tests/organuz-system-and-test-monitor}"
 ALLURE_URL="${ALLURE_URL:-http://localhost:5050}"
 
 api_ready() {
@@ -26,7 +27,7 @@ stack_ready() {
 }
 
 if [ "$AUTO_START_API" = "true" ] && [ "$API_BASE_URL" = "http://localhost:8000" ] && ! stack_ready; then
-  echo "Starting local FastAPI, Swagger, Prometheus, and Grafana servers with Docker Compose..."
+  echo "Starting local FastAPI, Scalar, Prometheus, and Grafana servers with Docker Compose..."
   docker compose up -d --build api swagger prometheus grafana
 fi
 
@@ -46,25 +47,38 @@ done
 
 echo "Running all Playwright tests..."
 set +e
-npx playwright test --project=chromium --project=api
+npx playwright test --project=chromium --project=organuz-api --project=dev-api
 TEST_EXIT_CODE=$?
 set -e
 
 if [ -d allure-results ] && [ "$(find allure-results -mindepth 1 -print -quit)" ]; then
   echo "Generating Allure 3 report..."
-  rm -rf allure-report
+  mkdir -p allure-report
+  find allure-report -mindepth 1 -delete
   npx -y -p allure@3 allure generate allure-results --output allure-report
 fi
 
 if [ "$AUTO_START_API" = "true" ] && [ "$API_BASE_URL" = "http://localhost:8000" ]; then
   echo "Starting local Allure report server..."
-  docker compose up -d allure || echo "Allure report server could not start on ${ALLURE_URL}."
+  docker compose up -d --force-recreate allure || echo "Allure report server could not start on ${ALLURE_URL}."
+
+  # Refresh the API container so it re-reads the freshly written test-results/results.json.
+  # Playwright wipes and recreates test-results/ each run, which changes the host directory's
+  # inode; on macOS Docker Desktop the long-running api container stays bound to the old (now
+  # empty) inode and would otherwise report qa_playwright_report_present=0 with no test metrics.
+  echo "Refreshing FastAPI container so QA metrics reload..."
+  docker compose restart api >/dev/null 2>&1 || echo "Could not restart api container; Grafana test panels may show stale data."
+  for i in $(seq 1 30); do
+    api_ready && break
+    [ "$i" -eq 30 ] && echo "FastAPI did not come back after refresh." >&2
+    sleep 1
+  done
 fi
 
 echo
 echo "Local servers:"
 echo "  FastAPI:     ${FASTAPI_URL}"
-echo "  Swagger:     ${SWAGGER_URL}"
+echo "  Scalar:      ${SWAGGER_URL}"
 echo "  Prometheus:  ${PROMETHEUS_URL}"
 echo "  Grafana:     ${GRAFANA_URL}"
 echo "  Allure:      ${ALLURE_URL}"
@@ -90,7 +104,7 @@ if [ "$OPEN_BROWSER" = "true" ]; then
 
   if [ -n "$OPENER" ]; then
     echo "Opening servers in browser..."
-    for url in "${FASTAPI_URL}/docs" "${SWAGGER_URL}" "${PROMETHEUS_URL}" "${GRAFANA_URL}" "${ALLURE_URL}"; do
+    for url in "${FASTAPI_URL}/docs" "${SWAGGER_URL}" "${PROMETHEUS_URL}" "${GRAFANA_DASHBOARD_URL}" "${ALLURE_URL}"; do
       "$OPENER" "$url" >/dev/null 2>&1 || true
     done
   else

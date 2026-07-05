@@ -6,10 +6,12 @@
 import { agentConfig } from './config';
 import {
   CliPlaywrightRunner,
+  HttpGitHubActionsConnector,
   StubAzureDevOpsConnector,
   StubGoogleSheetsConnector,
   StubOneDriveConnector,
 } from './connectors';
+import type { GitHubActionsConnector } from './connectors';
 import { Orchestrator } from './Orchestrator';
 import type { AcceptanceCriterion, DataRow, RunEnvironment, TestCase, TestSuite } from './types';
 
@@ -40,6 +42,13 @@ const projectMappings: ProjectMapping[] = [
     project: 'chromium',
     tags: ['@playwright', '@ui'],
     acceptanceCriterion: { id: 'AC-UI', description: 'Chromium project exits successfully' },
+  },
+  {
+    id: 'PW-PRODUCT',
+    title: 'Run product E2E matrix Playwright project',
+    project: 'product',
+    tags: ['@playwright', '@product'],
+    acceptanceCriterion: { id: 'AC-PRODUCT', description: 'Product E2E matrix project exits successfully' },
   },
   {
     id: 'PW-AGENT',
@@ -78,13 +87,25 @@ function toDataRow(mapping: ProjectMapping): DataRow {
   };
 }
 
+/**
+ * Builds the GitHub Actions connector only when a token is available. Without a
+ * token the orchestrator simply skips the dispatch step. The token is read here
+ * (the entry point), never stored in agentConfig.
+ */
+function buildGitHubConnector(): GitHubActionsConnector | undefined {
+  const token = process.env.GITHUB_TOKEN;
+  if (!token) return undefined;
+  return new HttpGitHubActionsConnector(token, agentConfig.github);
+}
+
 async function main(): Promise<void> {
   const ado = new StubAzureDevOpsConnector(currentTestsSuite);
   const sheets = new StubGoogleSheetsConnector({ environments: [environment], rows });
   const oneDrive = new StubOneDriveConnector();
   const runner = new CliPlaywrightRunner();
+  const github = buildGitHubConnector();
 
-  const orchestrator = new Orchestrator({ ado, sheets, oneDrive, runner }, agentConfig);
+  const orchestrator = new Orchestrator({ ado, sheets, oneDrive, runner, github }, agentConfig);
   const summary = await orchestrator.run();
 
   console.log('\n=== CURRENT TESTS SUMMARY (JSON) ===');

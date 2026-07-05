@@ -6,8 +6,11 @@ dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 import { config } from './src/utils/config';
 
+const includeLowPriorityTests = process.env.INCLUDE_LOW_PRIORITY_TESTS === 'true';
+
 export default defineConfig({
   testDir: './tests',
+  ...(includeLowPriorityTests ? {} : { grepInvert: /@low-priority/ }),
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -32,7 +35,9 @@ export default defineConfig({
           os: process.platform,
           ci: process.env.CI ? 'true' : 'false',
           web_base_url: config.web.baseUrl,
-          api_base_url: config.api.baseUrl,
+          app_base_url: config.app.baseUrl,
+          organuz_api_base_url: config.organuzApi.baseUrl,
+          include_low_priority_tests: includeLowPriorityTests ? 'true' : 'false',
           browser: config.playwright.browser,
           workers: String(config.playwright.workers),
           default_timeout_ms: String(config.playwright.defaultTimeout),
@@ -62,10 +67,27 @@ export default defineConfig({
       },
     },
     {
-      name: 'api',
-      testMatch: 'tests/api/**/*.spec.ts',
+      name: 'product',
+      testMatch: 'tests/product/**/*.spec.ts',
       use: {
-        baseURL: config.api.baseUrl,
+        ...devices['Desktop Chrome'],
+        baseURL: config.app.baseUrl,
+        viewport: { width: 1920, height: 1080 },
+        headless: true,
+      },
+    },
+    {
+      name: 'organuz-api',
+      testMatch: 'tests/organuz-api/**/*.spec.ts',
+      use: {
+        baseURL: config.organuzApi.baseUrl,
+      },
+    },
+    {
+      name: 'dev-api',
+      testMatch: 'tests/dev-api/**/*.spec.ts',
+      use: {
+        baseURL: config.devApi.baseUrl,
       },
     },
     {

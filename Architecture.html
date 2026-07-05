@@ -369,7 +369,7 @@
     <a href="#diagram">Diagram</a>
     <a href="#flow">Flow</a>
     <a href="#services">Services</a>
-    <a href="#mock">Mock API</a>
+    <a href="#mock">Backend API</a>
     <a href="#ci">CI/CD</a>
     <a href="#structure">Structure</a>
   </nav>
@@ -377,9 +377,9 @@
   <main class="page">
     <header class="hero" id="overview">
       <span class="eyebrow">Pastel architecture map</span>
-      <h1>Playwright automation with QA orchestration, FastAPI, Swagger, Grafana, Prometheus, JSONPlaceholder mock, and Allure 3</h1>
+      <h1>Playwright automation with Product E2E Matrix, QA orchestration, FastAPI, Scalar, Grafana, Prometheus, Organuz Supabase API tests, and Allure 3</h1>
       <p class="subtitle">
-        A single-file architecture view for the OrGanuz AI site automation stack. Local runs start the runtime services, execute the Playwright projects, generate Allure 3, and print the main service links. The QA agent can now invoke the real Playwright CLI through an orchestrator case mapping, while GitHub Actions runs the same projects in parallel, uses an in-memory JSONPlaceholder mock for API tests, and publishes Allure to GitHub Pages.
+        A single-file architecture view for the OrGanuz AI site automation stack. Local runs start the runtime services, execute the Playwright projects, generate Allure 3, and print the main service links. The product project tracks the calculator/property-characterization E2E matrix across personas, roof and polygon types, panel thresholds, quotations, and company access rules. The QA agent can invoke the real Playwright CLI through an orchestrator case mapping, while GitHub Actions runs the core projects in parallel, exercises the Organuz Supabase/PostgREST backend, and publishes Allure to GitHub Pages.
       </p>
 
       <div class="services" id="services" aria-label="Local service links">
@@ -388,7 +388,7 @@
           <code>http://localhost:8000</code>
         </div>
         <div class="tile" style="border-top: 6px solid var(--lavender)">
-          <strong>Swagger</strong>
+          <strong>Scalar</strong>
           <code>http://localhost:8080</code>
         </div>
         <div class="tile" style="border-top: 6px solid var(--yellow)">
@@ -410,19 +410,23 @@
     <div class="cards">
       <div class="card" style="--accent: var(--blue)">
         <div class="card-title"><span class="badge">TS</span> Playwright Tests</div>
-        <p class="card-desc">Runs UI tests in the <code>chromium</code> project, API tests in the <code>api</code> project, and orchestrator regression specs in the <code>agent</code> project.</p>
+        <p class="card-desc">Runs marketing UI tests in <code>chromium</code>, product E2E matrix tests in <code>product</code>, and Organuz Supabase/PostgREST backend tests in <code>organuz-api</code> (plus the internal <code>agent</code> orchestrator regression specs).</p>
+      </div>
+      <div class="card" style="--accent: var(--green)">
+        <div class="card-title"><span class="badge">E2E</span> Product Matrix</div>
+        <p class="card-desc"><code>tests/product</code> covers 12 main <code>CALC-ROOF</code> scenarios across 4 personas, plus panel-threshold, Ramot, and UI-only no-panel coverage.</p>
       </div>
       <div class="card" style="--accent: var(--mint)">
         <div class="card-title"><span class="badge">PY</span> FastAPI</div>
         <p class="card-desc">Provides <code>/health</code>, <code>/metrics</code>, <code>/openapi.json</code>, built-in docs at <code>/docs</code>, and automation metadata under <code>/automation</code>.</p>
       </div>
       <div class="card" style="--accent: var(--rose)">
-        <div class="card-title"><span class="badge">MOCK</span> JSONPlaceholder</div>
-        <p class="card-desc">CI API jobs start <code>mocks/jsonplaceholder-mock.mjs</code> on <code>127.0.0.1:3001</code> for deterministic read and fake-write behavior.</p>
+        <div class="card-title"><span class="badge">API</span> Organuz Backend</div>
+        <p class="card-desc">The <code>organuz-api</code> project tests the Organuz Supabase/PostgREST backend — the <code>/rest/v1/projects</code> resource and edge-function CORS preflights — using the public anon key.</p>
       </div>
       <div class="card" style="--accent: var(--lavender)">
-        <div class="card-title"><span class="badge">DOC</span> Swagger UI</div>
-        <p class="card-desc">External Swagger UI reads the FastAPI OpenAPI schema from <code>localhost:8000/openapi.json</code>.</p>
+        <div class="card-title"><span class="badge">DOC</span> Scalar API Reference</div>
+        <p class="card-desc">External Scalar docs read the FastAPI OpenAPI schema from <code>localhost:8000/openapi.json</code>.</p>
       </div>
       <div class="card" style="--accent: var(--yellow)">
         <div class="card-title"><span class="badge">MON</span> Prometheus</div>
@@ -430,7 +434,7 @@
       </div>
       <div class="card" style="--accent: var(--aqua)">
         <div class="card-title"><span class="badge">MON</span> Grafana</div>
-        <p class="card-desc">Runs on host port <code>3001</code> with a provisioned Prometheus datasource. Container port stays <code>3000</code>.</p>
+        <p class="card-desc">Runs on host port <code>3001</code> with a provisioned Prometheus datasource and the <code>OrGanuz QA Dashboard</code>.</p>
       </div>
       <div class="card" style="--accent: var(--pink)">
         <div class="card-title"><span class="badge">REP</span> Allure 3</div>
@@ -438,7 +442,7 @@
       </div>
       <div class="card" style="--accent: var(--peach)">
         <div class="card-title"><span class="badge">FAIL</span> Failure Capture</div>
-        <p class="card-desc"><code>tests/ui/intentionally-failing.spec.ts</code> is an expected-failure test that verifies screenshots, videos, traces, and Allure attachments.</p>
+        <p class="card-desc"><code>tests/ui/diagnostics/intentionally-failing.spec.ts</code> is an expected-failure test that verifies screenshots, videos, traces, and Allure attachments.</p>
       </div>
       <div class="card" style="--accent: var(--violet)">
         <div class="card-title"><span class="badge">AGENT</span> QA Orchestrator</div>
@@ -462,7 +466,7 @@
 
         <rect x="70" y="70" width="250" height="98" rx="20" fill="#c7dcff" filter="url(#softShadow)"/>
         <text x="195" y="106" text-anchor="middle" font-size="18" font-weight="800" fill="#27324a">Playwright</text>
-        <text x="195" y="132" text-anchor="middle" font-size="13" fill="#40506b">chromium + api + agent projects</text>
+        <text x="195" y="132" text-anchor="middle" font-size="13" fill="#40506b">chromium + product + organuz-api</text>
         <text x="195" y="152" text-anchor="middle" font-size="12" fill="#40506b">reports: html, junit, json, allure, blob</text>
 
         <rect x="385" y="70" width="250" height="98" rx="20" fill="#bff4dc" filter="url(#softShadow)"/>
@@ -471,7 +475,7 @@
         <text x="510" y="152" text-anchor="middle" font-size="12" fill="#40506b">localhost:8000</text>
 
         <rect x="700" y="70" width="250" height="98" rx="20" fill="#d9c7ff" filter="url(#softShadow)"/>
-        <text x="825" y="106" text-anchor="middle" font-size="18" font-weight="800" fill="#27324a">Swagger UI</text>
+        <text x="825" y="106" text-anchor="middle" font-size="18" font-weight="800" fill="#27324a">Scalar</text>
         <text x="825" y="132" text-anchor="middle" font-size="13" fill="#40506b">external API docs</text>
         <text x="825" y="152" text-anchor="middle" font-size="12" fill="#40506b">localhost:8080</text>
 
@@ -482,7 +486,7 @@
 
         <rect x="545" y="245" width="250" height="98" rx="20" fill="#b9edf7" filter="url(#softShadow)"/>
         <text x="670" y="281" text-anchor="middle" font-size="18" font-weight="800" fill="#27324a">Grafana</text>
-        <text x="670" y="307" text-anchor="middle" font-size="13" fill="#40506b">Prometheus datasource</text>
+        <text x="670" y="307" text-anchor="middle" font-size="13" fill="#40506b">QA dashboard + datasource</text>
         <text x="670" y="327" text-anchor="middle" font-size="12" fill="#40506b">localhost:3001</text>
 
         <rect x="225" y="395" width="250" height="72" rx="18" fill="#f8b4d9" filter="url(#softShadow)"/>
@@ -494,8 +498,8 @@
         <text x="628" y="449" text-anchor="middle" font-size="12" fill="#40506b">matrix + Pages deploy</text>
 
         <rect x="760" y="395" width="190" height="72" rx="18" fill="#ffd6d6" filter="url(#softShadow)"/>
-        <text x="855" y="425" text-anchor="middle" font-size="17" font-weight="800" fill="#27324a">Mock API</text>
-        <text x="855" y="449" text-anchor="middle" font-size="12" fill="#40506b">CI api job</text>
+        <text x="855" y="425" text-anchor="middle" font-size="17" font-weight="800" fill="#27324a">Supabase API</text>
+        <text x="855" y="449" text-anchor="middle" font-size="12" fill="#40506b">organuz-api tests</text>
 
         <path d="M 320 119 L 385 119" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
         <path d="M 635 119 L 700 119" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
@@ -529,7 +533,7 @@
         </div>
         <div class="step" style="--accent: var(--rose)">
           <strong>Current Test Mapping</strong>
-          <p><code>npm run agent:current-tests</code> maps <code>PW-API</code>, <code>PW-CHROMIUM</code>, and <code>PW-AGENT</code> to the real Playwright <code>api</code>, <code>chromium</code>, and <code>agent</code> projects.</p>
+          <p><code>npm run agent:current-tests</code> maps <code>PW-ORGANUZ-API</code>, <code>PW-CHROMIUM</code>, <code>PW-PRODUCT</code>, and <code>PW-AGENT</code> to the real Playwright <code>organuz-api</code>, <code>chromium</code>, <code>product</code>, and <code>agent</code> projects.</p>
         </div>
       </div>
     </div>
@@ -549,7 +553,7 @@
       <div class="step" style="--accent: var(--blue)">
         <div class="step-num">3</div>
         <h3>Run projects</h3>
-        <p><code>CliPlaywrightRunner</code> executes <code>--project=api</code>, <code>--project=chromium</code>, and <code>--project=agent</code> as orchestrator cases.</p>
+        <p><code>CliPlaywrightRunner</code> executes <code>--project=organuz-api</code>, <code>--project=chromium</code>, <code>--project=product</code>, and <code>--project=agent</code> as orchestrator cases.</p>
       </div>
       <div class="step" style="--accent: var(--pink)">
         <div class="step-num">4</div>
@@ -568,12 +572,12 @@
       <div class="step" style="--accent: var(--mint)">
         <div class="step-num">2</div>
         <h3>Start stack</h3>
-        <p>The script starts FastAPI, Swagger, Prometheus, and Grafana when local endpoints are not ready.</p>
+        <p>The script starts FastAPI, Scalar, Prometheus, and Grafana when local endpoints are not ready.</p>
       </div>
       <div class="step" style="--accent: var(--lavender)">
         <div class="step-num">3</div>
         <h3>Run tests</h3>
-        <p><code>npm test</code> executes <code>chromium</code>, <code>api</code>, and <code>agent</code>. The local shell flow runs <code>chromium</code> and <code>api</code> while service containers are online.</p>
+        <p><code>npm test</code> executes <code>chromium</code>, <code>product</code>, and <code>organuz-api</code>. The local shell flow runs <code>chromium</code> and <code>organuz-api</code> while service containers are online, then restarts the <code>api</code> container so Grafana picks up fresh results.</p>
       </div>
       <div class="step" style="--accent: var(--pink)">
         <div class="step-num">4</div>
@@ -601,9 +605,9 @@
         </tr>
         <tr>
           <td><code>swagger</code></td>
-          <td><code>swaggerapi/swagger-ui:v5.17.14</code></td>
+          <td><code>nginx:1.27-alpine</code></td>
           <td><code>http://localhost:8080</code></td>
-          <td>Standalone Swagger UI pointed at FastAPI OpenAPI JSON.</td>
+          <td>Standalone Scalar API reference pointed at FastAPI OpenAPI JSON.</td>
         </tr>
         <tr>
           <td><code>prometheus</code></td>
@@ -615,7 +619,7 @@
           <td><code>grafana</code></td>
           <td><code>grafana/grafana:11.3.0</code></td>
           <td><code>http://localhost:3001</code></td>
-          <td>Dashboard server with a provisioned Prometheus datasource.</td>
+          <td>Dashboard server with provisioned Prometheus datasource and QA dashboard at <code>/d/organuz-qa-dashboard/organuz-qa-dashboard</code>.</td>
         </tr>
         <tr>
           <td><code>allure</code></td>
@@ -626,24 +630,48 @@
       </tbody>
     </table>
 
-    <h2 id="mock">Mock API and Failure Capture</h2>
+    <h2>Product E2E Matrix</h2>
+    <div class="panel">
+      <p>The <code>product</code> Playwright project is driven by <code>tests/product/matrix/e2e-matrix.data.ts</code> and mirrors the working E2E matrix document.</p>
+      <ul>
+        <li>12 main <code>CALC-ROOF-001</code> to <code>CALC-ROOF-012</code> characterization scenarios.</li>
+        <li>4 personas per main scenario: customer, consultant, company, and company employee.</li>
+        <li>Property types: private house, residential building, commercial, agricultural, and public.</li>
+        <li>Polygon behavior: building, parking, sports court, and mixed building + parking/sports-court flows.</li>
+        <li>Roof and surface types: concrete, tiles, iscoverit, parking, and sports court.</li>
+        <li>Negative coverage for fewer than 5 panels and UI-only tracking for the no-panel case.</li>
+        <li>Live browser flows are gated by <code>PRODUCT_E2E_ENABLED=true</code> and persona credentials.</li>
+      </ul>
+    </div>
+
+    <h2>QA Dashboard Metrics</h2>
+    <div class="panel">
+      <p>FastAPI parses <code>test-results/results.json</code> and exposes dashboard-friendly Prometheus metrics. Grafana provisions the <code>OrGanuz QA Dashboard</code> automatically.</p>
+      <ul>
+        <li><code>qa_playwright_tests_total{project,status}</code> for pass/fail/skipped counts.</li>
+        <li><code>qa_playwright_duration_seconds{project}</code> for project runtime.</li>
+        <li><code>qa_playwright_last_run_timestamp_seconds</code> for report freshness.</li>
+        <li><code>qa_playwright_report_present</code> for “latest report loaded” status.</li>
+      </ul>
+    </div>
+
+    <h2 id="mock">Backend API and Failure Capture</h2>
     <div class="grid-2">
       <div class="panel">
-        <h2>JSONPlaceholder Mock</h2>
+        <h2>Organuz Supabase API</h2>
         <ul>
-          <li><code>mocks/jsonplaceholder-mock.mjs</code> serves a JSONPlaceholder-compatible API.</li>
-          <li><code>MOCK_DB_PATH</code> defaults to <code>mocks/jsonplaceholder-db.json</code>.</li>
-          <li><code>MOCK_HOST</code> defaults to <code>127.0.0.1</code>.</li>
-          <li><code>MOCK_PORT</code> defaults to <code>3001</code>.</li>
-          <li>The CI <code>api</code> matrix job runs with <code>API_BASE_URL=http://127.0.0.1:3001</code>.</li>
-          <li>The mock log is uploaded as the <code>jsonplaceholder-mock-log</code> artifact.</li>
+          <li>The <code>organuz-api</code> project (<code>tests/organuz-api/**</code>) targets the Organuz Supabase/PostgREST backend.</li>
+          <li>Base URL and public anon key come from <code>config.json → organuzApi</code> (env override <code>ORGANUZ_API_ANON_KEY</code>).</li>
+          <li>Covers the <code>/rest/v1/projects</code> resource: contracts, query behaviours, anon-key auth, and RLS.</li>
+          <li>Edge functions are only exercised through their <code>OPTIONS</code> CORS preflight — tests never POST live email/subscription requests.</li>
+          <li>Suites: <code>contracts/</code>, <code>resources/</code>, <code>security/</code>, and <code>functions/</code>.</li>
         </ul>
       </div>
 
       <div class="panel">
         <h2>Expected Failure Demo</h2>
         <ul>
-          <li><code>tests/ui/intentionally-failing.spec.ts</code> is tagged <code>@intentionally-failing</code>.</li>
+          <li><code>tests/ui/diagnostics/intentionally-failing.spec.ts</code> is tagged <code>@intentionally-failing</code>.</li>
           <li>The test uses <code>test.fail()</code>, so CI stays green when the assertion fails as expected.</li>
           <li><code>src/fixtures/index.ts</code> attaches Playwright artifacts to Allure after unexpected failures.</li>
           <li>Skip the demo with <code>npx playwright test --grep-invert "@intentionally-failing"</code>.</li>
@@ -656,13 +684,13 @@
         <h2 id="ci">GitHub Actions</h2>
         <ul>
           <li><code>typecheck</code> validates TypeScript.</li>
-          <li><code>tests</code> runs <code>api</code> and <code>chromium</code> in a matrix.</li>
-          <li>The repository also has a local <code>agent</code> Playwright project for orchestrator regression coverage.</li>
-          <li>The <code>api</code> job starts the in-memory JSONPlaceholder mock and uploads <code>mock.log</code>.</li>
-          <li><code>services-smoke</code> starts FastAPI, Swagger, Prometheus, and Grafana.</li>
+          <li><code>tests</code> runs <code>chromium</code> and <code>organuz-api</code> in a matrix.</li>
+          <li>The repository also has local <code>product</code> and <code>agent</code> Playwright projects. Run them directly or through <code>agent:current-tests</code>.</li>
+          <li>Test files are grouped by subject: UI homepage/content/flows/diagnostics, Organuz backend API contracts/resources/security/functions, product matrix/flows/smoke/support, and agent orchestrator coverage.</li>
+          <li><code>services-smoke</code> starts FastAPI, Scalar, Prometheus, and Grafana.</li>
           <li><code>publish-allure</code> merges Allure artifacts and generates Allure 3.</li>
           <li><code>deploy-allure</code> publishes the report to GitHub Pages on <code>main</code> or <code>master</code>.</li>
-          <li><code>report-summary</code> writes Allure, FastAPI, Swagger, and Grafana links into the Actions summary.</li>
+          <li><code>report-summary</code> writes Allure, FastAPI, Scalar, and Grafana links into the Actions summary.</li>
         </ul>
       </div>
 
@@ -674,6 +702,7 @@
           <li><code>docker compose up --build api swagger prometheus grafana allure</code></li>
           <li><code>docker compose run --rm tests</code></li>
           <li><code>npm run typecheck</code></li>
+          <li><code>npm run test:product</code></li>
           <li><code>npx playwright test --project=agent</code></li>
           <li><code>npm run agent:current-tests</code></li>
           <li><code>npm run report</code></li>
@@ -687,9 +716,6 @@
       |-- <span class="file">Dockerfile</span><br>
       |-- <span class="file">docker-compose.yml</span><br>
       |-- <span class="file">playwright.config.ts</span><br>
-      |-- <span class="dir">mocks/</span><br>
-      |   |-- <span class="file">jsonplaceholder-db.json</span><br>
-      |   `-- <span class="file">jsonplaceholder-mock.mjs</span><br>
       |-- <span class="dir">scripts/</span><br>
       |   `-- <span class="file">run-all-tests.sh</span><br>
       |-- <span class="dir">server/</span><br>
@@ -698,6 +724,10 @@
       |   |   `-- <span class="file">main.py</span><br>
       |   |-- <span class="dir">grafana/provisioning/datasources/</span><br>
       |   |   `-- <span class="file">prometheus.yml</span><br>
+      |   |-- <span class="dir">grafana/provisioning/dashboards/</span><br>
+      |   |   |-- <span class="file">dashboards.yml</span><br>
+      |   |   `-- <span class="file">qa-dashboard.json</span><br>
+      |   |-- <span class="dir">scalar/</span><br>
       |   `-- <span class="file">prometheus.yml</span><br>
       |-- <span class="dir">src/</span><br>
       |   |-- <span class="dir">agent/</span><br>
@@ -706,9 +736,19 @@
       |   |-- <span class="dir">pages/</span><br>
       |   `-- <span class="dir">utils/</span><br>
       `-- <span class="dir">tests/</span><br>
-          |-- <span class="dir">agent/</span><br>
-          |-- <span class="dir">api/</span><br>
-          `-- <span class="dir">ui/</span>
+          |-- <span class="dir">agent/orchestrator/</span><br>
+          |-- <span class="dir">organuz-api/contracts/</span><br>
+          |-- <span class="dir">organuz-api/resources/</span><br>
+          |-- <span class="dir">organuz-api/security/</span><br>
+          |-- <span class="dir">organuz-api/functions/</span><br>
+          |-- <span class="dir">product/matrix/</span><br>
+          |-- <span class="dir">product/flows/</span><br>
+          |-- <span class="dir">product/smoke/</span><br>
+          |-- <span class="dir">product/support/</span><br>
+          |-- <span class="dir">ui/content/</span><br>
+          |-- <span class="dir">ui/diagnostics/</span><br>
+          |-- <span class="dir">ui/flows/</span><br>
+          `-- <span class="dir">ui/homepage/</span>
     </div>
 
     <footer>

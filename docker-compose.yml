@@ -6,6 +6,8 @@ services:
     image: organuz-ai-fastapi-server
     ports:
       - "8000:8000"
+    volumes:
+      - ./test-results:/app/test-results:ro
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
       interval: 5s
@@ -14,15 +16,14 @@ services:
       start_period: 5s
 
   swagger:
-    image: swaggerapi/swagger-ui:v5.17.14
+    image: nginx:1.27-alpine
     ports:
-      - "8080:8080"
+      - "8080:80"
     depends_on:
       api:
         condition: service_healthy
-    environment:
-      URLS: '[{"name":"FastAPI","url":"http://localhost:8000/openapi.json"}]'
-      URLS_PRIMARY_NAME: "FastAPI"
+    volumes:
+      - ./server/scalar:/usr/share/nginx/html:ro
 
   prometheus:
     image: prom/prometheus:v2.55.1
@@ -78,7 +79,7 @@ services:
     environment:
       CI: "true"
       PLAYWRIGHT_MERGE_REPORTS: "false"
-      API_BASE_URL: "http://api:8000"
+      API_BASE_URL: "http://api:8010"
       SWAGGER_URL: "http://swagger:8080"
       PROMETHEUS_URL: "http://prometheus:9090"
       GRAFANA_URL: "http://grafana:3000"
