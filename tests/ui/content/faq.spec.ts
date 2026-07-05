@@ -1,14 +1,14 @@
-import { test, expect } from '../../src/fixtures';
+import { test, expect } from '../../../src/fixtures';
 import {
   allureEpic,
   allureFeature,
   allureStory,
   allureSeverity,
   allureStep,
-} from '../../src/utils/allure';
-import { FaqQuestions } from '../constants';
+} from '../../../src/utils/allure';
+import { FaqQuestions } from '../../constants';
 
-test.describe('FAQ Section', { tag: '@ui' }, () => {
+test.describe('FAQ Section', { tag: ['@ui', '@low-priority'] }, () => {
   test.beforeEach(async ({ homePage }) => {
     await homePage.navigate();
     await homePage.faqSectionHeading.scrollIntoViewIfNeeded();

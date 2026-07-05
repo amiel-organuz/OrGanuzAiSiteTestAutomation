@@ -1,12 +1,12 @@
-import { test, expect } from '../../src/fixtures';
+import { test, expect } from '../../../src/fixtures';
 import {
   allureEpic,
   allureFeature,
   allureStory,
   allureSeverity,
   allureStep,
-} from '../../src/utils/allure';
-import { SiteUrl } from '../constants';
+} from '../../../src/utils/allure';
+import { SiteUrl } from '../../constants';
 
 test.describe('Hero Section', { tag: '@ui' }, () => {
   test.beforeEach(async ({ homePage }) => {

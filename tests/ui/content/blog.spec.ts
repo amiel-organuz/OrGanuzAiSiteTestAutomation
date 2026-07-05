@@ -1,14 +1,14 @@
-import { test, expect } from '../../src/fixtures';
+import { test, expect } from '../../../src/fixtures';
 import {
   allureEpic,
   allureFeature,
   allureStory,
   allureSeverity,
   allureStep,
-} from '../../src/utils/allure';
-import { BlogSlugs } from '../constants';
+} from '../../../src/utils/allure';
+import { BlogSlugs } from '../../constants';
 
-test.describe('Blog / Knowledge Center', { tag: '@ui' }, () => {
+test.describe('Blog / Knowledge Center', { tag: ['@ui', '@low-priority'] }, () => {
   test.describe('Homepage blog section', () => {
     test.beforeEach(async ({ homePage }) => {
       await homePage.navigate();

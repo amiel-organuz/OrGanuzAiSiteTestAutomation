@@ -1,14 +1,14 @@
-import { test, expect } from '../../src/fixtures';
+import { test, expect } from '../../../src/fixtures';
 import {
   allureEpic,
   allureFeature,
   allureStory,
   allureSeverity,
   allureStep,
-} from '../../src/utils/allure';
-import { SiteUrl } from '../constants';
+} from '../../../src/utils/allure';
+import { SiteUrl } from '../../constants';
 
-test.describe('Static Pages', { tag: '@ui' }, () => {
+test.describe('Static Pages', { tag: ['@ui', '@low-priority'] }, () => {
   test('footer "מדיניות פרטיות" link href points to /privacy-policy', async ({ page }) => {
     await allureEpic('Static Pages');
     await allureFeature('Footer Legal Links');

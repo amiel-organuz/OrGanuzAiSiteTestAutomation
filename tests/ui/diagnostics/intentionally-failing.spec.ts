@@ -1,11 +1,11 @@
-import { test, expect } from '../../src/fixtures';
+import { test, expect } from '../../../src/fixtures';
 import {
   allureEpic,
   allureFeature,
   allureStory,
   allureSeverity,
   allureStep,
-} from '../../src/utils/allure';
+} from '../../../src/utils/allure';
 
 // Demo failure spec: verifies the failure-capture pipeline
 // (screenshot, video, trace, Allure attachments) is wired up end-to-end.

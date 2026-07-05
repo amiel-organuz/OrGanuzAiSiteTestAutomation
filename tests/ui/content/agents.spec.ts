@@ -1,14 +1,14 @@
-import { test, expect } from '../../src/fixtures';
+import { test, expect } from '../../../src/fixtures';
 import {
   allureEpic,
   allureFeature,
   allureStory,
   allureSeverity,
   allureStep,
-} from '../../src/utils/allure';
-import { AgentNames, AgentRoles } from '../constants';
+} from '../../../src/utils/allure';
+import { AgentNames, AgentRoles } from '../../constants';
 
-test.describe('Agents Section', { tag: '@ui' }, () => {
+test.describe('Agents Section', { tag: ['@ui', '@low-priority'] }, () => {
   test.beforeEach(async ({ homePage }) => {
     await homePage.navigate();
   });
@@ -74,7 +74,7 @@ test.describe('Agents Section', { tag: '@ui' }, () => {
   });
 
   for (const agentName of AgentNames) {
-    test(`agent card for ${agentName} has correct role label`, async ({ homePage, page }) => {
+    test(`agent card for ${agentName} has correct role label`, async ({ page }) => {
       await allureEpic('Homepage');
       await allureFeature('Agents Section');
       await allureStory(`Agent: ${agentName}`);

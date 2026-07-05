@@ -1,12 +1,12 @@
-import { test, expect } from '../../src/fixtures';
+import { test, expect } from '../../../src/fixtures';
 import {
   allureEpic,
   allureFeature,
   allureStory,
   allureSeverity,
   allureStep,
-} from '../../src/utils/allure';
-import { SiteUrl, BlogSlugs, FaqQuestions, ContactData } from '../constants';
+} from '../../../src/utils/allure';
+import { SiteUrl, FaqQuestions, ContactData } from '../../constants';
 
 test.describe('E2E Critical Flows', { tag: '@e2e' }, () => {
   test('Hero → Contact: "דברו עם אור" CTA leads to contact section', async ({ homePage }) => {
@@ -48,7 +48,7 @@ test.describe('E2E Critical Flows', { tag: '@e2e' }, () => {
     });
   });
 
-  test('Footer CTA: footer newsletter signup is visible and interactive', async ({ homePage, page }) => {
+  test('Footer CTA: footer newsletter signup is visible and interactive', async ({ homePage }) => {
     await allureEpic('E2E Flows');
     await allureFeature('Footer CTA');
     await allureStory('Footer newsletter entry');

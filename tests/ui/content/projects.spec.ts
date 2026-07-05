@@ -1,13 +1,13 @@
-import { test, expect } from '../../src/fixtures';
+import { test, expect } from '../../../src/fixtures';
 import {
   allureEpic,
   allureFeature,
   allureStory,
   allureSeverity,
   allureStep,
-} from '../../src/utils/allure';
+} from '../../../src/utils/allure';
 
-test.describe('Projects Section', { tag: '@ui' }, () => {
+test.describe('Projects Section', { tag: ['@ui', '@low-priority'] }, () => {
   test.beforeEach(async ({ homePage }) => {
     await homePage.navigate();
   });

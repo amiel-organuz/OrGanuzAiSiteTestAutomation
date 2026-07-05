@@ -1,12 +1,12 @@
-import { test, expect } from '../../src/fixtures';
+import { test, expect } from '../../../src/fixtures';
 import {
   allureEpic,
   allureFeature,
   allureStory,
   allureSeverity,
   allureStep,
-} from '../../src/utils/allure';
-import { SiteUrl } from '../constants';
+} from '../../../src/utils/allure';
+import { SiteUrl } from '../../constants';
 
 test.describe('Navigation', { tag: '@ui' }, () => {
   test.beforeEach(async ({ homePage }) => {
@@ -96,7 +96,7 @@ test.describe('Navigation', { tag: '@ui' }, () => {
     });
   });
 
-  test('footer contains privacy policy and terms of service links', async ({ homePage, page }) => {
+  test('footer contains privacy policy and terms of service links', async ({ page }) => {
     await allureEpic('Site Navigation');
     await allureFeature('Footer');
     await allureStory('Legal links');
