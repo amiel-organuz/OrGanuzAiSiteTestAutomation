@@ -36,4 +36,31 @@ export class OrganuzApi {
   insertProject(payload: unknown, opts: RequestOptions = {}): Promise<APIResponse> {
     return this.client.post('/rest/v1/projects', { ...opts, data: payload });
   }
+
+  /**
+   * Attempt to PATCH the row with the given id. The anon role has no UPDATE policy,
+   * so with `return=representation` this comes back as an empty array (zero rows
+   * modified). Pass a non-existent id to guarantee no real row is ever targeted.
+   */
+  updateProject(id: string, payload: unknown, opts: RequestOptions = {}): Promise<APIResponse> {
+    return this.client.patch('/rest/v1/projects', {
+      ...opts,
+      params: { id: `eq.${id}`, ...(opts.params ?? {}) },
+      headers: { Prefer: 'return=representation', ...(opts.headers ?? {}) },
+      data: payload,
+    });
+  }
+
+  /**
+   * Attempt to DELETE the row with the given id. The anon role has no DELETE policy,
+   * so with `return=representation` this comes back as an empty array (zero rows
+   * removed). Pass a non-existent id to guarantee no real row is ever targeted.
+   */
+  deleteProject(id: string, opts: RequestOptions = {}): Promise<APIResponse> {
+    return this.client.delete('/rest/v1/projects', {
+      ...opts,
+      params: { id: `eq.${id}`, ...(opts.params ?? {}) },
+      headers: { Prefer: 'return=representation', ...(opts.headers ?? {}) },
+    });
+  }
 }
