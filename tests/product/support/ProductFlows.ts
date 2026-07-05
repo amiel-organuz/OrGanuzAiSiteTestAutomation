@@ -32,9 +32,29 @@ export class ProductFlows {
     return this.app.login({ phone, otpCode });
   }
 
+  /** Open the header user menu (exposes "איזור אישי" and "התנתק"). */
+  async openUserMenu(): Promise<void> {
+    await this.app.openUserMenu();
+  }
+
   /** Open the user menu → personal area (…/pricing/my-offers). */
   async openPersonalArea(): Promise<void> {
     await this.app.openPersonalArea();
+  }
+
+  /** Click a personal-area sidebar entry by its Hebrew label (e.g. "מחירון קבלני"). */
+  async openSidebarEntry(name: string | RegExp): Promise<void> {
+    await this.app.openSidebarEntry(name);
+  }
+
+  /** Open the user menu → log out. */
+  async logout(): Promise<void> {
+    await this.app.logout();
+  }
+
+  /** Assert the app is signed out (public calculator + login entry available). */
+  async expectLoggedOut(): Promise<void> {
+    await this.app.expectLoggedOut();
   }
 
   /**
