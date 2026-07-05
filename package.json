@@ -9,6 +9,8 @@
     "test:ui": "playwright test --project=chromium",
     "test:product": "playwright test --project=product",
     "report": "playwright show-report playwright-report",
+    "clean:results": "rm -rf allure-results allure-report blob-report test-results playwright-report",
+    "report:allure:fresh": "npm run clean:results && playwright test && npm run report:allure",
     "report:allure": "{ test -d allure-report/history && cp -r allure-report/history allure-results/; } 2>/dev/null || true && npx allure generate allure-results -o allure-report --clean && npx allure open allure-report",
     "report:allure:ci": "npx allure generate allure-results -o allure-report --clean",
     "lint": "eslint src tests",
