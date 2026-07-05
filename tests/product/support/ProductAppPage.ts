@@ -270,17 +270,42 @@ export class ProductAppPage {
     return this.page.getByRole('button', { name: /בעל נכס|יועץ|קבלן|חברת|יזם/ }).first();
   }
 
+  /** Open the header user menu (exposes "איזור אישי" and "התנתק"). */
+  async openUserMenu(): Promise<void> {
+    await this.userMenuButton().click();
+  }
+
   /** Open the user menu and go to the personal area (…/pricing/my-offers). */
   async openPersonalArea(): Promise<void> {
-    await this.userMenuButton().click();
+    await this.openUserMenu();
     await this.page.getByRole('menuitem', { name: 'איזור אישי' }).click();
     await this.page.waitForURL(/\/pricing\//i, { timeout: 20_000 });
   }
 
+  /** Click a personal-area sidebar entry by its Hebrew label (e.g. "מחירון קבלני"). */
+  async openSidebarEntry(name: string | RegExp): Promise<void> {
+    await this.page.getByRole('button', { name }).first().click();
+  }
+
   /** Open the user menu and log out. */
   async logout(): Promise<void> {
-    await this.userMenuButton().click();
+    await this.openUserMenu();
     await this.page.getByRole('menuitem', { name: 'התנתק' }).click();
+  }
+
+  /**
+   * Assert the app is signed out: back on the public calculator with the login
+   * entry point available. After logout the login dialog sometimes auto-opens
+   * (heading "התחברות") and sometimes only the "הרשמה / כניסה" CTA shows — accept either.
+   */
+  async expectLoggedOut(): Promise<void> {
+    await expect(this.page).toHaveURL(/\/calculator\//i);
+    await expect(
+      this.page
+        .getByRole('button', { name: /הרשמה\s*\/\s*כניסה|הרשמה/ })
+        .or(this.page.getByRole('heading', { name: 'התחברות' }))
+        .first(),
+    ).toBeVisible();
   }
 
   /** True when the app is already authenticated (login entry point is gone). */

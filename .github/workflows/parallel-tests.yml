@@ -156,15 +156,17 @@ jobs:
           {
             echo "## Runtime Servers"
             echo
-            echo "| Server | GitHub Actions runner URL |"
+            echo "These are in-runner ports, reachable only from inside this ephemeral job while it runs — not clickable from your browser. Rendered as code, not links, on purpose."
+            echo
+            echo "| Server | In-runner port |"
             echo "| --- | --- |"
-            echo "| FastAPI | http://localhost:8000 |"
-            echo "| Scalar | http://localhost:8080 |"
-            echo "| Grafana | http://localhost:3001 |"
-            echo "| Prometheus | http://localhost:9092 |"
+            echo "| FastAPI | \`localhost:8000\` |"
+            echo "| Scalar | \`localhost:8080\` |"
+            echo "| Grafana | \`localhost:3001\` |"
+            echo "| Prometheus | \`localhost:9092\` |"
             echo "| Allure | Published by the report job to GitHub Pages and uploaded as an artifact |"
             echo
-            echo "These localhost URLs are available inside the GitHub Actions runner during the job. Use repository variables for externally hosted links in the final summary."
+            echo "For externally reachable links in the final summary, set the \`FASTAPI_URL\`, \`SWAGGER_URL\`, and \`GRAFANA_URL\` repository variables."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload service logs
@@ -289,9 +291,12 @@ jobs:
       - services-smoke
     if: always()
     env:
-      FASTAPI_URL: ${{ vars.FASTAPI_URL || 'http://localhost:8000' }}
-      SWAGGER_URL: ${{ vars.SWAGGER_URL || 'http://localhost:8080' }}
-      GRAFANA_URL: ${{ vars.GRAFANA_URL || 'http://localhost:3001' }}
+      # Only externally reachable URLs, supplied via repository variables. The local
+      # stack (FastAPI/Scalar/Grafana) runs only inside the ephemeral services-smoke
+      # job, so a localhost link here would be dead by the time anyone reads it.
+      FASTAPI_URL: ${{ vars.FASTAPI_URL }}
+      SWAGGER_URL: ${{ vars.SWAGGER_URL }}
+      GRAFANA_URL: ${{ vars.GRAFANA_URL }}
 
     steps:
       - name: Add report links to summary
@@ -305,15 +310,28 @@ jobs:
             ALLURE_URL="$DEPLOYED_URL"
           fi
 
+          # Render a server row as a link when its repository variable is set to an
+          # externally reachable URL; otherwise state that it is not published rather
+          # than emitting a dead localhost link.
+          server_row() {
+            local label="$1" url="$2"
+            if [ -n "$url" ]; then
+              echo "| ${label} | ${url} |"
+            else
+              echo "| ${label} | _Not published — runs only during the services-smoke job_ |"
+            fi
+          }
+
           {
             echo "## Test Automation Reports"
             echo
             echo "| Report | Link |"
             echo "| --- | --- |"
             echo "| Allure 3 report | ${ALLURE_URL} |"
-            echo "| FastAPI server | ${FASTAPI_URL} |"
-            echo "| Scalar API reference | ${SWAGGER_URL} |"
-            echo "| Grafana dashboard | ${GRAFANA_URL} |"
+            server_row "FastAPI server" "${FASTAPI_URL}"
+            server_row "Scalar API reference" "${SWAGGER_URL}"
+            server_row "Grafana dashboard" "${GRAFANA_URL}"
             echo
-            echo "Set repository variables \`FASTAPI_URL\`, \`SWAGGER_URL\`, and \`GRAFANA_URL\` to point this summary at externally reachable servers."
+            echo "The FastAPI / Scalar / Grafana stack is ephemeral (torn down when the workflow ends)."
+            echo "Set repository variables \`FASTAPI_URL\`, \`SWAGGER_URL\`, and \`GRAFANA_URL\` to link an externally hosted deployment here."
           } >> "$GITHUB_STEP_SUMMARY"

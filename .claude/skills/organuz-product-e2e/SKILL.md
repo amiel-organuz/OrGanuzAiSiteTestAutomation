@@ -42,9 +42,20 @@ Import `test`/`expect` from `tests/product/support/fixtures.ts` to get the `prod
 
 `ProductFlows` wraps `ProductAppPage` (the low-level step methods). Add new named flows there, not in specs.
 
+## Role personal areas (confirmed live via the Playwright MCP)
+Header user-menu button (accessible name `<name>, <role>`) → menu with `איזור אישי` (personal area) + `התנתק` (logout). `openPersonalArea()` lands on `…/pricing/my-offers`; `openSidebarEntry(name)` clicks a sidebar button. Logout returns to `…/calculator/address` (login re-gated; the `התחברות` dialog sometimes auto-opens). Common chrome on the personal area: quota line `נותרו לך עוד N איתורי נכס` + sort control `סידור הצעות לפי:`.
+
+| Role | Header label | Sidebar entries | Role-specific pages |
+| --- | --- | --- | --- |
+| customer | `בעל נכס` | `ההצעות שלי` | (property wizard) |
+| consultant | `יועץ` | `ההצעות שלי`, `הצעות שגריר`, `בדיקת נכס` | `הצעות שגריר` → `/pricing/ambassador-offers`; `בדיקת נכס` → `/calculator/address` |
+| company | `קבלן…, חברת EPC` | `ההצעות שלי`, `בדיקת נכס והפקת הצעה`, `מחירון קבלני`, `מחירון יזמי`, `ניהול פרטי החברה` | `מחירון קבלני` → `/pricing/pricing-contractor/<id>/solar` (system-type tabs + power ranges + `סימולטור מחיר`); `מחירון יזמי` → `/pricing/pricing-entrepreneur` (`סימולטור השקעה`); `ניהול פרטי החברה` → `/pricing/management` (10-step form + `שמירה כטיוטה`) |
+
+Landing heading differs by role: company `…אלו ההצעות שלך`, consultant `…אלו הנכסים שלך` (ambassador page: `…אלו הנכסים שהגיעו דרכך`). These flows live in `tests/product/flows/role-areas.spec.ts` (gated behind `PRODUCT_E2E_ENABLED`).
+
 ## Gotchas
 - Never use `waitForLoadState('networkidle')` — the embedded map iframe keeps the network perpetually busy. Use `domcontentloaded` or `expect` auto-waiting.
 - **Phone field:** use `.fill()` (a single set) — it has an input mask that mangles char-by-char typing. **Address combobox:** the opposite — use `pressSequentially` so the autocomplete fires; then pick the first `option`.
 - **OTP rate-limiting:** dev limits OTP sends per phone. Repeated logins in a short window (exploration + reruns) stop the OTP step from rendering (`הזנת קוד` never appears) until a cooldown. Don't hammer one number; the login is idempotent (skips if already authenticated) and resends once. Different personas use different numbers.
-- Persona `company-employee` cannot log in (no phone in the doc). The characterization/property flow is **customer-only** — `consultant`/`company` land on different home screens (no property-type buttons).
+- Persona `company-employee` cannot log in (no phone in the doc). All logged-in roles (customer/consultant/company) land on the calculator address step with the property-type buttons; role differences show up in the header label and the personal-area sidebar (see the table above), not on the home screen.
 - The full 50-test matrix (`PRODUCT_E2E_ENABLED=true`) creates real projects/quotations on dev; the credential-free `tests/product/smoke` suite is safe and always runnable.
