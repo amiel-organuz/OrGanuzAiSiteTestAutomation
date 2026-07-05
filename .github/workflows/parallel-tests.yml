@@ -156,15 +156,17 @@ jobs:
           {
             echo "## Runtime Servers"
             echo
-            echo "| Server | GitHub Actions runner URL |"
+            echo "These are in-runner ports, reachable only from inside this ephemeral job while it runs — not clickable from your browser. Rendered as code, not links, on purpose."
+            echo
+            echo "| Server | In-runner port |"
             echo "| --- | --- |"
-            echo "| FastAPI | http://localhost:8000 |"
-            echo "| Scalar | http://localhost:8080 |"
-            echo "| Grafana | http://localhost:3001 |"
-            echo "| Prometheus | http://localhost:9092 |"
+            echo "| FastAPI | \`localhost:8000\` |"
+            echo "| Scalar | \`localhost:8080\` |"
+            echo "| Grafana | \`localhost:3001\` |"
+            echo "| Prometheus | \`localhost:9092\` |"
             echo "| Allure | Published by the report job to GitHub Pages and uploaded as an artifact |"
             echo
-            echo "These localhost URLs are available inside the GitHub Actions runner during the job. Use repository variables for externally hosted links in the final summary."
+            echo "For externally reachable links in the final summary, set the \`FASTAPI_URL\`, \`SWAGGER_URL\`, and \`GRAFANA_URL\` repository variables."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload service logs
