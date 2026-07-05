@@ -10,6 +10,42 @@ export interface RequestOptions {
   retries?: number;
 }
 
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+export interface ApiRequestLog {
+  method: HttpMethod;
+  path: string;
+  url: string;
+  params?: Record<string, string | number | boolean>;
+  headers: Record<string, string>;
+  data?: unknown;
+  timeout: number;
+  attempt: number;
+  maxAttempts: number;
+}
+
+export interface ApiResponseLog {
+  status: number;
+  statusText: string;
+  headers: Record<string, string>;
+  body: string;
+  durationMs: number;
+}
+
+export interface ApiErrorLog {
+  name: string;
+  message: string;
+  durationMs: number;
+}
+
+export interface ApiExchangeLog {
+  request: ApiRequestLog;
+  response?: ApiResponseLog;
+  error?: ApiErrorLog;
+}
+
+export type ApiExchangeLogger = (exchange: ApiExchangeLog) => void | Promise<void>;
+
 const DEFAULT_RETRIES = 3;
 const RETRY_BACKOFF_MS = 200;
 
@@ -24,6 +60,7 @@ export class ApiClient {
       baseUrl: string;
       timeout?: number;
       headers?: Record<string, string>;
+      onExchange?: ApiExchangeLogger;
     },
   ) {
     this.baseUrl        = options.baseUrl.replace(/\/$/, '');
@@ -33,7 +70,10 @@ export class ApiClient {
       Accept: 'application/json',
       ...options.headers,
     };
+    this.onExchange = options.onExchange;
   }
+
+  private readonly onExchange?: ApiExchangeLogger;
 
   async get(path: string, opts: RequestOptions = {}): Promise<APIResponse> {
     return this.send('GET', path, opts);
@@ -56,7 +96,7 @@ export class ApiClient {
   }
 
   private async send(
-    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+    method: HttpMethod,
     path: string,
     opts: RequestOptions,
   ): Promise<APIResponse> {
@@ -64,10 +104,24 @@ export class ApiClient {
     const retries = opts.retries ?? DEFAULT_RETRIES;
     const timeout = new Timeout(opts.timeout ?? this.defaultTimeout);
     const headers = { ...this.defaultHeaders, ...opts.headers };
+    const maxAttempts = retries + 1;
 
     let lastError: Error | undefined;
 
     for (let attempt = 0; attempt <= retries; attempt++) {
+      const requestLog: ApiRequestLog = {
+        method,
+        path,
+        url,
+        params: opts.params,
+        headers,
+        data: opts.data,
+        timeout: timeout.value,
+        attempt: attempt + 1,
+        maxAttempts,
+      };
+      const startedAt = Date.now();
+
       try {
         const response = await timeout.withTimeout(
           this.request.fetch(url, {
@@ -80,6 +134,17 @@ export class ApiClient {
           }),
         );
 
+        await this.logExchange({
+          request: requestLog,
+          response: {
+            status: response.status(),
+            statusText: response.statusText(),
+            headers: response.headers(),
+            body: await response.text(),
+            durationMs: Date.now() - startedAt,
+          },
+        });
+
         if (response.status() >= ApiConstants.INTERNAL_SERVER_ERROR && attempt < retries) {
           await this.sleep(RETRY_BACKOFF_MS * (attempt + 1));
           continue;
@@ -88,6 +153,14 @@ export class ApiClient {
         return response;
       } catch (err) {
         lastError = err as Error;
+        await this.logExchange({
+          request: requestLog,
+          error: {
+            name: lastError.name,
+            message: lastError.message,
+            durationMs: Date.now() - startedAt,
+          },
+        });
         if (attempt < retries) {
           await this.sleep(RETRY_BACKOFF_MS * (attempt + 1));
         }
@@ -95,6 +168,16 @@ export class ApiClient {
     }
 
     throw lastError ?? new Error(`Request failed: ${method} ${url}`);
+  }
+
+  private async logExchange(exchange: ApiExchangeLog): Promise<void> {
+    if (!this.onExchange) return;
+
+    try {
+      await this.onExchange(exchange);
+    } catch {
+      // API logging must never hide the actual test result.
+    }
   }
 
   private sleep(ms: number): Promise<void> {

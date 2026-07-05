@@ -52,8 +52,8 @@ jobs:
       fail-fast: false
       matrix:
         project:
-          - api
           - chromium
+          - organuz-api
 
     env:
       CI: true
@@ -76,43 +76,8 @@ jobs:
         if: matrix.project == 'chromium'
         run: npx playwright install --with-deps chromium
 
-      - name: Start JSONPlaceholder mock (in-memory, no persistence)
-        if: matrix.project == 'api'
-        run: |
-          set -euo pipefail
-          ls -la mocks/
-          node --version
-          node mocks/jsonplaceholder-mock.mjs > mock.log 2>&1 &
-          MOCK_PID=$!
-          echo "Mock PID: $MOCK_PID"
-          for i in $(seq 1 30); do
-            if ! kill -0 "$MOCK_PID" 2>/dev/null; then
-              echo "::error::Mock crashed at startup. Log follows:"
-              cat mock.log
-              exit 1
-            fi
-            if curl -fsS http://127.0.0.1:3001/posts/1 >/dev/null 2>&1; then
-              echo "Mock is ready at http://127.0.0.1:3001 (took ${i}s)"
-              exit 0
-            fi
-            sleep 1
-          done
-          echo "::error::Mock did not respond in 30s. Log follows:"
-          cat mock.log
-          exit 1
-
       - name: Run Playwright project
-        env:
-          API_BASE_URL: ${{ matrix.project == 'api' && 'http://127.0.0.1:3001' || '' }}
         run: npx playwright test --project=${{ matrix.project }}
-
-      - name: Upload mock server log
-        if: matrix.project == 'api' && always()
-        continue-on-error: true
-        uses: actions/upload-artifact@v4
-        with:
-          name: jsonplaceholder-mock-log
-          path: mock.log
           if-no-files-found: ignore
           retention-days: 7
 
@@ -157,7 +122,7 @@ jobs:
           retention-days: 14
 
   services-smoke:
-    name: FastAPI, Swagger, Prometheus, Grafana
+    name: FastAPI, Scalar, Prometheus, Grafana
     runs-on: ubuntu-latest
     needs: typecheck
     timeout-minutes: 15
@@ -195,7 +160,7 @@ jobs:
             echo "| Server | GitHub Actions runner URL |"
             echo "| --- | --- |"
             echo "| FastAPI | http://localhost:8000 |"
-            echo "| Swagger | http://localhost:8080 |"
+            echo "| Scalar | http://localhost:8080 |"
             echo "| Grafana | http://localhost:3001 |"
             echo "| Prometheus | http://localhost:9092 |"
             echo "| Allure | Published by the report job to GitHub Pages and uploaded as an artifact |"
@@ -346,7 +311,7 @@ jobs:
             echo "| --- | --- |"
             echo "| Allure 3 report | ${ALLURE_URL} |"
             echo "| FastAPI server | ${FASTAPI_URL} |"
-            echo "| Swagger server | ${SWAGGER_URL} |"
+            echo "| Scalar API reference | ${SWAGGER_URL} |"
             echo "| Grafana dashboard | ${GRAFANA_URL} |"
             echo
             echo "Set repository variables \`FASTAPI_URL\`, \`SWAGGER_URL\`, and \`GRAFANA_URL\` to point this summary at externally reachable servers."

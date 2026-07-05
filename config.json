@@ -1,9 +1,33 @@
 {
+  "defaultEnv": "dev",
+  "environments": {
+    "dev": {
+      "app": "https://dev1.app.organize.organuz.com",
+      "admin": "https://organuz.flamiingo.com"
+    },
+    "test": {
+      "app": "https://test.organuz.flamiingo.com",
+      "admin": "https://organuz.flamiingo.com"
+    },
+    "prod": {
+      "app": "https://energy.organuz.com",
+      "admin": "https://organize.organuz.com"
+    }
+  },
   "web": {
     "baseUrl": "https://www.organuz.ai"
   },
-  "api": {
-    "baseUrl": "https://jsonplaceholder.typicode.com",
+  "app": {
+    "baseUrl": "https://energy.organuz.com"
+  },
+  "organuzApi": {
+    "baseUrl": "https://yrvgdswzbinmdyzxzblp.supabase.co",
+    "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlydmdkc3d6YmlubWR5enh6YmxwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkwNDQ2MDYsImV4cCI6MjA3NDYyMDYwNn0.z_34PqVOsTQ1N4ai5LUCIHUuSU0RmjmtXnapjwtssHo",
+    "timeout": 15000
+  },
+  "devApi": {
+    "baseUrl": "https://organuz.flamiingo.com",
+    "token": "63737ad91d1323cc230c86e8-508f088596f00f1e63f8337cc1c101fd",
     "timeout": 15000
   },
   "playwright": {
