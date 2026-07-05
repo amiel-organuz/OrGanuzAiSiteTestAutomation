@@ -78,8 +78,6 @@ jobs:
 
       - name: Run Playwright project
         run: npx playwright test --project=${{ matrix.project }}
-          if-no-files-found: ignore
-          retention-days: 7
 
       - name: Upload Playwright report
         if: always()
