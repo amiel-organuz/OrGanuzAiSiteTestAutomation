@@ -4,7 +4,7 @@ Playwright TypeScript automation for `www.organuz.ai` and the Organuz product ap
 
 ## Stack
 
-- Playwright for marketing UI, product E2E matrix, Organuz backend API, and agent-orchestrator regression tests
+- Playwright for marketing UI, product E2E matrix, Organuz Supabase backend API, dev product-app RPC gateway, and agent-orchestrator regression tests
 - TypeScript for test and framework code
 - FastAPI service for local API endpoints and health checks
 - Scalar API reference for external OpenAPI documentation
@@ -49,9 +49,14 @@ Playwright TypeScript automation for `www.organuz.ai` and the Organuz product ap
     |   |-- resources/         # projects query behaviours (select, order, filter, count)
     |   |-- security/          # anon auth, RLS, and negative cases
     |   `-- functions/         # edge-function CORS preflight checks
+    |-- dev-api/
+    |   |-- contracts/         # organuz.flamiingo.com RPC gateway envelope + invariants
+    |   |-- security/          # RPC negative/security + input-validation cases
+    |   `-- support/           # FlamiingoApi RPC client + fixtures
     |-- product/
     |   |-- matrix/            # product E2E matrix data + specs (credential-gated)
-    |   |-- flows/             # gated full-flow sanity spec
+    |   |-- flows/             # gated full-flow + role sanity specs
+    |   |-- api/               # gated product role backend API checks
     |   |-- smoke/             # credential-free public calculator shell checks
     |   `-- support/           # product app page helpers, ProductFlows, fixtures
     |-- ui/
@@ -76,7 +81,7 @@ Run all tests locally with the project defaults:
 npm test
 ```
 
-`npm test` runs the projects configured in `playwright.config.ts`: `chromium`, `product`, and `organuz-api` (the `agent` orchestrator project is defined but internal/commented).
+`npm test` runs every project configured in `playwright.config.ts`: `chromium`, `product`, `organuz-api`, `dev-api`, and the internal `agent` orchestrator project. Product live browser flows stay gated unless `PRODUCT_E2E_ENABLED=true` and persona credentials are set.
 
 Run the full local automation flow:
 
@@ -84,7 +89,7 @@ Run the full local automation flow:
 ./scripts/run-all-tests.sh
 ```
 
-This script typechecks the project, starts the local runtime stack when needed, runs the Playwright `chromium` and `organuz-api` projects, restarts the `api` container so Grafana picks up fresh results, generates an Allure 3 report, starts the Allure static server, opens the Grafana dashboard, and prints the main service URLs at the end. It intentionally does not run the `product` or `agent` projects by default; run those directly with `npm run test:product` and `npx playwright test --project=agent`, or through `npm run agent:current-tests`.
+This script typechecks the project, starts the local runtime stack when needed, runs the Playwright `chromium`, `organuz-api`, and `dev-api` projects, restarts the `api` container so Grafana picks up fresh results, generates an Allure 3 report, starts the Allure static server, opens the Grafana dashboard, and prints the main service URLs at the end. It intentionally does not run the `product` or `agent` projects by default; run those directly with `npm run test:product` and `npx playwright test --project=agent`, or through `npm run agent:current-tests`.
 
 Run only UI tests:
 
@@ -132,6 +137,14 @@ npx playwright test --project=organuz-api
 ```
 
 The `organuz-api` project targets the Organuz Supabase/PostgREST backend (`config.json → organuzApi`). It exercises the `/rest/v1/projects` REST resource (contracts, query behaviours, anon-key auth/RLS) and the edge-function CORS preflights, using the public `anon` key baked into the site bundle. Tests are read-only; they never POST to the edge functions.
+
+Run the dev product-app API tests:
+
+```bash
+npx playwright test --project=dev-api
+```
+
+The `dev-api` project targets the dev/test product-app backend at `organuz.flamiingo.com` (`config.json → devApi`). It is not REST but an RPC gateway: every call is `POST /` with a form body `action=token&token=<token>&call=<method>`, returning a JSON `{ status: "ok", ... }` envelope. The tests cover the read-only public methods the app calls before login (`get_arena_types`, `get_remaining_projects`) plus envelope invariants and RPC negative/security cases, using the public token baked into the app bundle.
 
 Run the agent regression tests:
 
@@ -320,6 +333,7 @@ Runtime configuration is read from environment variables with fallbacks in `conf
 | `QA_TARGET_ENV` | Product target environment (`dev` \| `test` \| `prod`, default `dev`), resolved from `config.json → environments` |
 | `APP_BASE_URL` / `APP_ADMIN_URL` | Explicit overrides for the product app / admin URLs |
 | `ORGANUZ_API_ANON_KEY` | Overrides the public Supabase anon key used by the `organuz-api` tests |
+| `DEV_API_BASE_URL` / `DEV_API_TOKEN` | Base URL and public token for the `dev-api` RPC gateway tests (`organuz.flamiingo.com`) |
 | `DEFAULT_TIMEOUT` | Playwright default timeout |
 | `NAVIGATION_TIMEOUT` | Navigation timeout |
 | `WORKERS` | Playwright worker count |
@@ -335,6 +349,7 @@ The Playwright projects are:
 | `chromium` | `tests/ui/**/*.spec.ts` | Marketing site `https://www.organuz.ai` (prod) | `npx playwright test --project=chromium` |
 | `product` | `tests/product/**/*.spec.ts` | Product calculator app, environment from `QA_TARGET_ENV` (default dev `https://dev1.app.organize.organuz.com`) | `npx playwright test --project=product` |
 | `organuz-api` | `tests/organuz-api/**/*.spec.ts` | Organuz Supabase/PostgREST backend (`/rest/v1/projects`, edge functions) | `npx playwright test --project=organuz-api` |
+| `dev-api` | `tests/dev-api/**/*.spec.ts` | Dev product-app RPC gateway `organuz.flamiingo.com` (`get_arena_types`, `get_remaining_projects`, error envelopes) | `npx playwright test --project=dev-api` |
 
 The `agent` project (`tests/agent/**/*.spec.ts`) also exists for orchestrator regression coverage but is internal.
 
@@ -358,8 +373,9 @@ Local service URL variables used by `scripts/run-all-tests.sh`:
 The parallel pipeline in `.github/workflows/parallel-tests.yml` runs:
 
 - `typecheck`
-- Playwright `chromium` and `organuz-api` projects in parallel
-- Product matrix and agent orchestrator regression tests are available locally as the `product` and `agent` projects; add them to CI separately if you want the pipeline to gate on those flows.
+- Playwright `chromium`, `organuz-api`, and `dev-api` projects in parallel (matrix)
+- A credential-free product smoke job (`npx playwright test --project=product --grep @smoke`) against prod
+- The full product persona matrix and agent orchestrator regression tests are available locally as the `product` and `agent` projects; add them to CI separately if you want the pipeline to gate on those flows.
 - FastAPI, Scalar API reference, Prometheus, and Grafana service smoke checks
 - Allure 3 report generation
 - GitHub Pages deployment for the Allure report on `main` or `master`
@@ -390,6 +406,6 @@ Set these repository variables when the summary should point to externally reach
 
 Open [Architecture.html](Architecture.html) in a browser for a pastel, single-file visual overview of the Docker Compose services, CLI flow, GitHub Actions pipeline, report publishing, the QA agent orchestrator, product matrix, QA dashboard, and project structure.
 
-The test suite is organized by subject under `tests/`: UI homepage/content/flows/diagnostics, Organuz backend API contracts/resources/security/functions, product matrix/flows/smoke/support, and agent orchestrator coverage.
+The test suite is organized by subject under `tests/`: UI homepage/content/flows/diagnostics, Organuz backend API contracts/resources/security/functions, dev product-app RPC contracts/security/support, product matrix/flows/api/smoke/support, and agent orchestrator coverage.
 
 For the QA agent specifically — its architecture diagram, the orchestration loop, the design decisions it encodes, and how to swap stubs for real connectors — see [`src/agent/README.md`](src/agent/README.md).
