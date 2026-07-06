@@ -410,7 +410,7 @@
     <div class="cards">
       <div class="card" style="--accent: var(--blue)">
         <div class="card-title"><span class="badge">TS</span> Playwright Tests</div>
-        <p class="card-desc">Runs marketing UI tests in <code>chromium</code>, product E2E matrix tests in <code>product</code>, and Organuz Supabase/PostgREST backend tests in <code>organuz-api</code> (plus the internal <code>agent</code> orchestrator regression specs).</p>
+        <p class="card-desc">Runs marketing UI tests in <code>chromium</code>, product E2E matrix tests in <code>product</code>, Organuz Supabase/PostgREST backend tests in <code>organuz-api</code>, and dev product-app RPC gateway tests in <code>dev-api</code> (plus the internal <code>agent</code> orchestrator regression specs).</p>
       </div>
       <div class="card" style="--accent: var(--green)">
         <div class="card-title"><span class="badge">E2E</span> Product Matrix</div>
@@ -423,6 +423,10 @@
       <div class="card" style="--accent: var(--rose)">
         <div class="card-title"><span class="badge">API</span> Organuz Backend</div>
         <p class="card-desc">The <code>organuz-api</code> project tests the Organuz Supabase/PostgREST backend — the <code>/rest/v1/projects</code> resource and edge-function CORS preflights — using the public anon key.</p>
+      </div>
+      <div class="card" style="--accent: var(--rose)">
+        <div class="card-title"><span class="badge">RPC</span> Dev Product API</div>
+        <p class="card-desc">The <code>dev-api</code> project tests the dev product-app backend at <code>organuz.flamiingo.com</code> — an RPC gateway (<code>POST /</code> with <code>call=&lt;method&gt;</code>) — covering <code>get_arena_types</code>, <code>get_remaining_projects</code>, envelope invariants, and negative/security cases with the public baked-in token.</p>
       </div>
       <div class="card" style="--accent: var(--lavender)">
         <div class="card-title"><span class="badge">DOC</span> Scalar API Reference</div>
@@ -466,7 +470,7 @@
 
         <rect x="70" y="70" width="250" height="98" rx="20" fill="#c7dcff" filter="url(#softShadow)"/>
         <text x="195" y="106" text-anchor="middle" font-size="18" font-weight="800" fill="#27324a">Playwright</text>
-        <text x="195" y="132" text-anchor="middle" font-size="13" fill="#40506b">chromium + product + organuz-api</text>
+        <text x="195" y="132" text-anchor="middle" font-size="13" fill="#40506b">chromium + product + organuz-api + dev-api</text>
         <text x="195" y="152" text-anchor="middle" font-size="12" fill="#40506b">reports: html, junit, json, allure, blob</text>
 
         <rect x="385" y="70" width="250" height="98" rx="20" fill="#bff4dc" filter="url(#softShadow)"/>
@@ -577,7 +581,7 @@
       <div class="step" style="--accent: var(--lavender)">
         <div class="step-num">3</div>
         <h3>Run tests</h3>
-        <p><code>npm test</code> executes <code>chromium</code>, <code>product</code>, and <code>organuz-api</code>. The local shell flow runs <code>chromium</code> and <code>organuz-api</code> while service containers are online, then restarts the <code>api</code> container so Grafana picks up fresh results.</p>
+        <p><code>npm test</code> executes <code>chromium</code>, <code>product</code>, <code>organuz-api</code>, and <code>dev-api</code>. The local shell flow runs <code>chromium</code>, <code>organuz-api</code>, and <code>dev-api</code> while service containers are online, then restarts the <code>api</code> container so Grafana picks up fresh results.</p>
       </div>
       <div class="step" style="--accent: var(--pink)">
         <div class="step-num">4</div>
@@ -665,6 +669,7 @@
           <li>Covers the <code>/rest/v1/projects</code> resource: contracts, query behaviours, anon-key auth, and RLS.</li>
           <li>Edge functions are only exercised through their <code>OPTIONS</code> CORS preflight — tests never POST live email/subscription requests.</li>
           <li>Suites: <code>contracts/</code>, <code>resources/</code>, <code>security/</code>, and <code>functions/</code>.</li>
+          <li>The separate <code>dev-api</code> project (<code>tests/dev-api/**</code>) targets the dev product-app RPC gateway at <code>organuz.flamiingo.com</code> — <code>POST /</code> with <code>call=&lt;method&gt;</code>, JSON <code>{ status: "ok" }</code> envelopes — covering <code>get_arena_types</code>, <code>get_remaining_projects</code>, invariants, and negative/security cases with the public baked-in token.</li>
         </ul>
       </div>
 
@@ -684,9 +689,9 @@
         <h2 id="ci">GitHub Actions</h2>
         <ul>
           <li><code>typecheck</code> validates TypeScript.</li>
-          <li><code>tests</code> runs <code>chromium</code> and <code>organuz-api</code> in a matrix.</li>
-          <li>The repository also has local <code>product</code> and <code>agent</code> Playwright projects. Run them directly or through <code>agent:current-tests</code>.</li>
-          <li>Test files are grouped by subject: UI homepage/content/flows/diagnostics, Organuz backend API contracts/resources/security/functions, product matrix/flows/smoke/support, and agent orchestrator coverage.</li>
+          <li><code>tests</code> runs <code>chromium</code>, <code>organuz-api</code>, and <code>dev-api</code> in a matrix, plus a credential-free <code>product</code> smoke job (<code>--grep @smoke</code>) against prod.</li>
+          <li>The repository also has the full local <code>product</code> persona matrix and <code>agent</code> Playwright projects. Run them directly or through <code>agent:current-tests</code>.</li>
+          <li>Test files are grouped by subject: UI homepage/content/flows/diagnostics, Organuz backend API contracts/resources/security/functions, dev product-app RPC contracts/security/support, product matrix/flows/api/smoke/support, and agent orchestrator coverage.</li>
           <li><code>services-smoke</code> starts FastAPI, Scalar, Prometheus, and Grafana.</li>
           <li><code>publish-allure</code> merges Allure artifacts and generates Allure 3.</li>
           <li><code>deploy-allure</code> publishes the report to GitHub Pages on <code>main</code> or <code>master</code>.</li>
@@ -741,8 +746,12 @@
           |-- <span class="dir">organuz-api/resources/</span><br>
           |-- <span class="dir">organuz-api/security/</span><br>
           |-- <span class="dir">organuz-api/functions/</span><br>
+          |-- <span class="dir">dev-api/contracts/</span><br>
+          |-- <span class="dir">dev-api/security/</span><br>
+          |-- <span class="dir">dev-api/support/</span><br>
           |-- <span class="dir">product/matrix/</span><br>
           |-- <span class="dir">product/flows/</span><br>
+          |-- <span class="dir">product/api/</span><br>
           |-- <span class="dir">product/smoke/</span><br>
           |-- <span class="dir">product/support/</span><br>
           |-- <span class="dir">ui/content/</span><br>

@@ -12,8 +12,12 @@ Tests are grouped by subject so each Playwright project stays easy to scan.
 | Organuz API resources | `tests/organuz-api/resources/` | `projects` query behaviours (select, order, filter, count). |
 | Organuz API security | `tests/organuz-api/security/` | Anon-key auth, RLS, and negative cases. |
 | Organuz API functions | `tests/organuz-api/functions/` | Edge-function CORS preflight checks (no live POSTs). |
+| Dev API contracts | `tests/dev-api/contracts/` | `organuz.flamiingo.com` RPC gateway envelope + invariant contracts (`get_arena_types`, `get_remaining_projects`). |
+| Dev API security | `tests/dev-api/security/` | RPC negative/security and input-validation cases. |
+| Dev API support | `tests/dev-api/support/` | `FlamiingoApi` RPC client and fixtures. |
 | Product smoke | `tests/product/smoke/` | Credential-free public calculator shell checks. |
-| Product flows | `tests/product/flows/` | Gated full-flow sanity spec (`full-flow.spec.ts`). |
+| Product flows | `tests/product/flows/` | Gated full-flow and role sanity specs (`full-flow`, `roles`, `role-areas`, `role-session`). |
+| Product API | `tests/product/api/` | Gated product role backend API checks (`role-backend.spec.ts`). |
 | Product matrix | `tests/product/matrix/` | Persona E2E matrix data and specs (gated by `PRODUCT_E2E_ENABLED`). |
 | Product support | `tests/product/support/` | Product app page helpers, `ProductFlows`, and fixtures. |
 | Agent orchestrator | `tests/agent/orchestrator/` | QA agent orchestration regression specs. |
@@ -23,4 +27,5 @@ The Playwright project globs remain recursive:
 - `chromium`: `tests/ui/**/*.spec.ts`
 - `product`: `tests/product/**/*.spec.ts`
 - `organuz-api`: `tests/organuz-api/**/*.spec.ts`
+- `dev-api`: `tests/dev-api/**/*.spec.ts`
 - `agent`: `tests/agent/**/*.spec.ts`
