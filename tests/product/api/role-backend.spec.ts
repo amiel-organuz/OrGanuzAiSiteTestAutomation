@@ -10,7 +10,8 @@
  *     in the URL (it rides in the POST body).
  *
  * Third-party hosts (the govmap.gov.il map iframe, Google analytics) are ignored —
- * only the Organuz backend host is inspected. One login per role keeps OTP minimal.
+ * only the Organuz backend host is inspected. Each role resumes the session the
+ * product-setup project logged in once, so no per-spec login is needed.
  *
  * Gated behind PRODUCT_E2E_ENABLED=true + persona OTP (dev fixed OTP 7777).
  */
@@ -44,7 +45,9 @@ test.describe('Product role backend API (dev)', { tag: ['@product', '@api', '@in
   test.describe.configure({ timeout: 180_000 });
 
   for (const role of ROLES) {
-    test(`${role}: backend calls are healthy JSON over HTTPS with no token in the URL`, { tag: '@critical' }, async ({ page, product }) => {
+   test.describe(role, () => {
+    test.use({ authRole: role });
+    test(`backend calls are healthy JSON over HTTPS with no token in the URL`, { tag: '@critical' }, async ({ page, product }) => {
       await allureEpic('Product app');
       await allureFeature('Role backend API');
       await allureStory(role);
@@ -63,7 +66,7 @@ test.describe('Product role backend API (dev)', { tag: ['@product', '@api', '@in
         calls.push({ url, status: res.status(), contentType, envelopeStatus });
       });
 
-      await product.loginAs(role);
+      await product.resumeSession(role);
       // Navigate straight to the personal area by URL (not via the header menu, whose
       // label depends on the profile having loaded) so this stays an API-observation test.
       await page.goto('/pricing/my-offers');
@@ -84,5 +87,6 @@ test.describe('Product role backend API (dev)', { tag: ['@product', '@api', '@in
         expect(call.url.startsWith('https:'), `backend call not over HTTPS: ${call.url}`).toBe(true);
       }
     });
+   });
   }
 });

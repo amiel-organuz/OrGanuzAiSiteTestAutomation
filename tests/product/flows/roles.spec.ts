@@ -1,10 +1,10 @@
 /**
  * Product app — full E2E flow for all three user roles (dev).
  *
- * Each role logs in (phone + fixed dev OTP 7777), is verified by its header role
- * label, opens its personal area (…/pricing/my-offers), and sees the navigation
- * that is distinctive to that role. Mapped live via the Playwright MCP; see the
- * organuz-product-e2e skill.
+ * Each role resumes the session the product-setup project logged in once (phone +
+ * fixed dev OTP 7777), is verified by its header role label, opens its personal area
+ * (…/pricing/my-offers), and sees the navigation that is distinctive to that role.
+ * Mapped live via the Playwright MCP; see the organuz-product-e2e skill.
  *
  * Gated behind PRODUCT_E2E_ENABLED=true + persona OTP. Note: consultant and
  * company use their own phone numbers (customer's 0510000000 is easily OTP
@@ -35,13 +35,15 @@ test.describe('Product role flows (dev)', { tag: ['@product', '@sanity', '@e2e',
   test.describe.configure({ timeout: 150_000 });
 
   for (const role of ROLES) {
-    test(`${role.label}: logs in and reaches its personal area`, { tag: '@critical' }, async ({ page, product }) => {
+   test.describe(role.label, () => {
+    test.use({ authRole: role.persona });
+    test(`reaches its personal area`, { tag: '@critical' }, async ({ page, product }) => {
       await allureEpic('Product app');
       await allureFeature('Role flows');
       await allureStory(role.label);
       await allureSeverity('critical');
 
-      await product.loginAs(role.persona);
+      await product.resumeSession(role.persona);
 
       // Header shows the correct role.
       await expect(page.getByRole('button', { name: role.roleName }).first()).toBeVisible();
@@ -53,5 +55,6 @@ test.describe('Product role flows (dev)', { tag: ['@product', '@sanity', '@e2e',
         await expect(page.getByText(entry).first(), `"${entry}" visible for ${role.label}`).toBeVisible();
       }
     });
+   });
   }
 });

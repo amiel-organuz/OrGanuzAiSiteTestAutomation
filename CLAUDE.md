@@ -4,7 +4,7 @@ Playwright + TypeScript test suite for Organuz, plus a local FastAPI/Prometheus/
 
 ## Test projects (`playwright.config.ts`)
 - **`chromium`** → `tests/ui/**` → marketing site `www.organuz.ai` (prod).
-- **`product`** → `tests/product/**` → product calculator app; environment via `QA_TARGET_ENV` (dev | test | prod, **default dev** `dev1.app.organize.organuz.com`), resolved from `config.json → environments`.
+- **`product`** → `tests/product/**` → product calculator app; environment via `QA_TARGET_ENV` (dev | test | prod, **default dev** `dev1.app.organize.organuz.com`), resolved from `config.json → environments`. Depends on **`product-setup`** (`tests/product/support/auth.setup.ts`), which logs each role in once and saves its `storageState` to `playwright/.auth/` (gitignored) — per-role specs resume it via `test.use({ authRole })` + `product.resumeSession()` instead of re-logging in.
 - **`organuz-api`** → `tests/organuz-api/**` → Organuz Supabase backend (`/rest/v1/projects`, edge functions) with a public anon key.
 - **`dev-api`** → `tests/dev-api/**` → the dev product-app backend at `organuz.flamiingo.com` — an RPC gateway (`POST /?call=<method>`), public baked-in token. Read-only contract tests (`get_arena_types`, `get_remaining_projects`, error envelopes).
 
@@ -19,6 +19,7 @@ Page objects: `src/pages` (marketing site), `tests/product/support/ProductAppPag
 - Specs import `test`/`expect` from `src/fixtures` (adds Allure attachments + failure capture) and use the `allureEpic/Feature/Story/Severity/Step` helpers with `@tag`s.
 - Run `npx tsc --noEmit` before running tests.
 - Never use `waitForLoadState('networkidle')` in product tests — the map iframe keeps the network busy; use `domcontentloaded` or `expect` auto-waiting.
+- Product per-role specs resume a saved session (`test.use({ authRole })` + `resumeSession()`), never `loginAs()` per test — that's only for `product-setup` and the isolated `role-logout` spec. The page object throws `OtpUnavailableError` on OTP rate-limit; `ProductFlows` turns it (and a missing saved session) into a graceful `test.skip`, so keep skip/lifecycle logic out of `ProductAppPage`.
 
 ## Skills
 Project skills live in `.claude/skills/`. Invoke with `/<name>`:

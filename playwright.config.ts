@@ -8,6 +8,15 @@ import { config } from './src/utils/config';
 
 const includeLowPriorityTests = process.env.INCLUDE_LOW_PRIORITY_TESTS === 'true';
 
+// Shared browser context for the product app: the auth-setup project and the product
+// project must use the same origin/viewport so saved sessions restore cleanly.
+const productUse = {
+  ...devices['Desktop Chrome'],
+  baseURL: config.app.baseUrl,
+  viewport: { width: 1920, height: 1080 },
+  headless: true,
+};
+
 export default defineConfig({
   testDir: './tests',
   ...(includeLowPriorityTests ? {} : { grepInvert: /@low-priority/ }),
@@ -67,14 +76,18 @@ export default defineConfig({
       },
     },
     {
+      // Logs each product role in once and saves its session to playwright/.auth/.
+      // The `product` project depends on this so per-role specs resume the session
+      // instead of re-logging in (avoids the dev OTP rate-limit). See auth.setup.ts.
+      name: 'product-setup',
+      testMatch: 'tests/product/support/auth.setup.ts',
+      use: productUse,
+    },
+    {
       name: 'product',
       testMatch: 'tests/product/**/*.spec.ts',
-      use: {
-        ...devices['Desktop Chrome'],
-        baseURL: config.app.baseUrl,
-        viewport: { width: 1920, height: 1080 },
-        headless: true,
-      },
+      dependencies: ['product-setup'],
+      use: productUse,
     },
     {
       name: 'organuz-api',

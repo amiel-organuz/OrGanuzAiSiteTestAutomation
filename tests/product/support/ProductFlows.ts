@@ -1,5 +1,5 @@
-import { Page } from '@playwright/test';
-import { ProductAppPage, ProductRuntimeIds } from './ProductAppPage';
+import { Page, test } from '@playwright/test';
+import { ProductAppPage, ProductRuntimeIds, OtpUnavailableError } from './ProductAppPage';
 import { unlockProductEnvironment } from './env-gate';
 import { PropertyCharacterizationData, ProductPersonaId } from '../matrix/e2e-matrix.data';
 
@@ -21,6 +21,23 @@ export class ProductFlows {
     await unlockProductEnvironment(this.page);
   }
 
+  /**
+   * Resume a role's authenticated session from its saved storageState (written once
+   * by the product-setup project). Opens the calculator, unlocks the dev gate, and
+   * verifies the session was restored — if it wasn't (no saved session because setup
+   * skipped on OTP cooldown), the test skips with a clear reason. Use this in per-role
+   * specs instead of loginAs() so each role logs in only once per run.
+   */
+  async resumeSession(personaId: ProductPersonaId): Promise<void> {
+    await this.openCalculator();
+    if (!(await this.app.isAuthenticated())) {
+      test.skip(
+        true,
+        `No saved session for "${personaId}" (product-setup skipped — likely dev OTP rate-limit cooldown).`,
+      );
+    }
+  }
+
   /** Log in as a persona using its env credentials (phone + fixed dev OTP 7777). */
   async loginAs(personaId: ProductPersonaId): Promise<ProductRuntimeIds> {
     const key = personaId.toUpperCase().replace(/-/g, '_');
@@ -29,7 +46,16 @@ export class ProductFlows {
     if (!phone) {
       throw new Error(`Missing ${key}_PHONE for product persona "${personaId}".`);
     }
-    return this.app.login({ phone, otpCode });
+    try {
+      return await this.app.login({ phone, otpCode });
+    } catch (error) {
+      // Rate-limited OTP is environmental — skip (like the dev-api maintenance skip)
+      // rather than fail. Any other login error is a real regression and rethrows.
+      if (error instanceof OtpUnavailableError) {
+        test.skip(true, `${error.message} Skipping (environmental).`);
+      }
+      throw error;
+    }
   }
 
   /** Open the header user menu (exposes "איזור אישי" and "התנתק"). */

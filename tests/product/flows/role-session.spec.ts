@@ -4,11 +4,12 @@
  * Complements roles.spec.ts / role-areas.spec.ts (identity, nav, role pages, logout)
  * with the authenticated *session* behaviour, per role, in a single login each:
  *   1. Auth      — the public login CTA disappears once signed in.
- *   2. Shell     — the header language control and the step tracker render.
+ *   2. Shell     — the post-login calculator (property-type entry + step tracker) renders.
  *   3. Persistence — a full page reload keeps the session ("זכרו אותי").
  *   4. Deep link — navigating straight to /pricing/my-offers lands in the role's area.
  *
- * One login per role keeps OTP sends minimal (dev rate-limits sends per phone).
+ * Each role resumes the session the product-setup project logged in once, so no
+ * per-spec login is needed (dev rate-limits OTP sends per phone).
  * Selectors/URLs mapped live via the Playwright MCP; see the organuz-product-e2e skill.
  *
  * Gated behind PRODUCT_E2E_ENABLED=true + persona OTP (dev fixed OTP 7777).
@@ -37,21 +38,24 @@ test.describe('Product role session sanity (dev)', { tag: ['@product', '@sanity'
   test.describe.configure({ timeout: 180_000 });
 
   for (const role of ROLES) {
-    test(`${role.label}: stays signed in across reload and deep-links to its area`, { tag: '@critical' }, async ({ page, product }) => {
+   test.describe(role.label, () => {
+    test.use({ authRole: role.persona });
+    test(`stays signed in across reload and deep-links to its area`, { tag: '@critical' }, async ({ page, product }) => {
       await allureEpic('Product app');
       await allureFeature('Role session');
       await allureStory(role.label);
       await allureSeverity('critical');
 
-      await product.loginAs(role.persona);
+      await product.resumeSession(role.persona);
 
       const loginCta = page.getByRole('button', { name: /הרשמה\s*\/\s*כניסה|הרשמה/ });
 
       // 1. Auth — the public login entry point is gone once signed in.
       await expect(loginCta, 'login CTA still present after login').toHaveCount(0);
 
-      // 2. Shell — header language control + the calculator step tracker render.
-      await expect(page.getByRole('button', { name: 'עברית' })).toBeVisible();
+      // 2. Shell — the post-login calculator renders (property-type entry + step tracker).
+      // Every role lands on /calculator/address with the property-type buttons.
+      await expect(page.getByRole('button', { name: /בית פרטי/ }).first()).toBeVisible();
       await expect(page.getByRole('list', { name: 'התקדמות השלבים' })).toBeVisible();
 
       // 3. Persistence — a full reload keeps the session (זכרו אותי).
@@ -64,5 +68,6 @@ test.describe('Product role session sanity (dev)', { tag: ['@product', '@sanity'
       await expect(page).toHaveURL(/\/pricing\//i);
       await expect(page.getByRole('button', { name: role.primaryNav }).first()).toBeVisible();
     });
+   });
   }
 });

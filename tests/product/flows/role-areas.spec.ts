@@ -2,14 +2,16 @@
  * Product app — per-role personal-area sanity flows (dev).
  *
  * Extends flows/roles.spec.ts (which only checks the header role label + personal-area
- * nav visibility). Each role logs in ONCE and, in a single journey, exercises:
+ * nav visibility). Each role resumes its session and, in a single journey, exercises:
  *   1. Identity      — the header user menu shows the correct role.
  *   2. User menu     — exposes "איזור אישי" (personal area) + "התנתק" (logout).
  *   3. Navigation    — the personal area lists the role's distinctive sidebar entries.
  *   4. Role pages    — each role-specific pricing/management page opens and renders.
- *   5. Logout        — returns to the public calculator, re-gated behind login.
+ * (Sign-out lives in role-logout.spec.ts — it uses its own login so it can't invalidate
+ *  the shared session this spec reuses.)
  *
- * One login per role keeps OTP sends minimal (dev rate-limits sends per phone).
+ * Each role resumes the session the product-setup project logged in once, so no
+ * per-spec login is needed (dev rate-limits OTP sends per phone).
  * Selectors/URLs mapped live via the Playwright MCP; see the organuz-product-e2e skill.
  *
  * Gated behind PRODUCT_E2E_ENABLED=true + persona OTP (dev fixed OTP 7777). consultant
@@ -80,13 +82,15 @@ test.describe('Product role personal areas (dev)', { tag: ['@product', '@sanity'
   test.describe.configure({ timeout: 180_000 });
 
   for (const role of ROLE_AREAS) {
-    test(`${role.label}: personal area, role pages, and logout`, { tag: '@critical' }, async ({ page, product }) => {
+   test.describe(role.label, () => {
+    test.use({ authRole: role.persona });
+    test(`personal area, role pages, and logout`, { tag: '@critical' }, async ({ page, product }) => {
       await allureEpic('Product app');
       await allureFeature('Role personal areas');
       await allureStory(role.label);
       await allureSeverity('critical');
 
-      await product.loginAs(role.persona);
+      await product.resumeSession(role.persona);
 
       // 1. Identity — the header shows the correct role.
       await expect(page.getByRole('button', { name: role.roleName }).first()).toBeVisible();
@@ -109,6 +113,8 @@ test.describe('Product role personal areas (dev)', { tag: ['@product', '@sanity'
       }
 
       // 4. Role-specific pages open and render their distinctive content.
+      // (Sign-out is covered independently by role-logout.spec.ts with its own login, so
+      //  this reused-session spec never logs out and can't invalidate the shared session.)
       for (const rolePage of role.pages) {
         await product.openSidebarEntry(rolePage.nav);
         await expect(page, `${rolePage.nav} navigates to its page`).toHaveURL(rolePage.url);
@@ -116,10 +122,7 @@ test.describe('Product role personal areas (dev)', { tag: ['@product', '@sanity'
           await expect(page.getByText(marker).first(), `${rolePage.nav} renders`).toBeVisible();
         }
       }
-
-      // 5. Logout returns to the gated public calculator.
-      await product.logout();
-      await product.expectLoggedOut();
     });
+   });
   }
 });

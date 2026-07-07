@@ -27,3 +27,6 @@ blob-report/
 
 # Claude Code local settings (machine-specific)
 .claude/settings.local.json
+
+# Per-role authenticated sessions saved by the product-setup project
+playwright/.auth/

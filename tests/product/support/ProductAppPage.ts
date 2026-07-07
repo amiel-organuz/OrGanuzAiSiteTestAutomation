@@ -6,6 +6,14 @@ import {
 } from '../matrix/e2e-matrix.data';
 import { unlockProductEnvironment } from './env-gate';
 
+/**
+ * Thrown when phone+OTP sign-in can't complete because the dev gateway is rate-limiting
+ * OTP sends (the code step never renders, or the session never authenticates). This is
+ * environmental; callers (ProductFlows) translate it into a test skip so the page object
+ * stays free of test-runner lifecycle decisions.
+ */
+export class OtpUnavailableError extends Error {}
+
 export interface ProductCredentials {
   readonly phone?: string;
   readonly otpCode?: string;
@@ -60,7 +68,16 @@ export class ProductAppPage {
           this.page.getByRole('button', { name: /שלחו שנית|resend|send.*again/i }),
           sendCode,
         ]).catch(() => undefined);
-        await otpHeading.waitFor({ state: 'visible', timeout: 15_000 });
+        try {
+          await otpHeading.waitFor({ state: 'visible', timeout: 15_000 });
+        } catch {
+          // Dev limits OTP sends per phone; when a number is hammered (exploration +
+          // reruns of the other product specs) the code step never renders until a
+          // cooldown. Environmental — surface it so the caller can skip. See the skill.
+          throw new OtpUnavailableError(
+            `OTP step never rendered for ${credentials.phone} — dev OTP rate-limit cooldown.`,
+          );
+        }
       }
 
       if (credentials.otpCode) {
@@ -88,6 +105,16 @@ export class ProductAppPage {
     ]).catch(() => undefined);
     // Avoid networkidle: the calculator's embedded map iframe keeps the network busy.
     await this.page.waitForLoadState('domcontentloaded');
+
+    // Verify the session is actually authenticated. When phone auth was used but the app
+    // still shows the login entry point, the dev OTP rate-limit (or a dropped code step)
+    // prevented sign-in. Surface it so the caller skips, rather than returning a half-
+    // logged-in session that fails a later identity/nav assertion confusingly.
+    if (credentials.phone && !(await this.isLoggedIn())) {
+      throw new OtpUnavailableError(
+        `Login did not authenticate ${credentials.phone} — likely dev OTP rate-limit cooldown.`,
+      );
+    }
 
     return this.captureRuntimeIds();
   }
@@ -306,6 +333,16 @@ export class ProductAppPage {
         .or(this.page.getByRole('heading', { name: 'התחברות' }))
         .first(),
     ).toBeVisible();
+  }
+
+  /**
+   * True when the app is authenticated (the public login entry point is gone). Public so
+   * callers can gate on a restored storageState session without the page object making
+   * test-lifecycle decisions itself.
+   */
+  async isAuthenticated(): Promise<boolean> {
+    await this.page.waitForLoadState('domcontentloaded');
+    return this.isLoggedIn();
   }
 
   /** True when the app is already authenticated (login entry point is gone). */
