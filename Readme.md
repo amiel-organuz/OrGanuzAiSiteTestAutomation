@@ -55,10 +55,10 @@ Playwright TypeScript automation for `www.organuz.ai` and the Organuz product ap
     |   `-- support/           # FlamiingoApi RPC client + fixtures
     |-- product/
     |   |-- matrix/            # product E2E matrix data + specs (credential-gated)
-    |   |-- flows/             # gated full-flow + role sanity specs
+    |   |-- flows/             # gated full-flow + per-role specs (roles, areas, session, sanity, logout)
     |   |-- api/               # gated product role backend API checks
     |   |-- smoke/             # credential-free public calculator shell checks
-    |   `-- support/           # product app page helpers, ProductFlows, fixtures
+    |   `-- support/           # page helpers, ProductFlows, fixtures, product-setup auth (storageState)
     |-- ui/
     |   |-- content/           # blog, FAQ, agents, projects, static pages
     |   |-- diagnostics/       # expected-failure pipeline checks
@@ -128,6 +128,8 @@ npm run test:product
 
 Email/password variables are still supported as a fallback, but the live app currently exposes a phone/OTP login path.
 
+Under the hood, the `product` project depends on a `product-setup` project (`tests/product/support/auth.setup.ts`) that logs each authenticated role — `customer`, `consultant`, `company` — in once and saves its `storageState` to `playwright/.auth/` (gitignored). The per-role specs (`roles`, `role-areas`, `role-session`, `role-sanity`, `role-backend`) then resume that saved session via `test.use({ authRole })` + `product.resumeSession()` instead of logging in again, so the whole suite performs at most one OTP send per role. Sign-out is verified separately in `role-logout.spec.ts` with its own login, so it can't invalidate the shared sessions. If a role's saved session is missing (setup skipped because the dev gateway rate-limited its OTP), that role's specs skip with a clear reason rather than failing. `company-employee` has no phone and cannot sign in.
+
 By default, broad lower-priority marketing suites tagged `@low-priority` are excluded. Set `INCLUDE_LOW_PRIORITY_TESTS=true` to include them.
 
 Run the Organuz backend API tests:
@@ -144,7 +146,7 @@ Run the dev product-app API tests:
 npx playwright test --project=dev-api
 ```
 
-The `dev-api` project targets the dev/test product-app backend at `organuz.flamiingo.com` (`config.json → devApi`). It is not REST but an RPC gateway: every call is `POST /` with a form body `action=token&token=<token>&call=<method>`, returning a JSON `{ status: "ok", ... }` envelope. The tests cover the read-only public methods the app calls before login (`get_arena_types`, `get_remaining_projects`) plus envelope invariants and RPC negative/security cases, using the public token baked into the app bundle.
+The `dev-api` project targets the dev/test product-app backend at `organuz.flamiingo.com` (`config.json → devApi`). It is not REST but an RPC gateway: every call is `POST /` with a form body `action=token&token=<token>&call=<method>`, returning a JSON `{ status: "ok", ... }` envelope. The tests cover the read-only public methods the app calls before login (`get_arena_types`, `get_remaining_projects`) plus envelope invariants, token/input hardening, and RPC negative/security cases, using the public token baked into the app bundle.
 
 Run the agent regression tests:
 
@@ -348,6 +350,7 @@ The Playwright projects are:
 | --- | --- | --- | --- |
 | `chromium` | `tests/ui/**/*.spec.ts` | Marketing site `https://www.organuz.ai` (prod) | `npx playwright test --project=chromium` |
 | `product` | `tests/product/**/*.spec.ts` | Product calculator app, environment from `QA_TARGET_ENV` (default dev `https://dev1.app.organize.organuz.com`) | `npx playwright test --project=product` |
+| `product-setup` | `tests/product/support/auth.setup.ts` | Logs each product role in once and saves its `storageState`; the `product` project depends on it | runs automatically as a `product` dependency |
 | `organuz-api` | `tests/organuz-api/**/*.spec.ts` | Organuz Supabase/PostgREST backend (`/rest/v1/projects`, edge functions) | `npx playwright test --project=organuz-api` |
 | `dev-api` | `tests/dev-api/**/*.spec.ts` | Dev product-app RPC gateway `organuz.flamiingo.com` (`get_arena_types`, `get_remaining_projects`, error envelopes) | `npx playwright test --project=dev-api` |
 
