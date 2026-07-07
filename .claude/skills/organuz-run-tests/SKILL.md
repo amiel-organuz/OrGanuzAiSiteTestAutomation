@@ -22,7 +22,7 @@ Three Playwright projects (`playwright.config.ts`), each with its own `baseURL`:
 
 ## Env / secrets
 - Local overrides live in the **gitignored** `.env` (target env, dev credentials — Restricted). `.env.example` documents the vars. `.env` MUST stay gitignored.
-- Product persona E2E is gated by `PRODUCT_E2E_ENABLED=true` + persona phones + OTP `7777` (see [organuz-product-e2e] skill). The credential-free `tests/product/smoke` always runs.
+- Product persona E2E is gated by `PRODUCT_E2E_ENABLED=true` + persona phones + OTP `7777` (see [organuz-product-roles] skill). The credential-free `tests/product/smoke` always runs.
 - `--project=product` auto-runs its `product-setup` dependency (`tests/product/support/auth.setup.ts`), which logs each role in once and saves `storageState`; per-role specs reuse it, so a full run does one OTP send per role. Sessions land in `playwright/.auth/` (gitignored); delete them to force a fresh login.
 
 ## Gotchas
