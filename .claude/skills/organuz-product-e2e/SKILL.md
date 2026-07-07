@@ -37,10 +37,17 @@ Load tools once: `ToolSearch "select:mcp__playwright__browser_navigate,mcp__play
 ## Reusable flows (keep specs short)
 Import `test`/`expect` from `tests/product/support/fixtures.ts` to get the `product` fixture (a `ProductFlows`):
 - `product.openCalculator()` — goto `/` + unlock the dev gate (used by the smoke `beforeEach`).
-- `product.loginAs('customer'|'company'|'consultant')` — phone+OTP login from env creds (login also opens the calculator + unlocks the gate internally).
+- `product.loginAs('customer'|'company'|'consultant')` — phone+OTP login from env creds (login also opens the calculator + unlocks the gate internally). **Only for `product-setup` and the isolated `role-logout` spec** — per-role specs use `resumeSession` instead.
+- `product.resumeSession('customer'|'company'|'consultant')` — open the calculator on a session restored from saved `storageState`; skips (with a reason) if the session is missing.
 - `product.characterizeToRoofType(scenario)` — property type + address → roof scan → auto boundary → obstacles → roof-type step; returns `{ projectId, quotationId(roofId) }`.
 
-`ProductFlows` wraps `ProductAppPage` (the low-level step methods). Add new named flows there, not in specs.
+`ProductFlows` wraps `ProductAppPage` (the low-level step methods). Add new named flows there, not in specs. Keep test-lifecycle logic out of `ProductAppPage`: `login()` throws `OtpUnavailableError` on an OTP rate-limit, and `ProductFlows` (not the page object) turns that — and a missing saved session — into a graceful `test.skip`.
+
+## Per-role sessions (storageState reuse)
+Dev rate-limits OTP sends per phone, so each role logs in **once per run** and every spec reuses that session:
+- The `product-setup` project (`tests/product/support/auth.setup.ts`) logs `customer`/`consultant`/`company` in and saves `storageState` to `playwright/.auth/product-<role>.json` (gitignored). The `product` project `dependencies: ['product-setup']`.
+- Per-role specs wrap each role in `test.describe(role, () => { test.use({ authRole: role }); ... })`; the `authRole` option (in `fixtures.ts`) maps to the saved file, and the spec calls `product.resumeSession(role)`.
+- `company-employee` has no phone and can't sign in. Sign-out is covered only by `role-logout.spec.ts`, which does its **own** `loginAs` so logging out can't invalidate the shared sessions the other specs reuse in parallel.
 
 ## Role personal areas (confirmed live via the Playwright MCP)
 Header user-menu button (accessible name `<name>, <role>`) → menu with `איזור אישי` (personal area) + `התנתק` (logout). `openPersonalArea()` lands on `…/pricing/my-offers`; `openSidebarEntry(name)` clicks a sidebar button. Logout returns to `…/calculator/address` (login re-gated; the `התחברות` dialog sometimes auto-opens). Common chrome on the personal area: quota line `נותרו לך עוד N איתורי נכס` + sort control `סידור הצעות לפי:`.
@@ -51,11 +58,11 @@ Header user-menu button (accessible name `<name>, <role>`) → menu with `איז
 | consultant | `יועץ` | `ההצעות שלי`, `הצעות שגריר`, `בדיקת נכס` | `הצעות שגריר` → `/pricing/ambassador-offers`; `בדיקת נכס` → `/calculator/address` |
 | company | `קבלן…, חברת EPC` | `ההצעות שלי`, `בדיקת נכס והפקת הצעה`, `מחירון קבלני`, `מחירון יזמי`, `ניהול פרטי החברה` | `מחירון קבלני` → `/pricing/pricing-contractor/<id>/solar` (system-type tabs + power ranges + `סימולטור מחיר`); `מחירון יזמי` → `/pricing/pricing-entrepreneur` (`סימולטור השקעה`); `ניהול פרטי החברה` → `/pricing/management` (10-step form + `שמירה כטיוטה`) |
 
-Landing heading differs by role: company `…אלו ההצעות שלך`, consultant `…אלו הנכסים שלך` (ambassador page: `…אלו הנכסים שהגיעו דרכך`). These flows live in `tests/product/flows/role-areas.spec.ts` (gated behind `PRODUCT_E2E_ENABLED`).
+Landing heading differs by role: company `…אלו ההצעות שלך`, consultant `…אלו הנכסים שלך` (ambassador page: `…אלו הנכסים שהגיעו דרכך`). These flows live in `tests/product/flows/` (gated behind `PRODUCT_E2E_ENABLED`): `roles.spec.ts` (identity + area), `role-areas.spec.ts` (menu, sidebar, role pages), `role-session.spec.ts` (shell, reload, deep-link), `role-sanity.spec.ts` (10-point per-role battery), `role-logout.spec.ts` (sign-out, own login), and `api/role-backend.spec.ts` (backend-call health). All except `role-logout` resume a saved session.
 
 ## Gotchas
 - Never use `waitForLoadState('networkidle')` — the embedded map iframe keeps the network perpetually busy. Use `domcontentloaded` or `expect` auto-waiting.
 - **Phone field:** use `.fill()` (a single set) — it has an input mask that mangles char-by-char typing. **Address combobox:** the opposite — use `pressSequentially` so the autocomplete fires; then pick the first `option`.
-- **OTP rate-limiting:** dev limits OTP sends per phone. Repeated logins in a short window (exploration + reruns) stop the OTP step from rendering (`הזנת קוד` never appears) until a cooldown. Don't hammer one number; the login is idempotent (skips if already authenticated) and resends once. Different personas use different numbers.
+- **OTP rate-limiting:** dev limits OTP sends per phone. Repeated logins in a short window (exploration + reruns) stop the OTP step from rendering (`הזנת קוד` never appears) until a cooldown. The suite mitigates this by logging each role in **once** (the `product-setup` project) and reusing the saved `storageState` — so a full run does one send per role. `login()` still resends once and is idempotent; when the OTP step never renders it throws `OtpUnavailableError`, which `ProductFlows` turns into a graceful skip. When exploring live with the MCP, don't hammer one number; different personas use different numbers.
 - Persona `company-employee` cannot log in (no phone in the doc). All logged-in roles (customer/consultant/company) land on the calculator address step with the property-type buttons; role differences show up in the header label and the personal-area sidebar (see the table above), not on the home screen.
 - The full 50-test matrix (`PRODUCT_E2E_ENABLED=true`) creates real projects/quotations on dev; the credential-free `tests/product/smoke` suite is safe and always runnable.
