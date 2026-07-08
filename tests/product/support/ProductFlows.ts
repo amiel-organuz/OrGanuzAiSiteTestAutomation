@@ -1,8 +1,7 @@
-import { Page, test } from '@playwright/test';
+import { Page } from '@playwright/test';
 import {
   ProductAppPage,
   ProductRuntimeIds,
-  OtpUnavailableError,
   AppUnavailableError,
   APP_UNAVAILABLE_REASON,
 } from './ProductAppPage';
@@ -24,18 +23,10 @@ export class ProductFlows {
   /** Open the calculator shell, unlocking the dev/test password gate (no-op on prod). */
   async openCalculator(): Promise<void> {
     await this.page.goto('/');
-    try {
-      await unlockProductEnvironment(this.page);
-    } catch (error) {
-      // Gate submitted but the app never routed to /calculator/ — backend down; skip.
-      if (error instanceof AppUnavailableError) {
-        test.skip(true, error.message);
-      }
-      throw error;
-    }
+    await unlockProductEnvironment(this.page);
     // No gate (already unlocked / prod): if only the header renders, the backend is down.
     if (!(await this.app.isAppShellLoaded())) {
-      test.skip(true, APP_UNAVAILABLE_REASON);
+      throw new AppUnavailableError(APP_UNAVAILABLE_REASON);
     }
   }
 
@@ -49,10 +40,7 @@ export class ProductFlows {
   async resumeSession(personaId: ProductPersonaId): Promise<void> {
     await this.openCalculator();
     if (!(await this.app.isAuthenticated())) {
-      test.skip(
-        true,
-        `No saved session for "${personaId}" (product-setup skipped — likely dev OTP rate-limit cooldown).`,
-      );
+      throw new Error(`No saved session for "${personaId}".`);
     }
   }
 
@@ -64,16 +52,7 @@ export class ProductFlows {
     if (!phone) {
       throw new Error(`Missing ${key}_PHONE for product persona "${personaId}".`);
     }
-    try {
-      return await this.app.login({ phone, otpCode });
-    } catch (error) {
-      // A rate-limited OTP or an unreachable backend is environmental — skip (like the
-      // dev-api maintenance skip) rather than fail. Other errors are real and rethrow.
-      if (error instanceof OtpUnavailableError || error instanceof AppUnavailableError) {
-        test.skip(true, `${error.message} Skipping (environmental).`);
-      }
-      throw error;
-    }
+    return this.app.login({ phone, otpCode });
   }
 
   /** Open the header user menu (exposes "איזור אישי" and "התנתק"). */

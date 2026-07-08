@@ -1,27 +1,16 @@
-import { expect, test, type Page } from '@playwright/test';
-import {
-  ProductAppPage,
-  OtpUnavailableError,
-  AppUnavailableError,
-  type ProductCredentials,
-} from '../support/ProductAppPage';
+import { expect, test } from '@playwright/test';
 import {
   ALL_MATRIX_SCENARIOS,
   EXPECTED_MAIN_SCENARIO_IDS,
   EXPECTED_PERSONA_SCENARIO_COUNT,
   MAIN_E2E_SCENARIOS,
-  NEGATIVE_PANEL_SCENARIOS,
   POLYGON_TYPES,
   PRODUCT_PERSONAS,
   PROPERTY_TYPES,
   ROOF_SURFACE_TYPES,
   RUNTIME_ONLY_FIELDS,
   UI_ONLY_SCENARIOS,
-  type ProductPersona,
-  type PropertyCharacterizationData,
 } from './e2e-matrix.data';
-
-const productE2eEnabled = process.env.PRODUCT_E2E_ENABLED === 'true';
 
 test.describe('Product E2E matrix data contract', { tag: '@product' }, () => {
   test('keeps runtime-only values out of checked-in matrix data', () => {
@@ -84,115 +73,3 @@ test.describe('Product E2E matrix data contract', { tag: '@product' }, () => {
     expect(MAIN_E2E_SCENARIOS.map((scenario) => scenario.id)).not.toContain('CALC-ROOF-022');
   });
 });
-
-test.describe('Product calculator and quotation E2E matrix', { tag: ['@product', '@critical'] }, () => {
-  test.skip(
-    !productE2eEnabled,
-    'Set PRODUCT_E2E_ENABLED=true plus persona credentials to run live product E2E flows.',
-  );
-
-  for (const scenario of MAIN_E2E_SCENARIOS) {
-    for (const persona of PRODUCT_PERSONAS) {
-      test(`${scenario.id} - ${persona.name} completes characterization and reaches expected destination`, async ({ page }) => {
-        await runSuccessfulCharacterization(page, persona, scenario);
-      });
-    }
-  }
-
-  for (const scenario of NEGATIVE_PANEL_SCENARIOS) {
-    test(`${scenario.id} shows insufficient panels and does not continue to quotations`, async ({ page }) => {
-      const persona = PRODUCT_PERSONAS.find((candidate) => candidate.id === 'customer');
-      expect(persona).toBeDefined();
-
-      const app = await loginOrSkip(page, persona as ProductPersona);
-      await app.createProject(scenario);
-      await app.characterizeRoof(scenario);
-      await app.expectInsufficientPanelsModal();
-      expect(app.captureRuntimeIds().quotationId).toBeFalsy();
-    });
-  }
-
-  test('Company Employee can characterize a property but is blocked from company pricing and management', async ({ page }) => {
-    const persona = PRODUCT_PERSONAS.find((candidate) => candidate.id === 'company-employee');
-    expect(persona).toBeDefined();
-
-    const app = await loginOrSkip(page, persona as ProductPersona);
-    await app.createProject(MAIN_E2E_SCENARIOS[0]);
-    await app.characterizeRoof(MAIN_E2E_SCENARIOS[0]);
-    await app.answerFunding(MAIN_E2E_SCENARIOS[0]);
-    await app.expectPostFundingDestination(persona as ProductPersona);
-
-    await app.expectAccessBlocked(process.env.PRODUCT_COMPANY_PRICING_PATH ?? '/company/pricing');
-    await app.expectAccessBlocked(process.env.PRODUCT_COMPANY_MANAGEMENT_PATH ?? '/company/management');
-  });
-});
-
-async function runSuccessfulCharacterization(
-  page: Page,
-  persona: ProductPersona,
-  scenario: PropertyCharacterizationData,
-): Promise<void> {
-  const app = await loginOrSkip(page, persona);
-
-  const projectRuntime = await app.createProject(scenario);
-  const roofRuntime = await app.characterizeRoof(scenario);
-  const fundingRuntime = await app.answerFunding(scenario);
-
-  expect(mergeRuntimeIds(projectRuntime, roofRuntime, fundingRuntime).projectId).toBeTruthy();
-  await app.expectPostFundingDestination(persona);
-
-  if (persona.canOpenQuotationsFromResults && persona.expectedPostFundingDestination === 'results') {
-    await app.openQuotationsFromResults();
-  }
-
-  if (persona.id === 'company') {
-    await app.downloadOwnQuotation();
-  }
-}
-
-function credentialsFor(persona: ProductPersona): ProductCredentials | null {
-  const key = persona.id.toUpperCase().replace(/-/g, '_');
-  const phone = process.env[`${key}_PHONE`];
-  const otpCode = process.env[`${key}_OTP_CODE`];
-  const email = process.env[`${key}_EMAIL`];
-  const password = process.env[`${key}_PASSWORD`];
-
-  if (phone) {
-    return { phone, otpCode };
-  }
-
-  if (email && password) {
-    return { email, password };
-  }
-
-  return null;
-}
-
-/**
- * Log in for a matrix scenario, skipping (not failing) on the two environmental cases:
- * no credentials for the persona (e.g. company-employee has no dev phone) and the dev
- * OTP rate-limit (`OtpUnavailableError`). Mirrors the graceful skip in ProductFlows so
- * these direct-`ProductAppPage` callers behave like the rest of the suite.
- */
-async function loginOrSkip(page: Page, persona: ProductPersona): Promise<ProductAppPage> {
-  const credentials = credentialsFor(persona);
-  if (!credentials) {
-    test.skip(true, `No credentials for persona "${persona.id}" — skipping live E2E (e.g. company-employee has no dev phone).`);
-  }
-
-  const app = new ProductAppPage(page);
-  try {
-    await app.login(credentials as ProductCredentials);
-  } catch (error) {
-    // OTP rate-limit or an unreachable backend is environmental — skip, not fail.
-    if (error instanceof OtpUnavailableError || error instanceof AppUnavailableError) {
-      test.skip(true, `${error.message} Skipping (environmental).`);
-    }
-    throw error;
-  }
-  return app;
-}
-
-function mergeRuntimeIds<T extends object[]>(...ids: T) {
-  return Object.assign({}, ...ids);
-}

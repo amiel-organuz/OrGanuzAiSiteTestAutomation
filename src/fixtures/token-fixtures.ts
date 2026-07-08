@@ -1,4 +1,4 @@
-import { TestType, Fixtures, PlaywrightTestArgs, test as pwTest } from '@playwright/test';
+import { TestType, Fixtures, PlaywrightTestArgs } from '@playwright/test';
 import { ProductFlows } from '../../tests/product/support/ProductFlows';
 import { TokenInterceptor } from '../../tests/product/support/TokenInterceptor';
 import { config } from '../utils/config';
@@ -84,9 +84,11 @@ const tokenFixtureImpl: Fixtures<TokenFixtures, {}, TokenFixtureDeps & Playwrigh
    */
   productAuthToken: async ({ page, product, authRole }, use) => {
     const interceptor = new TokenInterceptor(page).start();
-    pwTest.skip(!authRole, 'productAuthToken requires test.use({ authRole: <persona> }).');
+    if (!authRole) {
+      throw new Error('productAuthToken requires test.use({ authRole: <persona> }).');
+    }
     // Resumes the saved session (opens calculator + unlocks gate); skips if not authenticated.
-    await product.resumeSession(authRole as ProductPersonaId);
+    await product.resumeSession(authRole);
     // Navigate to the personal area so the authenticated UI makes a backend call carrying
     // the session token (by URL, not the header menu, so the profile need not have loaded).
     await page.goto('/pricing/my-offers').catch(() => undefined);

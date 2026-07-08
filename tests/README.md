@@ -17,7 +17,7 @@ Tests are grouped by subject so each Playwright project stays easy to scan.
 | Dev API support | `tests/dev-api/support/` | `FlamiingoApi` RPC client and fixtures. |
 | Product smoke | `tests/product/smoke/` | Credential-free public calculator shell checks. |
 | Product flows | `tests/product/flows/` | Registration, gated full-flow, sign-out, and per-role specs (`registration`, `full-flow`, `roles`, `role-areas`, `role-session`, `role-sanity`, `role-logout`). |
-| Product API | `tests/product/api/` | Gated product role backend API checks (`role-backend.spec.ts`). |
+| Product API | `tests/product/api/` | Public product token sanity checks. |
 | Product matrix | `tests/product/matrix/` | Persona E2E matrix data and specs (gated by `PRODUCT_E2E_ENABLED`). |
 | Product support | `tests/product/support/` | Product app page helpers, `ProductFlows`, fixtures, and the `product-setup` auth (`auth.setup.ts` + `auth.ts` save each role's `storageState` for reuse). |
 | UI support | `tests/ui/support/` | UI-only fixture extensions, including `siteFlows`, layered on top of the shared `src/fixtures`. |

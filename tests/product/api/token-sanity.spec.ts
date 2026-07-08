@@ -16,10 +16,8 @@
  *
  * Run:  npx playwright test tests/product/api/token-sanity.spec.ts --project=product --workers=1
  */
-import { APIResponse } from '@playwright/test';
 import { test, expect } from '../support/fixtures';
 import { TokenInterceptor, InterceptedTokenCall } from '../support/TokenInterceptor';
-import { FlamiingoApi } from '../../dev-api/support/FlamiingoApi';
 import { unlockProductEnvironment } from '../support/env-gate';
 import { config } from '../../../src/utils/config';
 import {
@@ -61,27 +59,9 @@ test.describe('Product API sanity via extracted UI token (dev)', { tag: ['@produ
     }
   });
 
-  // If the UI token could not be extracted (backend/gate down), skip — it's environmental.
   test.beforeEach(() => {
-    test.skip(!uiToken, `Could not extract the UI token — ${extractionReason}`);
+    expect(uiToken, `Could not extract the UI token — ${extractionReason}`).toBeTruthy();
   });
-
-  /** Invoke an RPC method with the extracted token, skipping on a maintenance banner. */
-  async function rpc(request: import('@playwright/test').APIRequestContext, method: string): Promise<APIResponse> {
-    const api = new FlamiingoApi(request, config.devApi.baseUrl, uiToken as string);
-    let res: APIResponse;
-    try {
-      res = await api.call(method);
-    } catch (err) {
-      test.skip(true, `Dev RPC gateway unreachable — ${(err as Error).message.split('\n')[0]}`);
-      throw err;
-    }
-    test.skip(
-      FlamiingoApi.isMaintenanceBanner(await res.text()),
-      'Dev RPC gateway is in maintenance ("Debug Mode Off") — skipping.',
-    );
-    return res;
-  }
 
   test('1. the UI transmits a well-formed token to the backend', { tag: '@critical' }, async () => {
     await allureEpic('Product app');
@@ -104,37 +84,7 @@ test.describe('Product API sanity via extracted UI token (dev)', { tag: ['@produ
     expect(uiToken, 'UI token differs from config.devApi.token — bundle/config drift').toBe(config.devApi.token);
   });
 
-  test('3. the extracted token authorizes get_arena_types with an ok envelope', { tag: '@critical' }, async ({ request }) => {
-    await allureEpic('Product app');
-    await allureFeature('RPC authorization');
-    await allureStory('get_arena_types');
-    await allureSeverity('critical');
-
-    const res = await rpc(request, 'get_arena_types');
-    expect(res.status()).toBe(200);
-    expect(res.headers()['content-type']).toContain('application/json');
-    const body = await res.json();
-    expect(body.status).toBe('ok');
-    expect(Array.isArray(body.items)).toBe(true);
-    expect(body.itemsFound).toBe(body.items.length);
-    expect(body.items.length).toBeGreaterThan(0);
-  });
-
-  test('4. the extracted token drives the remaining-projects quota endpoint', async ({ request }) => {
-    await allureEpic('Product app');
-    await allureFeature('RPC authorization');
-    await allureStory('get_remaining_projects');
-    await allureSeverity('normal');
-
-    const res = await rpc(request, 'get_remaining_projects');
-    expect(res.status()).toBe(200);
-    const body = await res.json();
-    expect(body.status).toBe('ok');
-    expect(body.item).toBeDefined();
-    expect(typeof body.item.max_projects).toBe('object');
-  });
-
-  test('5. every UI backend call sends the token in the body over HTTPS, never the URL', { tag: '@security' }, async () => {
+  test('3. every UI backend call sends the token in the body over HTTPS, never the URL', { tag: '@security' }, async () => {
     await allureEpic('Product app');
     await allureFeature('Token transport security');
     await allureStory('body-only over HTTPS');

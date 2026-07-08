@@ -61,7 +61,6 @@ area) + `התנתק` (logout). `product.openPersonalArea()` lands on `…/pricin
 - `role-session.spec.ts` — calculator shell, reload persistence, deep-link.
 - `role-sanity.spec.ts` — 10-point per-role sanity battery (identity, auth, calculator, area, deep-link).
 - `role-logout.spec.ts` — sign-out, with its own login (isolated).
-- `api/role-backend.spec.ts` — backend-call health: JSON over HTTPS, no 5xx.
 
 All except `role-logout` resume a saved session. Reusable flows (`resumeSession`, `loginAs`,
 `openPersonalArea`, `openSidebarEntry`, `logout`) live on `ProductFlows`; add new named flows

@@ -1,8 +1,6 @@
-import { Page, test } from '@playwright/test';
+import { Page } from '@playwright/test';
 import {
   ProductAppPage,
-  OtpUnavailableError,
-  AppUnavailableError,
   type NewCustomerAccount,
 } from './ProductAppPage';
 import { ProductFlows } from './ProductFlows';
@@ -64,14 +62,7 @@ export class RegistrationFlows {
     await this.openCustomerRegistrationForm();
     await this.app.fillCustomerRegistrationFields(account);
     await this.app.acceptRegistrationTerms();
-    try {
-      await this.app.submitCustomerRegistration(otpCode);
-    } catch (error) {
-      if (error instanceof OtpUnavailableError || error instanceof AppUnavailableError) {
-        test.skip(true, `${error.message} Skipping (environmental).`);
-      }
-      throw error;
-    }
+    await this.app.submitCustomerRegistration(otpCode);
   }
 
   /**

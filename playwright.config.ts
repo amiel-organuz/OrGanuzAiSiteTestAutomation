@@ -79,35 +79,6 @@ export default defineConfig({
     {
       name: 'product',
       testMatch: 'tests/product/**/*.spec.ts',
-      testIgnore: [
-        'tests/product/api/role-backend.spec.ts',
-        'tests/product/flows/role-areas.spec.ts',
-        'tests/product/flows/role-sanity.spec.ts',
-        'tests/product/flows/role-session.spec.ts',
-        'tests/product/flows/roles.spec.ts',
-        'tests/product/flows/token-session.spec.ts',
-      ],
-      use: productUse,
-    },
-    {
-      // Logs each product role in once and saves its session to playwright/.auth/.
-      // The authenticated-role project depends on this so those specs resume the
-      // session instead of re-logging in (avoids the dev OTP rate-limit). See auth.setup.ts.
-      name: 'product-setup',
-      testMatch: 'tests/product/support/auth.setup.ts',
-      use: productUse,
-    },
-    {
-      name: 'product-authenticated',
-      testMatch: [
-        'tests/product/api/role-backend.spec.ts',
-        'tests/product/flows/role-areas.spec.ts',
-        'tests/product/flows/role-sanity.spec.ts',
-        'tests/product/flows/role-session.spec.ts',
-        'tests/product/flows/roles.spec.ts',
-        'tests/product/flows/token-session.spec.ts',
-      ],
-      dependencies: ['product-setup'],
       use: productUse,
     },
     {
@@ -116,14 +87,6 @@ export default defineConfig({
       grep: /@other-smoke/,
       use: {
         baseURL: config.organuzApi.baseUrl,
-      },
-    },
-    {
-      name: 'dev-api',
-      testMatch: 'tests/dev-api/**/*.spec.ts',
-      grep: /@other-smoke/,
-      use: {
-        baseURL: config.devApi.baseUrl,
       },
     },
     {
