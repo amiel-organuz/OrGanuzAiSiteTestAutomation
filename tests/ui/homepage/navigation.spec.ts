@@ -50,7 +50,7 @@ test.describe('Navigation', { tag: '@ui' }, () => {
     });
   });
 
-  test('header CTA link is visible and points to the app', async ({ homePage }) => {
+  test('header CTA link is visible and points to the app', { tag: '@other-smoke' }, async ({ homePage }) => {
     await allureEpic('Site Navigation');
     await allureFeature('Header');
     await allureStory('Header CTA');
