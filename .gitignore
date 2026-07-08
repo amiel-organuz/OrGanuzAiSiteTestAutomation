@@ -2,6 +2,7 @@ node_modules
 dist
 __pycache__/
 *.py[cod]
+venv/
 
 # Local env / secrets (dev & test credentials are Restricted — never commit)
 .env
