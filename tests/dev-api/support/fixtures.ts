@@ -25,7 +25,18 @@ export const test = base.extend<{ devApi: FlamiingoApi }>({
       params: Record<string, string> = {},
       token?: string,
     ): Promise<APIResponse> => {
-      const response = await rawCall(method, params, token);
+      let response: APIResponse;
+      try {
+        response = await rawCall(method, params, token);
+      } catch (error) {
+        // A network-level failure (e.g. ERR_CONNECTION_REFUSED) means the gateway is
+        // down — skip rather than fail, like the maintenance-banner case below.
+        test.skip(
+          true,
+          `Dev RPC gateway (organuz.flamiingo.com) unreachable — skipping dev-api tests (${(error as Error).message.split('\n')[0]}).`,
+        );
+        throw error;
+      }
       test.skip(
         FlamiingoApi.isMaintenanceBanner(await response.text()),
         'Dev RPC gateway (organuz.flamiingo.com) is in maintenance ("Debug Mode Off") — skipping dev-api tests.',

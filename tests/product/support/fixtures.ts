@@ -1,5 +1,6 @@
 import { test as base } from '../../../src/fixtures';
 import { ProductFlows } from './ProductFlows';
+import { RegistrationFlows } from './RegistrationFlows';
 import { authFile, hasSavedSession } from './auth';
 import type { ProductPersonaId } from '../matrix/e2e-matrix.data';
 
@@ -15,7 +16,11 @@ import type { ProductPersonaId } from '../matrix/e2e-matrix.data';
  * (setup skipped on cooldown), storageState falls back to unauthenticated and the
  * spec's `product.resumeSession()` skips with a clear reason.
  */
-export const test = base.extend<{ product: ProductFlows; authRole?: ProductPersonaId }>({
+export const test = base.extend<{
+  product: ProductFlows;
+  registration: RegistrationFlows;
+  authRole?: ProductPersonaId;
+}>({
   authRole: [undefined, { option: true }],
 
   storageState: async ({ authRole }, use) => {
@@ -24,6 +29,10 @@ export const test = base.extend<{ product: ProductFlows; authRole?: ProductPerso
 
   product: async ({ page }, use) => {
     await use(new ProductFlows(page));
+  },
+
+  registration: async ({ page }, use) => {
+    await use(new RegistrationFlows(page));
   },
 });
 

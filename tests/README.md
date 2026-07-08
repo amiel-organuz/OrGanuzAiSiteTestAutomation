@@ -16,25 +16,37 @@ Tests are grouped by subject so each Playwright project stays easy to scan.
 | Dev API security | `tests/dev-api/security/` | RPC negative/security, input-validation, and token-hardening cases. |
 | Dev API support | `tests/dev-api/support/` | `FlamiingoApi` RPC client and fixtures. |
 | Product smoke | `tests/product/smoke/` | Credential-free public calculator shell checks. |
-| Product flows | `tests/product/flows/` | Gated full-flow + per-role specs (`full-flow`, `roles`, `role-areas`, `role-session`, `role-sanity`, `role-logout`). |
+| Product flows | `tests/product/flows/` | Registration, gated full-flow, sign-out, and per-role specs (`registration`, `full-flow`, `roles`, `role-areas`, `role-session`, `role-sanity`, `role-logout`). |
 | Product API | `tests/product/api/` | Gated product role backend API checks (`role-backend.spec.ts`). |
 | Product matrix | `tests/product/matrix/` | Persona E2E matrix data and specs (gated by `PRODUCT_E2E_ENABLED`). |
 | Product support | `tests/product/support/` | Product app page helpers, `ProductFlows`, fixtures, and the `product-setup` auth (`auth.setup.ts` + `auth.ts` save each role's `storageState` for reuse). |
+| UI support | `tests/ui/support/` | UI-only fixture extensions, including `siteFlows`, layered on top of the shared `src/fixtures`. |
 | Agent orchestrator | `tests/agent/orchestrator/` | QA agent orchestration regression specs. |
 
 The Playwright project globs remain recursive:
 
-- `chromium`: `tests/ui/**/*.spec.ts`
-- `product`: `tests/product/**/*.spec.ts` (depends on `product-setup`)
+- `chromium`: `tests/ui/**/*.spec.ts`, default-filtered to `@other-smoke`
+- `product`: product specs that do not need shared role storage (smoke, registration, full-flow, matrix, sign-out)
 - `product-setup`: `tests/product/support/auth.setup.ts`
-- `organuz-api`: `tests/organuz-api/**/*.spec.ts`
-- `dev-api`: `tests/dev-api/**/*.spec.ts`
-- `agent`: `tests/agent/**/*.spec.ts`
+- `product-authenticated`: per-role specs that resume saved sessions (depends on `product-setup`)
+- `organuz-api`: `tests/organuz-api/**/*.spec.ts`, default-filtered to `@other-smoke`
+- `dev-api`: `tests/dev-api/**/*.spec.ts`, default-filtered to `@other-smoke`
+- `agent`: `tests/agent/**/*.spec.ts`, default-filtered to `@other-smoke`
 
-The `product` project depends on `product-setup`, which logs each authenticated role
-(`customer`, `consultant`, `company`) in once and saves its `storageState` to
-`playwright/.auth/` (gitignored). Per-role specs then resume that session via
-`test.use({ authRole })` + `product.resumeSession()` instead of logging in again, keeping
-OTP sends to one per role per run. Sign-out is isolated in `role-logout.spec.ts` (its own
-login) so it can't invalidate the shared sessions. When a role's saved session is missing
-(setup skipped on OTP cooldown), the dependent specs skip with a reason rather than failing.
+Non-product projects intentionally expose only five default `@other-smoke` checks:
+two UI checks, one Organuz API contract, one dev RPC contract, and one agent
+orchestrator regression. The broader non-product specs remain in the repo but are not
+selected by the default project config.
+
+The `product-authenticated` project depends on `product-setup`, which logs each
+authenticated role (`customer`, `consultant`, `company`) in once and saves its
+`storageState` to `playwright/.auth/` (gitignored). Per-role specs then resume that
+session via `test.use({ authRole })` + `product.resumeSession()` instead of logging in
+again, keeping OTP sends to one per role per run. Sign-out is isolated in
+`role-logout.spec.ts` (its own login) so it can't invalidate the shared sessions. When a
+role's saved session is missing (setup skipped on OTP cooldown), the dependent specs skip
+with a reason rather than failing.
+
+Registration coverage lives in the plain `product` project so it does not trigger shared
+role auth setup. Most registration tests are no-submit validation checks; only the full
+property-owner signup test completes OTP and creates a fresh account.

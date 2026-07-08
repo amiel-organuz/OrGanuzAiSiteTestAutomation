@@ -1,12 +1,12 @@
 /**
  * Product-app authentication setup (dev).
  *
- * Runs as its own `product-setup` project that the `product` project depends on
+ * Runs as its own `product-setup` project that `product-authenticated` depends on
  * (see playwright.config.ts). Logs each role in ONCE via phone+OTP and saves its
  * authenticated session to playwright/.auth/product-<role>.json. Every per-role spec
  * then resumes from that saved storageState (via `test.use({ authRole })` +
- * `product.resumeSession()`) instead of logging in itself — so the whole product
- * suite performs at most one OTP send per role and never trips the dev rate-limit.
+ * `product.resumeSession()`) instead of logging in itself — so authenticated role
+ * coverage performs at most one OTP send per role.
  *
  * If a role can't authenticate (OTP cooldown), ProductAppPage.login() skips this
  * setup test; no session file is written, and the dependent specs skip too.

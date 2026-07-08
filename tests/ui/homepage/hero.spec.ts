@@ -13,7 +13,7 @@ test.describe('Hero Section', { tag: '@ui' }, () => {
     await homePage.navigate();
   });
 
-  test('hero heading is visible and mentions "אור"', async ({ homePage }) => {
+  test('hero heading is visible and mentions "אור"', { tag: '@other-smoke' }, async ({ homePage }) => {
     await allureEpic('Homepage');
     await allureFeature('Hero Section');
     await allureStory('Heading');

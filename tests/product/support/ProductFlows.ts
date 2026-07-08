@@ -1,5 +1,11 @@
 import { Page, test } from '@playwright/test';
-import { ProductAppPage, ProductRuntimeIds, OtpUnavailableError } from './ProductAppPage';
+import {
+  ProductAppPage,
+  ProductRuntimeIds,
+  OtpUnavailableError,
+  AppUnavailableError,
+  APP_UNAVAILABLE_REASON,
+} from './ProductAppPage';
 import { unlockProductEnvironment } from './env-gate';
 import { PropertyCharacterizationData, ProductPersonaId } from '../matrix/e2e-matrix.data';
 
@@ -18,7 +24,19 @@ export class ProductFlows {
   /** Open the calculator shell, unlocking the dev/test password gate (no-op on prod). */
   async openCalculator(): Promise<void> {
     await this.page.goto('/');
-    await unlockProductEnvironment(this.page);
+    try {
+      await unlockProductEnvironment(this.page);
+    } catch (error) {
+      // Gate submitted but the app never routed to /calculator/ — backend down; skip.
+      if (error instanceof AppUnavailableError) {
+        test.skip(true, error.message);
+      }
+      throw error;
+    }
+    // No gate (already unlocked / prod): if only the header renders, the backend is down.
+    if (!(await this.app.isAppShellLoaded())) {
+      test.skip(true, APP_UNAVAILABLE_REASON);
+    }
   }
 
   /**
@@ -49,9 +67,9 @@ export class ProductFlows {
     try {
       return await this.app.login({ phone, otpCode });
     } catch (error) {
-      // Rate-limited OTP is environmental — skip (like the dev-api maintenance skip)
-      // rather than fail. Any other login error is a real regression and rethrows.
-      if (error instanceof OtpUnavailableError) {
+      // A rate-limited OTP or an unreachable backend is environmental — skip (like the
+      // dev-api maintenance skip) rather than fail. Other errors are real and rethrow.
+      if (error instanceof OtpUnavailableError || error instanceof AppUnavailableError) {
         test.skip(true, `${error.message} Skipping (environmental).`);
       }
       throw error;

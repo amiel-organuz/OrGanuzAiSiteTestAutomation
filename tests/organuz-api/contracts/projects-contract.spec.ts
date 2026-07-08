@@ -16,7 +16,7 @@ import {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 test.describe('Contract: organuz projects', { tag: ['@organuz-api', '@contract'] }, () => {
-  test('GET /rest/v1/projects returns 200 with JSON content type', async ({ organuzApi }) => {
+  test('GET /rest/v1/projects returns 200 with JSON content type', { tag: '@other-smoke' }, async ({ organuzApi }) => {
     await allureEpic('Organuz API');
     await allureFeature('Projects contract');
     await allureStory('Content-Type header');

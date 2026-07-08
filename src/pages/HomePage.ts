@@ -369,10 +369,15 @@ export class HomePage extends BasePage {
     await this.messageInput.fill(message);
   }
 
+  /** The expandable FAQ question header, addressed by its (Hebrew) text. */
+  faqQuestion(questionText: string): Locator {
+    return this.page.getByRole('button', { name: questionText });
+  }
+
   async clickFaqQuestion(questionText: string): Promise<void> {
     const btn = await this.findFirstWorking(
       `FAQ question "${questionText}"`,
-      this.page.getByRole('button', { name: questionText }),
+      this.faqQuestion(questionText),
       this.page.getByText(questionText).first(),
     );
     await btn.click();

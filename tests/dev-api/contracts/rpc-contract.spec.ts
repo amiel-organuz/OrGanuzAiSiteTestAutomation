@@ -15,7 +15,7 @@ import {
 } from '../../../src/utils/allure';
 
 test.describe('Contract: dev RPC gateway', { tag: ['@dev-api', '@contract'] }, () => {
-  test('get_arena_types returns 200 JSON with an ok envelope', async ({ devApi }) => {
+  test('get_arena_types returns 200 JSON with an ok envelope', { tag: '@other-smoke' }, async ({ devApi }) => {
     await allureEpic('Dev product API');
     await allureFeature('RPC envelope');
     await allureStory('get_arena_types');

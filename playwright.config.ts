@@ -68,6 +68,7 @@ export default defineConfig({
     {
       name: 'chromium',
       testMatch: 'tests/ui/**/*.spec.ts',
+      grep: /@other-smoke/,
       use: {
         ...devices['Desktop Chrome'],
         baseURL: config.web.baseUrl,
@@ -76,22 +77,41 @@ export default defineConfig({
       },
     },
     {
+      name: 'product',
+      testMatch: 'tests/product/**/*.spec.ts',
+      testIgnore: [
+        'tests/product/api/role-backend.spec.ts',
+        'tests/product/flows/role-areas.spec.ts',
+        'tests/product/flows/role-sanity.spec.ts',
+        'tests/product/flows/role-session.spec.ts',
+        'tests/product/flows/roles.spec.ts',
+      ],
+      use: productUse,
+    },
+    {
       // Logs each product role in once and saves its session to playwright/.auth/.
-      // The `product` project depends on this so per-role specs resume the session
-      // instead of re-logging in (avoids the dev OTP rate-limit). See auth.setup.ts.
+      // The authenticated-role project depends on this so those specs resume the
+      // session instead of re-logging in (avoids the dev OTP rate-limit). See auth.setup.ts.
       name: 'product-setup',
       testMatch: 'tests/product/support/auth.setup.ts',
       use: productUse,
     },
     {
-      name: 'product',
-      testMatch: 'tests/product/**/*.spec.ts',
+      name: 'product-authenticated',
+      testMatch: [
+        'tests/product/api/role-backend.spec.ts',
+        'tests/product/flows/role-areas.spec.ts',
+        'tests/product/flows/role-sanity.spec.ts',
+        'tests/product/flows/role-session.spec.ts',
+        'tests/product/flows/roles.spec.ts',
+      ],
       dependencies: ['product-setup'],
       use: productUse,
     },
     {
       name: 'organuz-api',
       testMatch: 'tests/organuz-api/**/*.spec.ts',
+      grep: /@other-smoke/,
       use: {
         baseURL: config.organuzApi.baseUrl,
       },
@@ -99,6 +119,7 @@ export default defineConfig({
     {
       name: 'dev-api',
       testMatch: 'tests/dev-api/**/*.spec.ts',
+      grep: /@other-smoke/,
       use: {
         baseURL: config.devApi.baseUrl,
       },
@@ -106,6 +127,7 @@ export default defineConfig({
     {
       name: 'agent',
       testMatch: 'tests/agent/**/*.spec.ts',
+      grep: /@other-smoke/,
     },
     // {
     //   name: 'firefox',

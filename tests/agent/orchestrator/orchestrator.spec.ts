@@ -119,7 +119,7 @@ class FailingReportAzureDevOpsConnector implements AzureDevOpsConnector {
 }
 
 test.describe('QA agent orchestrator', () => {
-  test('marks runner crashes as blocked and continues running the suite', async () => {
+  test('marks runner crashes as blocked and continues running the suite', { tag: '@other-smoke' }, async () => {
     const ado = new StubAzureDevOpsConnector(suite);
     const sheets = new StubGoogleSheetsConnector({ environments: [env], rows });
     const oneDrive = new StubOneDriveConnector();

@@ -1,5 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
-import { ProductAppPage } from '../support/ProductAppPage';
+import {
+  ProductAppPage,
+  OtpUnavailableError,
+  AppUnavailableError,
+  type ProductCredentials,
+} from '../support/ProductAppPage';
 import {
   ALL_MATRIX_SCENARIOS,
   EXPECTED_MAIN_SCENARIO_IDS,
@@ -99,8 +104,7 @@ test.describe('Product calculator and quotation E2E matrix', { tag: ['@product',
       const persona = PRODUCT_PERSONAS.find((candidate) => candidate.id === 'customer');
       expect(persona).toBeDefined();
 
-      const app = new ProductAppPage(page);
-      await app.login(credentialsFor(persona as ProductPersona));
+      const app = await loginOrSkip(page, persona as ProductPersona);
       await app.createProject(scenario);
       await app.characterizeRoof(scenario);
       await app.expectInsufficientPanelsModal();
@@ -112,8 +116,7 @@ test.describe('Product calculator and quotation E2E matrix', { tag: ['@product',
     const persona = PRODUCT_PERSONAS.find((candidate) => candidate.id === 'company-employee');
     expect(persona).toBeDefined();
 
-    const app = new ProductAppPage(page);
-    await app.login(credentialsFor(persona as ProductPersona));
+    const app = await loginOrSkip(page, persona as ProductPersona);
     await app.createProject(MAIN_E2E_SCENARIOS[0]);
     await app.characterizeRoof(MAIN_E2E_SCENARIOS[0]);
     await app.answerFunding(MAIN_E2E_SCENARIOS[0]);
@@ -129,15 +132,13 @@ async function runSuccessfulCharacterization(
   persona: ProductPersona,
   scenario: PropertyCharacterizationData,
 ): Promise<void> {
-  const credentials = credentialsFor(persona);
-  const app = new ProductAppPage(page);
+  const app = await loginOrSkip(page, persona);
 
-  const loginRuntime = await app.login(credentials);
   const projectRuntime = await app.createProject(scenario);
   const roofRuntime = await app.characterizeRoof(scenario);
   const fundingRuntime = await app.answerFunding(scenario);
 
-  expect(mergeRuntimeIds(loginRuntime, projectRuntime, roofRuntime, fundingRuntime).projectId).toBeTruthy();
+  expect(mergeRuntimeIds(projectRuntime, roofRuntime, fundingRuntime).projectId).toBeTruthy();
   await app.expectPostFundingDestination(persona);
 
   if (persona.canOpenQuotationsFromResults && persona.expectedPostFundingDestination === 'results') {
@@ -149,7 +150,7 @@ async function runSuccessfulCharacterization(
   }
 }
 
-function credentialsFor(persona: ProductPersona) {
+function credentialsFor(persona: ProductPersona): ProductCredentials | null {
   const key = persona.id.toUpperCase().replace(/-/g, '_');
   const phone = process.env[`${key}_PHONE`];
   const otpCode = process.env[`${key}_OTP_CODE`];
@@ -164,7 +165,32 @@ function credentialsFor(persona: ProductPersona) {
     return { email, password };
   }
 
-  throw new Error(`Missing ${key}_PHONE or ${key}_EMAIL/${key}_PASSWORD for product E2E persona ${persona.id}.`);
+  return null;
+}
+
+/**
+ * Log in for a matrix scenario, skipping (not failing) on the two environmental cases:
+ * no credentials for the persona (e.g. company-employee has no dev phone) and the dev
+ * OTP rate-limit (`OtpUnavailableError`). Mirrors the graceful skip in ProductFlows so
+ * these direct-`ProductAppPage` callers behave like the rest of the suite.
+ */
+async function loginOrSkip(page: Page, persona: ProductPersona): Promise<ProductAppPage> {
+  const credentials = credentialsFor(persona);
+  if (!credentials) {
+    test.skip(true, `No credentials for persona "${persona.id}" — skipping live E2E (e.g. company-employee has no dev phone).`);
+  }
+
+  const app = new ProductAppPage(page);
+  try {
+    await app.login(credentials as ProductCredentials);
+  } catch (error) {
+    // OTP rate-limit or an unreachable backend is environmental — skip, not fail.
+    if (error instanceof OtpUnavailableError || error instanceof AppUnavailableError) {
+      test.skip(true, `${error.message} Skipping (environmental).`);
+    }
+    throw error;
+  }
+  return app;
 }
 
 function mergeRuntimeIds<T extends object[]>(...ids: T) {

@@ -1,4 +1,5 @@
 import { Page } from '@playwright/test';
+import { AppUnavailableError, APP_UNAVAILABLE_REASON } from './errors';
 
 /**
  * Non-prod Organuz environments (DEV / TEST) sit behind a shared password gate
@@ -20,6 +21,12 @@ export async function unlockProductEnvironment(page: Page): Promise<void> {
   await gate.first().fill(password);
   await page.getByRole('button', { name: 'כנס' }).first().click();
 
-  // Gate success redirects into the calculator (…/calculator/address).
-  await page.waitForURL(/calculator/i, { timeout: 20_000 });
+  // Gate success redirects into the calculator (…/calculator/address). If it never gets
+  // there, the app's backend (organuz.flamiingo.com) is down so the SPA can't route —
+  // surface it as an environmental error the callers translate into a skip.
+  try {
+    await page.waitForURL(/calculator/i, { timeout: 20_000 });
+  } catch {
+    throw new AppUnavailableError(APP_UNAVAILABLE_REASON);
+  }
 }

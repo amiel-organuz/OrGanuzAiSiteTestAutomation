@@ -71,8 +71,12 @@ test.describe('Product role backend API (dev)', { tag: ['@product', '@api', '@in
       // label depends on the profile having loaded) so this stays an API-observation test.
       await page.goto('/pricing/my-offers');
       await page.waitForURL(/\/pricing\//i, { timeout: 30_000 }).catch(() => undefined);
-      // Let personal-area XHRs settle (networkidle is unsafe here — the map iframe never idles).
-      await page.waitForTimeout(2000);
+      await expect
+        .poll(() => calls.some((call) => call.envelopeStatus === 'ok'), {
+          message: 'waiting for a healthy Organuz backend response',
+          timeout: 10_000,
+        })
+        .toBe(true);
 
       // Integration — the role's area is driven by the backend, healthily.
       expect(calls.length, 'no Organuz backend calls captured').toBeGreaterThan(0);

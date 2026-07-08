@@ -19,6 +19,7 @@ interface ProjectMapping {
   id: string;
   title: string;
   project: string;
+  grep?: string;
   tags: string[];
   acceptanceCriterion: AcceptanceCriterion;
 }
@@ -45,10 +46,11 @@ const projectMappings: ProjectMapping[] = [
   },
   {
     id: 'PW-PRODUCT',
-    title: 'Run product E2E matrix Playwright project',
+    title: 'Run 50 product E2E matrix tests',
     project: 'product',
+    grep: 'Product calculator and quotation E2E matrix',
     tags: ['@playwright', '@product'],
-    acceptanceCriterion: { id: 'AC-PRODUCT', description: 'Product E2E matrix project exits successfully' },
+    acceptanceCriterion: { id: 'AC-PRODUCT', description: '50 product E2E matrix tests exit successfully' },
   },
   {
     id: 'PW-AGENT',
@@ -79,10 +81,15 @@ function toTestCase(mapping: ProjectMapping): TestCase {
 }
 
 function toDataRow(mapping: ProjectMapping): DataRow {
+  const inputs: Record<string, string> = { project: mapping.project };
+  if (mapping.grep) {
+    inputs.grep = mapping.grep;
+  }
+
   return {
     caseId: mapping.id,
     environment: environment.name,
-    inputs: { project: mapping.project },
+    inputs,
     expected: { exitCode: '0' },
   };
 }
