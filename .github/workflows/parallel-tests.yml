@@ -54,11 +54,17 @@ jobs:
         project:
           - chromium
           - organuz-api
-          - dev-api
+          - agent
+          - product
 
     env:
       CI: true
       PLAYWRIGHT_MERGE_REPORTS: false
+      # The product token-sanity spec opens the dev calculator (dev1.app.organize.organuz.com)
+      # to extract the UI token, so it needs the dev password-gate secret; the marketing-site
+      # (chromium), Supabase (organuz-api), and agent (stubs) projects ignore it.
+      QA_TARGET_ENV: dev
+      PRODUCT_PLATFORM_PASSWORD: ${{ secrets.PRODUCT_PLATFORM_PASSWORD }}
 
     steps:
       - name: Checkout
@@ -74,7 +80,9 @@ jobs:
         run: npm ci
 
       - name: Install Chromium
-        if: matrix.project == 'chromium'
+        # chromium drives the marketing site; product opens a chromium context to
+        # extract the UI token. The organuz-api and agent projects need no browser.
+        if: matrix.project == 'chromium' || matrix.project == 'product'
         run: npx playwright install --with-deps chromium
 
       - name: Run Playwright project
@@ -117,46 +125,6 @@ jobs:
         with:
           name: blob-report-${{ matrix.project }}
           path: blob-report/
-          if-no-files-found: ignore
-          retention-days: 14
-
-  product-smoke:
-    name: Playwright product smoke (prod)
-    runs-on: ubuntu-latest
-    needs: typecheck
-    timeout-minutes: 20
-
-    env:
-      CI: true
-      # Prod has no dev/test password gate, so the @smoke shell tests need no secrets.
-      QA_TARGET_ENV: prod
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-
-      - name: Run credential-free product smoke against prod
-        run: npx playwright test --project=product --grep @smoke
-
-      - name: Upload Allure results
-        if: always()
-        continue-on-error: true
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-results-product-smoke
-          path: allure-results/
           if-no-files-found: ignore
           retention-days: 14
 
@@ -232,7 +200,6 @@ jobs:
     needs:
       - typecheck
       - tests
-      - product-smoke
     if: always()
     timeout-minutes: 15
     env:
