@@ -32,3 +32,10 @@ export const RUNTIME_ONLY_FIELDS = [
   'entrepreneurQuotationId',
   'token',
 ] as const;
+
+/**
+ * Business rule: a roof needs at least this many panels to produce a quotable
+ * result. `quotable` scenarios sit at or above it; `below-minimum` scenarios sit
+ * under it. Kept here (not inline in the spec) so the threshold has one home.
+ */
+export const QUOTABLE_MINIMUM_PANEL_COUNT = 5;

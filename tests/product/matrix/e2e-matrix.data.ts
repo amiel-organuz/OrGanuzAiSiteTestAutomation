@@ -1,5 +1,4 @@
 import type { PropertyCharacterizationData } from './matrix-types';
-import { PRODUCT_PERSONAS } from './product-personas.data';
 import {
   MAIN_E2E_SCENARIOS,
   NEGATIVE_PANEL_SCENARIOS,
@@ -38,4 +37,7 @@ export const EXPECTED_MAIN_SCENARIO_IDS = [
   'CALC-ROOF-012',
 ] as const;
 
-export const EXPECTED_PERSONA_SCENARIO_COUNT = MAIN_E2E_SCENARIOS.length * PRODUCT_PERSONAS.length;
+// Pinned independently (12 main scenarios × 4 personas) so the data-contract test
+// verifies the matrix size against a fixed expectation instead of comparing the
+// product to itself. Update this literal deliberately when the matrix grows.
+export const EXPECTED_PERSONA_SCENARIO_COUNT = 48;
