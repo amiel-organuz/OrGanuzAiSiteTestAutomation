@@ -386,7 +386,7 @@ jobs:
             ALLURE_LINK="<${RUN_URL}|Allure report (download artifact)>"
           fi
 
-          TEXT=":bar_chart: *Organuz test automation finished* — <${RUN_URL}|View run>\n• ${ALLURE_LINK}\n• <${GRAFANA_LINK_URL}|Grafana dashboard>"
+          TEXT=":bar_chart: *Organuz — GitHub Actions test run* finished — <${RUN_URL}|View run>\n• ${ALLURE_LINK}\n• <${GRAFANA_LINK_URL}|Grafana dashboard>"
           PAYLOAD=$(printf '{"text":"%s"}' "$TEXT")
 
           post() { # $1 = secret name, $2 = url

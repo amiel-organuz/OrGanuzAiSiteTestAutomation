@@ -145,7 +145,7 @@ if [ "$NOTIFY_SLACK" = "true" ]; then
     else
       SLACK_STATUS=":x: failed (exit ${TEST_EXIT_CODE})"
     fi
-    SLACK_TEXT=":bar_chart: *Organuz local test run finished* — ${SLACK_STATUS}\n• <${ALLURE_URL}|Allure report>\n• <${GRAFANA_DASHBOARD_URL}|Grafana dashboard>"
+    SLACK_TEXT=":bar_chart: *Organuz — Local test run* finished — ${SLACK_STATUS}\n• <${ALLURE_URL}|Allure report>\n• <${GRAFANA_DASHBOARD_URL}|Grafana dashboard>"
     SLACK_PAYLOAD=$(printf '{"text":"%s"}' "$SLACK_TEXT")
     slack_post() { # $1 = label, $2 = url
       if [ -z "$2" ]; then echo "  $1: not set — skipping."; return 0; fi
