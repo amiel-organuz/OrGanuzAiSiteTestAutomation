@@ -93,7 +93,7 @@ Run the full local automation flow:
 ./scripts/run-all-tests.sh
 ```
 
-This script typechecks the project, starts the local runtime stack when needed, runs the Playwright `chromium`, `organuz-api`, and `dev-api` projects, restarts the `api` container so Grafana picks up fresh results, generates an Allure 3 report, starts the Allure static server, opens the Grafana dashboard, and prints the main service URLs at the end. It intentionally does not run the `product` or `agent` projects by default; run those directly with `npm run test:product` and `npx playwright test --project=agent`, or through `npm run agent:current-tests`.
+This script typechecks the project, starts the local runtime stack when needed, runs the Playwright `chromium`, `organuz-api`, `product`, and `agent` projects in one invocation (into a freshly cleaned `allure-results/`, so the report aggregates all of them), restarts the `api` container so Grafana picks up fresh results, generates an Allure 3 report, brings up all local servers (FastAPI, Scalar, Prometheus, Grafana, Allure), opens the Grafana dashboard, and prints the main service URLs at the end. The credential-gated role flows (`product-setup` → `product-authenticated`) stay out; run those directly with `npx playwright test --project=product-authenticated`.
 
 Run only UI tests:
 

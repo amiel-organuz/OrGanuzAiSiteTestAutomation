@@ -46,8 +46,17 @@ for i in $(seq 1 30); do
 done
 
 echo "Running all Playwright tests..."
+# Start from a clean Allure results dir so the report reflects THIS run and not
+# leftovers from an ad-hoc single-project run (a stale dir made the report show
+# only whatever ran last).
+rm -rf allure-results
 set +e
-npx playwright test --project=chromium --project=organuz-api --project=dev-api
+# Every real, non-credential-gated project, in one invocation so their results
+# aggregate into a single Allure report: marketing UI, Supabase contract, the
+# product data-contracts + skip-safe public sanity, and the stubbed agent specs.
+# (`dev-api` was a removed project — naming it aborted the whole run.) The
+# credential-gated product-setup/product-authenticated role flows stay out.
+npx playwright test --project=chromium --project=organuz-api --project=product --project=agent
 TEST_EXIT_CODE=$?
 set -e
 
