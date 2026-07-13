@@ -79,6 +79,23 @@ export default defineConfig({
     {
       name: 'product',
       testMatch: 'tests/product/**/*.spec.ts',
+      // The per-role live specs run in product-authenticated (they need saved sessions).
+      testIgnore: 'tests/product/flows/**',
+      use: productUse,
+    },
+    {
+      // Authenticates each sign-in role once and saves its storageState. Skip-safe:
+      // roles without credentials (or when the dev app/OTP is down) are skipped.
+      name: 'product-setup',
+      testMatch: 'tests/product/support/auth.setup.ts',
+      use: productUse,
+    },
+    {
+      // Live per-role sanity e2e that resume the saved sessions. Depends on the setup
+      // project; individual specs skip when their role has no saved session.
+      name: 'product-authenticated',
+      testMatch: 'tests/product/flows/**/*.spec.ts',
+      dependencies: ['product-setup'],
       use: productUse,
     },
     {

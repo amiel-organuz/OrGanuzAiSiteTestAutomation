@@ -8,13 +8,14 @@ import {
   POLYGON_TYPES,
   PRODUCT_PERSONAS,
   PROPERTY_TYPES,
+  QUOTABLE_MINIMUM_PANEL_COUNT,
   RAMOT_SCENARIOS,
   ROOF_SURFACE_TYPES,
   RUNTIME_ONLY_FIELDS,
   UI_ONLY_SCENARIOS,
 } from './e2e-matrix.data';
 
-test.describe('Product E2E matrix data contract', { tag: '@product' }, () => {
+test.describe('Product matrix data contract', { tag: '@product' }, () => {
   test('keeps runtime-only values out of checked-in matrix data', () => {
     const serializedData = JSON.stringify(ALL_MATRIX_SCENARIOS);
 
@@ -23,13 +24,15 @@ test.describe('Product E2E matrix data contract', { tag: '@product' }, () => {
     }
   });
 
-  test('runs every characterization scenario across all required personas', () => {
+  test('keeps the scenario × persona matrix at its expected size', () => {
     expect(PRODUCT_PERSONAS.map((persona) => persona.id)).toEqual([
       'customer',
       'consultant',
       'company',
       'company-employee',
     ]);
+    // Compared against a fixed literal (see EXPECTED_PERSONA_SCENARIO_COUNT), so
+    // dropping a scenario or persona trips this instead of silently rescaling.
     expect(MAIN_E2E_SCENARIOS.length * PRODUCT_PERSONAS.length).toBe(EXPECTED_PERSONA_SCENARIO_COUNT);
   });
 
@@ -58,11 +61,13 @@ test.describe('Product E2E matrix data contract', { tag: '@product' }, () => {
     }
   });
 
-  test('keeps roof payload placeholders available for runtime marking data', () => {
+  test('keeps roof payload placeholders empty in checked-in data', () => {
+    // The placeholders exist for runtime marking data to fill; the checked-in
+    // fixtures must ship them empty so captured runtime state never leaks into git.
     for (const scenario of ALL_MATRIX_SCENARIOS) {
-      expect(scenario).toHaveProperty('roofState');
-      expect(scenario).toHaveProperty('roofObjects');
-      expect(scenario).toHaveProperty('roofLevels');
+      expect(scenario.roofState, `${scenario.id} roofState is an empty placeholder`).toEqual({});
+      expect(scenario.roofObjects, `${scenario.id} roofObjects is an empty placeholder`).toEqual({});
+      expect(scenario.roofLevels, `${scenario.id} roofLevels is an empty placeholder`).toEqual({});
     }
   });
 
@@ -90,14 +95,19 @@ test.describe('Product E2E matrix data contract', { tag: '@product' }, () => {
   });
 
   test('keeps the negative scenario below the quotable panel minimum', () => {
+    // The quotable scenarios must actually encode the documented business rule...
     const quotableMinimum = Math.min(
       ...MAIN_E2E_SCENARIOS.filter((scenario) => scenario.panelMode === 'quotable').map(
         (scenario) => scenario.minimumPanelCount,
       ),
     );
+    expect(quotableMinimum).toBe(QUOTABLE_MINIMUM_PANEL_COUNT);
+
+    // ...and the negative scenario must sit strictly under it (1..min-1).
     for (const scenario of NEGATIVE_PANEL_SCENARIOS) {
       expect(scenario.panelMode).toBe('below-minimum');
-      expect(scenario.minimumPanelCount).toBeLessThan(quotableMinimum);
+      expect(scenario.minimumPanelCount).toBeGreaterThan(0);
+      expect(scenario.minimumPanelCount).toBeLessThan(QUOTABLE_MINIMUM_PANEL_COUNT);
     }
   });
 
@@ -115,10 +125,23 @@ test.describe('Product E2E matrix data contract', { tag: '@product' }, () => {
 
   test('aligns panel counts with each scenario panel mode', () => {
     for (const scenario of ALL_MATRIX_SCENARIOS) {
-      if (scenario.panelMode === 'quotable') {
-        expect(scenario.minimumPanelCount, `${scenario.id} needs a quotable minimum`).toBeGreaterThanOrEqual(5);
-      } else if (scenario.panelMode === 'none') {
-        expect(scenario.minimumPanelCount, `${scenario.id} marks no panels`).toBe(0);
+      switch (scenario.panelMode) {
+        case 'quotable':
+          expect(
+            scenario.minimumPanelCount,
+            `${scenario.id} needs a quotable minimum`,
+          ).toBeGreaterThanOrEqual(QUOTABLE_MINIMUM_PANEL_COUNT);
+          break;
+        case 'below-minimum':
+          expect(scenario.minimumPanelCount, `${scenario.id} is a partial mark`).toBeGreaterThan(0);
+          expect(
+            scenario.minimumPanelCount,
+            `${scenario.id} stays under the quotable minimum`,
+          ).toBeLessThan(QUOTABLE_MINIMUM_PANEL_COUNT);
+          break;
+        case 'none':
+          expect(scenario.minimumPanelCount, `${scenario.id} marks no panels`).toBe(0);
+          break;
       }
     }
   });

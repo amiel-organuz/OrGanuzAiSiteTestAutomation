@@ -380,7 +380,7 @@
       <span class="eyebrow">Pastel architecture map</span>
       <h1>Playwright automation with Product E2E Matrix, QA orchestration, FastAPI, Scalar, Grafana, Prometheus, Organuz Supabase API tests, and Allure 3</h1>
       <p class="subtitle">
-        A single-file architecture view for the OrGanuz AI site automation stack. Local runs start the runtime services, execute the Playwright projects, generate Allure 3, and print the main service links. The product projects track the calculator/property-characterization E2E matrix, registration, smoke coverage, authenticated role sessions, quotations, and company access rules. The QA agent can invoke the real Playwright CLI through an orchestrator case mapping, while GitHub Actions runs the core projects in parallel, exercises the Organuz Supabase/PostgREST backend, and publishes Allure to GitHub Pages.
+        A single-file architecture view for the OrGanuz AI site automation stack. Local runs start the runtime services, execute the six Playwright projects, generate Allure 3, and print the main service links. The <code>product</code> project carries the property-characterization matrix and role data-contracts plus the dev UI-token sanity spec; <code>product-setup</code> → <code>product-authenticated</code> add live per-role browser sessions; <code>chromium</code> covers the marketing site, <code>organuz-api</code> the Supabase/PostgREST backend, and <code>agent</code> the QA-orchestrator regression. GitHub Actions runs the same projects in parallel and publishes Allure to GitHub Pages.
       </p>
 
       <div class="services" id="services" aria-label="Local service links">
@@ -411,11 +411,11 @@
     <div class="cards">
       <div class="card" style="--accent: var(--blue)">
         <div class="card-title"><span class="badge">TS</span> Playwright Tests</div>
-        <p class="card-desc">Runs marketing UI tests in <code>chromium</code>, product smoke/registration/matrix tests in <code>product</code>, authenticated role tests in <code>product-authenticated</code>, Organuz Supabase/PostgREST backend tests in <code>organuz-api</code>, and dev product-app RPC gateway tests in <code>dev-api</code> (plus the internal <code>agent</code> orchestrator regression specs). Non-product projects are default-filtered to five <code>@other-smoke</code> checks total.</p>
+        <p class="card-desc">Six projects: <code>chromium</code> (marketing UI), <code>product</code> (token-sanity + matrix &amp; role data-contracts), <code>product-setup</code> → <code>product-authenticated</code> (live per-role sessions), <code>organuz-api</code> (Supabase/PostgREST), and <code>agent</code> (orchestrator regression). 58 tests: 45 green (chromium 12, product 31, organuz-api 1, agent 1) + 13 credential-gated role specs that skip until per-role secrets exist.</p>
       </div>
       <div class="card" style="--accent: var(--green)">
         <div class="card-title"><span class="badge">E2E</span> Product Coverage</div>
-        <p class="card-desc"><code>tests/product</code> covers public shell smoke checks, registration, 12 main <code>CALC-ROOF</code> scenarios across 4 personas, panel-threshold, Ramot, and UI-only no-panel coverage.</p>
+        <p class="card-desc"><code>tests/product</code> runs the dev UI-token sanity spec (3 checks, skipped only on a dev-gateway outage) and the matrix data-contract (13 checks over 12 <code>CALC-ROOF</code> scenarios × 4 personas, property/polygon/roof coverage, panel thresholds, Ramot, and the UI-only no-panel case).</p>
       </div>
       <div class="card" style="--accent: var(--mint)">
         <div class="card-title"><span class="badge">PY</span> FastAPI</div>
@@ -426,8 +426,8 @@
         <p class="card-desc">The <code>organuz-api</code> project tests the Organuz Supabase/PostgREST backend — the <code>/rest/v1/projects</code> resource and edge-function CORS preflights — using the public anon key.</p>
       </div>
       <div class="card" style="--accent: var(--rose)">
-        <div class="card-title"><span class="badge">RPC</span> Dev Product API</div>
-        <p class="card-desc">The <code>dev-api</code> project tests the dev product-app backend at <code>organuz.flamiingo.com</code> — an RPC gateway (<code>POST /</code> with <code>call=&lt;method&gt;</code>) — covering <code>get_arena_types</code>, <code>get_remaining_projects</code>, envelope invariants, and negative/security cases with the public baked-in token.</p>
+        <div class="card-title"><span class="badge">RPC</span> Dev RPC token</div>
+        <p class="card-desc">The <code>product</code> token-sanity spec opens the dev calculator, captures the UI token off the wire, and calls the dev RPC gateway at <code>organuz.flamiingo.com</code> (<code>POST /?call=&lt;method&gt;</code>) — proving the bundled public token authorizes the gateway and is sent in the request body over HTTPS, never in the URL.</p>
       </div>
       <div class="card" style="--accent: var(--lavender)">
         <div class="card-title"><span class="badge">DOC</span> Scalar API Reference</div>
@@ -447,7 +447,7 @@
       </div>
       <div class="card" style="--accent: var(--peach)">
         <div class="card-title"><span class="badge">FAIL</span> Failure Capture</div>
-        <p class="card-desc"><code>tests/ui/diagnostics/intentionally-failing.spec.ts</code> is an expected-failure test that verifies screenshots, videos, traces, and Allure attachments.</p>
+        <p class="card-desc"><code>src/fixtures/index.ts</code> attaches screenshots, videos, and traces to Allure after unexpected failures; Playwright is configured with <code>screenshot: only-on-failure</code>, <code>video: retain-on-failure</code>, and <code>trace: on-first-retry</code>.</p>
       </div>
       <div class="card" style="--accent: var(--violet)">
         <div class="card-title"><span class="badge">AGENT</span> QA Orchestrator</div>
@@ -471,7 +471,7 @@
 
         <rect x="70" y="70" width="250" height="98" rx="20" fill="#c7dcff" filter="url(#softShadow)"/>
         <text x="195" y="106" text-anchor="middle" font-size="18" font-weight="800" fill="#27324a">Playwright</text>
-        <text x="195" y="132" text-anchor="middle" font-size="13" fill="#40506b">chromium + product + organuz-api + dev-api</text>
+        <text x="195" y="132" text-anchor="middle" font-size="13" fill="#40506b">chromium · product(+auth) · organuz-api · agent</text>
         <text x="195" y="152" text-anchor="middle" font-size="12" fill="#40506b">reports: html, junit, json, allure, blob</text>
 
         <rect x="385" y="70" width="250" height="98" rx="20" fill="#bff4dc" filter="url(#softShadow)"/>
@@ -538,7 +538,7 @@
         </div>
         <div class="step" style="--accent: var(--rose)">
           <strong>Current Test Mapping</strong>
-          <p><code>npm run agent:current-tests</code> maps <code>PW-ORGANUZ-API</code>, <code>PW-CHROMIUM</code>, <code>PW-PRODUCT</code>, and <code>PW-AGENT</code> to the real Playwright <code>organuz-api</code>, <code>chromium</code>, the 50-test product E2E matrix, and <code>agent</code> projects.</p>
+          <p><code>npm run agent:current-tests</code> maps <code>PW-API</code>, <code>PW-CHROMIUM</code>, <code>PW-PRODUCT</code>, and <code>PW-AGENT</code> to the real Playwright <code>organuz-api</code>, <code>chromium</code>, <code>product</code>, and <code>agent</code> projects (each case runs a whole project).</p>
         </div>
       </div>
     </div>
@@ -558,7 +558,7 @@
       <div class="step" style="--accent: var(--blue)">
         <div class="step-num">3</div>
         <h3>Run projects</h3>
-        <p><code>CliPlaywrightRunner</code> executes <code>--project=organuz-api</code>, <code>--project=chromium</code>, <code>--project=product --grep "Product calculator and quotation E2E matrix"</code>, and <code>--project=agent</code> as orchestrator cases.</p>
+        <p><code>CliPlaywrightRunner</code> executes <code>--project=organuz-api</code>, <code>--project=chromium</code>, <code>--project=product</code>, and <code>--project=agent</code> as orchestrator cases.</p>
       </div>
       <div class="step" style="--accent: var(--pink)">
         <div class="step-num">4</div>
@@ -582,7 +582,7 @@
       <div class="step" style="--accent: var(--lavender)">
         <div class="step-num">3</div>
         <h3>Run tests</h3>
-        <p><code>npm test</code> executes <code>chromium</code>, <code>product</code>, <code>organuz-api</code>, and <code>dev-api</code>. The local shell flow runs <code>chromium</code>, <code>organuz-api</code>, and <code>dev-api</code> while service containers are online, then restarts the <code>api</code> container so Grafana picks up fresh results.</p>
+        <p><code>npm test</code> executes all four projects — <code>chromium</code>, <code>product</code>, <code>organuz-api</code>, and <code>agent</code> — in one run. The local shell flow runs them while the service containers are online, then restarts the <code>api</code> container so Grafana picks up fresh results.</p>
       </div>
       <div class="step" style="--accent: var(--pink)">
         <div class="step-num">4</div>
@@ -635,74 +635,109 @@
       </tbody>
     </table>
 
-    <h2>Product E2E Matrix</h2>
+    <h2>Product Matrix Data Contract</h2>
     <div class="panel">
-      <p>The <code>product</code> Playwright project is driven by <code>tests/product/matrix/e2e-matrix.data.ts</code> and mirrors the working E2E matrix document.</p>
+      <p>The matrix is checked-in test data, split across <code>tests/product/matrix/</code> — <code>matrix-types.ts</code>, <code>matrix-constants.ts</code>, <code>product-personas.data.ts</code>, and <code>property-scenarios.data.ts</code>, re-exported through the <code>e2e-matrix.data.ts</code> barrel. <code>product-matrix-data-contract.spec.ts</code> asserts the shape of that data (no browser, no network); it encodes the working E2E matrix document so drift is caught in CI.</p>
       <ul>
         <li>12 main <code>CALC-ROOF-001</code> to <code>CALC-ROOF-012</code> characterization scenarios.</li>
         <li>4 personas per main scenario: customer, consultant, company, and company employee.</li>
         <li>Property types: private house, residential building, commercial, agricultural, and public.</li>
         <li>Polygon behavior: building, parking, sports court, and mixed building + parking/sports-court flows.</li>
         <li>Roof and surface types: concrete, tiles, iscoverit, parking, and sports court.</li>
-        <li>Negative coverage for fewer than 5 panels and UI-only tracking for the no-panel case.</li>
-        <li>Live browser flows are gated by <code>PRODUCT_E2E_ENABLED=true</code> and persona credentials.</li>
+        <li>Negative coverage below the <code>QUOTABLE_MINIMUM_PANEL_COUNT</code> threshold and UI-only tracking for the no-panel case.</li>
+        <li>Invariants checked: unique scenario ids, arena/panel-mode consistency, empty roof-payload placeholders, and a pinned scenario × persona count.</li>
       </ul>
     </div>
 
-    <h2 id="tests">Test Suites &amp; Role Sessions</h2>
-    <div class="cards">
-      <div class="card" style="--accent: var(--blue)">
-        <div class="card-title"><span class="badge">UI</span> chromium</div>
-        <p class="card-desc"><code>tests/ui/**</code> against the marketing site <code>www.organuz.ai</code> (prod): default run keeps two <code>@other-smoke</code> checks; broader homepage/content/flow specs remain in the repo.</p>
+    <h2 id="tests">Test Suites &mdash; Every Group in Detail</h2>
+    <p style="max-width: 74ch; color: var(--muted); margin-bottom: 6px;">Six Playwright projects, run identically locally and on GitHub Actions. <strong>58 tests total: 45 green + 13 credential-gated role specs that skip until per-role secrets are added</strong> (see the <code>test-suite-parity</code> skill). Counts below are per spec file.</p>
+
+    <div class="panel" style="--accent: var(--blue)">
+      <h3><span class="badge">UI · 12</span> chromium &nbsp;<code>tests/ui/**</code> · <code>@other-smoke</code> · prod <code>www.organuz.ai</code></h3>
+      <p>Visibility-only sanity checks against the live marketing site. No form submissions, so nothing reaches the real CRM; each spec calls <code>homePage.navigate()</code> which waits for the hero to render before asserting.</p>
+      <ul>
+        <li><strong><code>homepage/hero.spec.ts</code> (1)</strong> — the H1 hero heading is visible and contains &ldquo;אור&rdquo;.</li>
+        <li><strong><code>homepage/navigation.spec.ts</code> (1)</strong> — the header CTA (&ldquo;להתחלה&rdquo;) is visible and its <code>href</code> points at the app (<code>energy.organuz.com</code>).</li>
+        <li><strong><code>homepage/sections.spec.ts</code> (5)</strong> — the six primary nav links are visible; the hero subtitle is visible; all six audience/user-type buttons are visible; the &ldquo;Why Organuz&rdquo; heading + first audience tab; the &ldquo;Meet Or&rdquo; heading + its &ldquo;talk to Or&rdquo; CTA.</li>
+        <li><strong><code>content/homepage-content.spec.ts</code> (3)</strong> — all six named AI agents are shown; the active-projects showcase heading is visible; the FAQ heading + the first known question are visible.</li>
+        <li><strong><code>homepage/contact.spec.ts</code> (1)</strong> — the contact form exposes name, email, phone, message, and submit (presence only).</li>
+        <li><strong><code>content/blog.spec.ts</code> (1)</strong> — <code>/blog</code> loads with the page heading and at least one article card.</li>
+      </ul>
+    </div>
+
+    <div class="panel" style="--accent: var(--green)">
+      <h3><span class="badge">E2E · 31</span> product &nbsp;<code>tests/product/**</code> (ignores <code>flows/**</code>) · no grep · dev (<code>QA_TARGET_ENV</code>)</h3>
+      <ul>
+        <li><strong><code>api/token-sanity.spec.ts</code> (3, live)</strong> — opens the dev calculator, captures the UI token off the wire, and hits the dev RPC gateway. Checks: (1) the token is well-formed (<code>24-hex-id</code>-<code>32-hex-secret</code>); (2) it matches the bundled public token in <code>config.devApi.token</code> (bundle/config-drift guard); (3) every captured backend call is HTTPS, sends the token in the body (never the URL), and targets only the gateway host. <em>Skips</em> when the dev gateway is down (no token extractable).</li>
+        <li><strong><code>api/public-app-sanity.spec.ts</code> (5, live)</strong> — public (no-login) checks after unlocking the password gate: the calculator shell renders; a fresh visitor is signed out; the header sign-in/register entry point is visible; the app is served over HTTPS on the configured dev host; and the app fires at least one token-bearing backend call on load. <em>Skips</em> on a genuine dev outage (AppUnavailable), fails only on a real product regression.</li>
+        <li><strong><code>matrix/product-matrix-data-contract.spec.ts</code> (13, offline)</strong> — asserts the shape of the checked-in matrix data: runtime-only fields excluded from committed fixtures; the scenario × persona matrix size is a pinned 48; the 12 <code>CALC-ROOF</code> ids; full property-type / polygon / roof-surface coverage; roof-payload placeholders are empty <code>{}</code>; the no-panel scenario is UI-only; scenario ids are unique; arena type matches each group; the negative scenario sits below <code>QUOTABLE_MINIMUM_PANEL_COUNT</code>; only the company persona has elevated rights; panel counts align with each panel mode.</li>
+        <li><strong><code>matrix/product-roles-contract.spec.ts</code> (10, offline)</strong> — role-capability data contract for the three sign-in roles: all three are modeled and distinct; each has a name + role description; a valid post-funding destination; customer is the only role routed to quotations; customer/consultant can open quotations from results while company downloads its own; only company can open company pricing / management; company is the sole holder of elevated rights.</li>
+      </ul>
+    </div>
+
+    <div class="panel" style="--accent: var(--lavender)">
+      <h3><span class="badge">SET · 3</span> product-setup &nbsp;<code>support/auth.setup.ts</code> · dependency of product-authenticated</h3>
+      <p>Authenticates each sign-in role (<code>customer</code>, <code>consultant</code>, <code>company</code>) once via phone + fixed dev OTP and saves <code>storageState</code> to <code>playwright/.auth/product-&lt;role&gt;.json</code> (gitignored). One skip-safe test per role: a role with no <code>&lt;ROLE&gt;_PHONE</code> credential — or when the dev app/OTP is unavailable — is <em>skipped</em>, and no session file is written.</p>
+    </div>
+
+    <div class="panel" style="--accent: var(--mint)">
+      <h3><span class="badge">AUTH · 10</span> product-authenticated &nbsp;<code>tests/product/flows/**</code> · depends on product-setup</h3>
+      <p>Live per-role browser e2e that <code>resumeSession()</code> from the saved <code>storageState</code> and run read-only checks (no logout/writes, so a shared session is never invalidated). Each test skips when its role has no saved session — so the whole project is green without per-role credentials. Per role (customer, consultant, company):</p>
+      <ul>
+        <li>Resumes the saved session into an authenticated calculator shell.</li>
+        <li>Opens the role&rsquo;s personal area.</li>
+        <li>The session persists across a page reload.</li>
+        <li><em>Company only:</em> opens the contractor pricing area (<code>מחירון</code>) from its personal area.</li>
+      </ul>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel" style="--accent: var(--rose)">
+        <h3><span class="badge">API · 1</span> organuz-api &nbsp;<code>contracts/</code> · <code>@other-smoke</code></h3>
+        <p>One live contract test against the Supabase/PostgREST <code>/rest/v1/projects</code> resource (public anon key). Over every returned row it asserts: 200 + JSON non-empty array; all required fields present and non-null; numeric and string-array field types; and each bilingual (he/en) pair present and non-empty.</p>
       </div>
-      <div class="card" style="--accent: var(--green)">
-        <div class="card-title"><span class="badge">E2E</span> product</div>
-        <p class="card-desc">Plain product specs against the calculator app (<code>QA_TARGET_ENV</code>, default dev): registration, smoke, matrix, full-flow, and sign-out without shared role setup.</p>
+      <div class="panel" style="--accent: var(--aqua)">
+        <h3><span class="badge">QA · 1</span> agent &nbsp;<code>orchestrator/</code> · <code>@other-smoke</code></h3>
+        <p>One orchestrator regression (pure stubs, no network/browser): a runner crash is marked <em>blocked</em> and the suite keeps running, proving crash isolation through the real <code>Orchestrator</code> with stubbed Azure DevOps / Sheets / OneDrive / Playwright connectors.</p>
       </div>
-      <div class="card" style="--accent: var(--mint)">
-        <div class="card-title"><span class="badge">AUTH</span> product-authenticated</div>
-        <p class="card-desc">Per-role product specs that resume saved <code>storageState</code>: role identity, personal areas, sessions, sanity checks, and backend API observation.</p>
-      </div>
-      <div class="card" style="--accent: var(--rose)">
-        <div class="card-title"><span class="badge">API</span> organuz-api</div>
-        <p class="card-desc"><code>tests/organuz-api/**</code> — default run keeps one <code>@other-smoke</code> projects contract check; broader Supabase/PostgREST coverage remains in the repo.</p>
-      </div>
-      <div class="card" style="--accent: var(--yellow)">
-        <div class="card-title"><span class="badge">RPC</span> dev-api</div>
-        <p class="card-desc"><code>tests/dev-api/**</code> — default run keeps one <code>@other-smoke</code> RPC envelope check; broader contracts/security coverage remains in the repo.</p>
-      </div>
-      <div class="card" style="--accent: var(--lavender)">
-        <div class="card-title"><span class="badge">SET</span> product-setup</div>
-        <p class="card-desc">A setup project that authenticates each product role once and saves its session; only <code>product-authenticated</code> depends on it.</p>
-      </div>
-      <div class="card" style="--accent: var(--aqua)">
-        <div class="card-title"><span class="badge">QA</span> agent</div>
-        <p class="card-desc"><code>tests/agent/**</code> — default run keeps one <code>@other-smoke</code> orchestrator regression; broader agent coverage remains in the repo.</p>
-      </div>
+    </div>
+
+    <h2>Test Groups &rarr; Skills</h2>
+    <div class="panel">
+      <p>Every test group has a task skill under <code>.claude/skills/&lt;name&gt;/SKILL.md</code> documenting how to run and extend it (invoke with <code>/&lt;name&gt;</code>):</p>
+      <table>
+        <thead><tr><th>Group</th><th>Project</th><th>Skill</th></tr></thead>
+        <tbody>
+          <tr><td>Marketing-site sanity</td><td><code>chromium</code></td><td><code>ui-sanity-tests</code></td></tr>
+          <tr><td>Public dev-calculator sanity</td><td><code>product</code></td><td><code>product-public-sanity</code></td></tr>
+          <tr><td>Matrix &amp; role data contracts</td><td><code>product</code></td><td><code>product-matrix-contract</code></td></tr>
+          <tr><td>Live per-role e2e</td><td><code>product-setup</code> &rarr; <code>product-authenticated</code></td><td><code>product-roles-e2e</code> (+ <code>organuz-product-roles</code>)</td></tr>
+          <tr><td>Supabase projects contract</td><td><code>organuz-api</code></td><td><code>organuz-api-tests</code></td></tr>
+          <tr><td>Orchestrator regression</td><td><code>agent</code></td><td>&mdash; (see <code>src/agent/README.md</code>)</td></tr>
+        </tbody>
+      </table>
     </div>
 
     <div class="grid-2">
       <div class="panel">
         <h2>Per-Role Session Architecture</h2>
-        <p>The dev app rate-limits OTP sends per phone, so each authenticated role logs in <strong>once per run</strong> and every spec reuses that session.</p>
+        <p>The dev app rate-limits OTP per phone, so each role logs in <strong>once per run</strong> (in <code>product-setup</code>) and every per-role spec reuses that session. Missing credentials or a saved session skip cleanly, so the suite is green without secrets.</p>
         <ul>
-          <li><code>product-setup</code> (<code>tests/product/support/auth.setup.ts</code>) logs each role in via phone + fixed dev OTP <code>7777</code> and saves <code>storageState</code> to <code>playwright/.auth/product-&lt;role&gt;.json</code> (gitignored).</li>
-          <li>Per-role specs run in <code>product-authenticated</code> and set <code>test.use({ authRole })</code>; the product fixture maps it to the saved <code>storageState</code>, and <code>product.resumeSession()</code> resumes without a new login.</li>
-          <li>If a saved session is missing (setup skipped on cooldown), the spec <em>skips with a reason</em> rather than failing.</li>
-          <li><code>ProductAppPage.login()</code> throws <code>OtpUnavailableError</code> on an OTP rate-limit; <code>ProductFlows</code> translates it into a graceful <code>test.skip</code> — the page object stays free of test-lifecycle logic.</li>
-          <li>Three roles authenticate: <code>customer</code> (בעל נכס), <code>consultant</code> (יועץ), <code>company</code> (קבלן / חברת EPC). <code>company-employee</code> has no phone and cannot sign in.</li>
+          <li><code>auth.setup.ts</code> logs each role in (phone + fixed dev OTP) and saves <code>storageState</code> to <code>playwright/.auth/product-&lt;role&gt;.json</code> (gitignored); <code>auth.ts</code> maps a role to that file.</li>
+          <li>Per-role specs set <code>test.use({ authRole })</code>; the <code>product</code> fixture loads the saved <code>storageState</code>, and <code>product.resumeSession()</code> restores the session without a new login.</li>
+          <li><code>ProductAppPage.ts</code> drives login, the password gate, the characterization wizard, and personal-area navigation; <code>ProductFlows</code> / <code>RegistrationFlows</code> compose them into journeys; <code>TokenInterceptor</code> captures the UI token.</li>
+          <li>Three roles sign in: <code>customer</code>, <code>consultant</code>, <code>company</code>. <code>company-employee</code> is modeled in the matrix but has no phone and cannot sign in.</li>
         </ul>
       </div>
 
       <div class="panel">
-        <h2>Product Flow Specs</h2>
+        <h2>Typed Environmental Errors</h2>
+        <p>Outages are modeled as typed, <code>instanceof</code>-safe errors in <code>tests/product/support/errors.ts</code> so the page object and flows stay free of test-lifecycle decisions.</p>
         <ul>
-          <li><code>flows/roles.spec.ts</code> — identity (header role label) + role-appropriate personal area.</li>
-          <li><code>flows/role-areas.spec.ts</code> — user menu, sidebar nav, role-specific pricing/management pages.</li>
-          <li><code>flows/role-session.spec.ts</code> — calculator shell, reload persistence, and deep-linking.</li>
-          <li><code>flows/role-sanity.spec.ts</code> — a 10-point sanity battery per role (identity, auth, calculator, personal area, deep-link).</li>
-          <li><code>flows/role-logout.spec.ts</code> — sign-out, with its <em>own</em> login so it cannot invalidate the shared sessions.</li>
-          <li><code>flows/registration.spec.ts</code> — property-owner registration validation, required/optional consent behavior, full signup, and company/consultant lead-form redirects.</li>
+          <li><code>OtpUnavailableError</code> / <code>AppUnavailableError</code> extend a base that restores the prototype and <code>name</code> (Playwright's transpiler otherwise severs <code>extends Error</code>).</li>
+          <li><code>ProductAppPage</code>, <code>env-gate</code>, and <code>ProductFlows</code> <strong>throw</strong> these; the test edge decides whether to skip or fail.</li>
+          <li>In practice the one sanctioned skip is <code>token-sanity</code>: when the dev gateway is down and no token can be extracted, <code>beforeEach</code> skips rather than failing the product job.</li>
+          <li>A token that <em>is</em> observed but malformed/drifted still fails as a real regression.</li>
         </ul>
       </div>
     </div>
@@ -710,12 +745,11 @@
     <div class="panel">
       <h2>Tags &amp; Gating</h2>
       <ul>
-        <li><code>@smoke</code> — credential-free product checks that always run (used by the CI prod smoke job).</li>
-        <li><code>@other-smoke</code> — the five default non-product checks (2 UI, 1 Organuz API, 1 dev RPC, 1 agent).</li>
-        <li><code>@product @e2e @roles @sanity @session</code> — live product coverage, gated by <code>PRODUCT_E2E_ENABLED=true</code> plus persona OTP credentials in the gitignored <code>.env</code>.</li>
-        <li><code>@critical</code> — the highest-severity per-role journeys.</li>
-        <li><code>@intentionally-failing</code> — the expected-failure demo (uses <code>test.fail()</code>); skip with <code>--grep-invert</code>.</li>
-        <li>Specs run <strong>fully parallel</strong> (<code>fullyParallel: true</code>, 4 workers); reused sessions are read-only, so parallelism is safe.</li>
+        <li><code>@other-smoke</code> — the default filter for the non-product projects; every <code>chromium</code> (12), <code>organuz-api</code> (1), and <code>agent</code> (1) test carries it.</li>
+        <li><code>@ui</code> — marketing-site specs; <code>@organuz-api @contract</code> — the backend contract test.</li>
+        <li><code>@product @api @sanity</code> — the dev token-sanity spec (<code>@critical</code>/<code>@security</code> on individual checks); <code>@product @roles @e2e</code> — the live per-role specs. The <code>product</code> project has no grep filter, so every matched spec runs.</li>
+        <li>Sanctioned env-conditional skips: <code>token-sanity</code> (dev-gateway outage) and the live role specs (<code>product-setup</code> + <code>product-authenticated</code>, no credential/session). Everything else must pass — baseline 40 passed, 13 skipped.</li>
+        <li>Specs run <strong>fully parallel</strong> (<code>fullyParallel: true</code>); data-contract and stubbed-agent tests share no state, and role specs reuse read-only saved sessions.</li>
       </ul>
     </div>
 
@@ -735,22 +769,21 @@
       <div class="panel">
         <h2>Organuz Supabase API</h2>
         <ul>
-          <li>The <code>organuz-api</code> project (<code>tests/organuz-api/**</code>) targets the Organuz Supabase/PostgREST backend.</li>
+          <li>The <code>organuz-api</code> project (<code>tests/organuz-api/contracts/</code>) targets the Organuz Supabase/PostgREST backend.</li>
           <li>Base URL and public anon key come from <code>config.json → organuzApi</code> (env override <code>ORGANUZ_API_ANON_KEY</code>).</li>
-          <li>Covers the <code>/rest/v1/projects</code> resource: contracts, query behaviours, anon-key auth, and RLS.</li>
-          <li>Edge functions are only exercised through their <code>OPTIONS</code> CORS preflight — tests never POST live email/subscription requests.</li>
-          <li>Suites: <code>contracts/</code>, <code>resources/</code>, <code>security/</code>, and <code>functions/</code>.</li>
-          <li>The separate <code>dev-api</code> project (<code>tests/dev-api/**</code>) targets the dev product-app RPC gateway at <code>organuz.flamiingo.com</code> — <code>POST /</code> with <code>call=&lt;method&gt;</code>, JSON <code>{ status: "ok" }</code> envelopes — covering <code>get_arena_types</code>, <code>get_remaining_projects</code>, invariants, and negative/security cases with the public baked-in token.</li>
+          <li>The live contract test asserts the <code>/rest/v1/projects</code> schema: every required field present and non-null, numeric/array field types, and each bilingual (he/en) pair present and non-empty.</li>
+          <li>The <code>OrganuzApi</code> client (read-only) plus <code>RestApiConstants</code> centralize the REST paths, PostgREST filters, and <code>Prefer</code> headers; the anon role is intentionally not permitted to write.</li>
+          <li>The dev product-app RPC gateway (<code>organuz.flamiingo.com</code>) is exercised indirectly by the <code>product</code> token-sanity spec, not by a separate project.</li>
         </ul>
       </div>
 
       <div class="panel">
-        <h2>Expected Failure Demo</h2>
+        <h2>Failure Artifacts</h2>
         <ul>
-          <li><code>tests/ui/diagnostics/intentionally-failing.spec.ts</code> is tagged <code>@intentionally-failing</code>.</li>
-          <li>The test uses <code>test.fail()</code>, so CI stays green when the assertion fails as expected.</li>
-          <li><code>src/fixtures/index.ts</code> attaches Playwright artifacts to Allure after unexpected failures; UI-specific flow fixtures live under <code>tests/ui/support</code>.</li>
-          <li>Skip the demo with <code>npx playwright test --grep-invert "@intentionally-failing"</code>.</li>
+          <li><code>src/fixtures/index.ts</code> attaches screenshots, videos, and traces to Allure after unexpected failures.</li>
+          <li>Playwright is configured for <code>screenshot: only-on-failure</code>, <code>video: retain-on-failure</code>, and <code>trace: on-first-retry</code>.</li>
+          <li>The <code>agent</code> orchestrator spec deliberately simulates a runner crash (marked <em>blocked</em>) to prove crash isolation — it passes; it is not an expected-failure demo.</li>
+          <li>Backend/API logging is inverted through an <code>onExchange</code> callback the fixture points at Allure, so the API client has no test-framework dependency.</li>
         </ul>
       </div>
     </div>
@@ -760,9 +793,9 @@
         <h2 id="ci">GitHub Actions</h2>
         <ul>
           <li><code>typecheck</code> validates TypeScript.</li>
-          <li><code>tests</code> runs <code>chromium</code>, <code>organuz-api</code>, and <code>dev-api</code> in a matrix, plus a credential-free <code>product</code> smoke job (<code>--grep @smoke</code>) against prod.</li>
-          <li>The repository also has the full local <code>product</code> persona matrix and <code>agent</code> Playwright projects. Run them directly or through <code>agent:current-tests</code>.</li>
-          <li>Test files are grouped by subject: UI homepage/content/flows/support/diagnostics, Organuz backend API contracts/resources/security/functions, dev product-app RPC contracts/security/support, product smoke/registration/matrix/role flows/API/support, and agent orchestrator coverage.</li>
+          <li><code>tests</code> runs <code>chromium</code>, <code>organuz-api</code>, <code>agent</code>, <code>product</code>, and <code>product-authenticated</code> as a <code>fail-fast: false</code> matrix, identical to the local default run (<code>product-setup</code> runs as product-authenticated's dependency). Keep in sync per the <code>test-suite-parity</code> skill.</li>
+          <li>The <code>product</code> shard sets <code>QA_TARGET_ENV: dev</code> and needs the <code>PRODUCT_PLATFORM_PASSWORD</code> secret (token-sanity opens the dev calculator); a missing secret shows as 3 skips, not a red job.</li>
+          <li>Chromium is installed only for the <code>chromium</code> and <code>product</code> shards; <code>organuz-api</code> and <code>agent</code> need no browser.</li>
           <li><code>services-smoke</code> starts FastAPI, Scalar, Prometheus, and Grafana.</li>
           <li><code>publish-allure</code> merges Allure artifacts and generates Allure 3.</li>
           <li><code>deploy-allure</code> publishes the report to GitHub Pages on <code>main</code> or <code>master</code>.</li>
@@ -779,7 +812,6 @@
           <li><code>docker compose run --rm tests</code></li>
           <li><code>npm run typecheck</code></li>
           <li><code>npm run test:product</code></li>
-          <li><code>npm run test:product:all</code></li>
           <li><code>npx playwright test --project=agent</code></li>
           <li><code>npm run agent:current-tests</code></li>
           <li><code>npm run report</code></li>
@@ -807,29 +839,20 @@
       |   |-- <span class="dir">scalar/</span><br>
       |   `-- <span class="file">prometheus.yml</span><br>
       |-- <span class="dir">src/</span><br>
-      |   |-- <span class="dir">agent/</span><br>
-      |   |-- <span class="dir">api/</span><br>
+      |   |-- <span class="dir">agent/</span> <span class="file">Orchestrator, connectors, services, run-current-tests</span><br>
+      |   |-- <span class="dir">api/</span> <span class="file">ApiClient, OrganuzApi, RestApiConstants, ApiConstants</span><br>
       |   |-- <span class="dir">fixtures/</span><br>
-      |   |-- <span class="dir">pages/</span><br>
-      |   `-- <span class="dir">utils/</span><br>
+      |   |-- <span class="dir">pages/</span> <span class="file">HomePage, BlogPage, BasePage</span><br>
+      |   |-- <span class="dir">types/</span><br>
+      |   `-- <span class="dir">utils/</span> <span class="file">config, allure, logger, selfHeal</span><br>
       `-- <span class="dir">tests/</span><br>
           |-- <span class="dir">agent/orchestrator/</span><br>
           |-- <span class="dir">organuz-api/contracts/</span><br>
-          |-- <span class="dir">organuz-api/resources/</span><br>
-          |-- <span class="dir">organuz-api/security/</span><br>
-          |-- <span class="dir">organuz-api/functions/</span><br>
-          |-- <span class="dir">dev-api/contracts/</span><br>
-          |-- <span class="dir">dev-api/security/</span><br>
-          |-- <span class="dir">dev-api/support/</span><br>
-          |-- <span class="dir">product/matrix/</span><br>
-          |-- <span class="dir">product/flows/</span><br>
-          |-- <span class="dir">product/api/</span><br>
-          |-- <span class="dir">product/smoke/</span><br>
-          |-- <span class="dir">product/support/</span><br>
+          |-- <span class="dir">product/api/</span> <span class="file">token-sanity.spec.ts</span><br>
+          |-- <span class="dir">product/matrix/</span> <span class="file">data files + matrix &amp; roles data-contract specs</span><br>
+          |-- <span class="dir">product/flows/</span> <span class="file">roles.spec.ts (product-authenticated)</span><br>
+          |-- <span class="dir">product/support/</span> <span class="file">ProductAppPage, flows, auth(.setup), errors, TokenInterceptor</span><br>
           |-- <span class="dir">ui/content/</span><br>
-          |-- <span class="dir">ui/diagnostics/</span><br>
-          |-- <span class="dir">ui/flows/</span><br>
-          |-- <span class="dir">ui/support/</span><br>
           `-- <span class="dir">ui/homepage/</span>
     </div>
 

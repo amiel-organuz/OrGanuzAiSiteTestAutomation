@@ -11,8 +11,11 @@
  * No login/OTP is needed: the app issues public backend calls (get_arena_types,
  * get_remaining_projects) on load, so the extracted token is the public app token.
  *
- * The dev gateway sometimes flips into a maintenance banner or is unreachable — like
- * the dev-api suite, those are environmental and SKIP rather than fail.
+ * The dev gateway sometimes flips into a maintenance banner or is unreachable. That
+ * is an outage of the live dev environment, not of any committed code, so when no
+ * token can be extracted the beforeEach SKIPS these tests (with the captured reason)
+ * instead of failing the whole product job. A token that IS observed but malformed or
+ * drifted from config still runs the assertions below and fails as a real regression.
  *
  * Run:  npx playwright test tests/product/api/token-sanity.spec.ts --project=product --workers=1
  */
@@ -60,7 +63,10 @@ test.describe('Product API sanity via extracted UI token (dev)', { tag: ['@produ
   });
 
   test.beforeEach(() => {
-    expect(uiToken, `Could not extract the UI token — ${extractionReason}`).toBeTruthy();
+    // Environmental outage (gateway/gate down) → no token at all → skip, don't fail
+    // the product job. A malformed/drifted token still sets uiToken, so the shape and
+    // config-parity assertions below run and fail as they should.
+    test.skip(!uiToken, `dev UI token unavailable — ${extractionReason}`);
   });
 
   test('1. the UI transmits a well-formed token to the backend', { tag: '@critical' }, async () => {

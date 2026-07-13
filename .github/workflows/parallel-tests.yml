@@ -56,6 +56,9 @@ jobs:
           - organuz-api
           - agent
           - product
+          # product-authenticated pulls in the product-setup project as its dependency,
+          # so setup runs within this shard (no separate product-setup shard needed).
+          - product-authenticated
 
     env:
       CI: true
@@ -65,6 +68,14 @@ jobs:
       # (chromium), Supabase (organuz-api), and agent (stubs) projects ignore it.
       QA_TARGET_ENV: dev
       PRODUCT_PLATFORM_PASSWORD: ${{ secrets.PRODUCT_PLATFORM_PASSWORD }}
+      # Per-role phone/OTP for the live product-authenticated specs. When a secret is
+      # unset the product-setup project skips that role and its specs skip too (green).
+      CUSTOMER_PHONE: ${{ secrets.CUSTOMER_PHONE }}
+      CUSTOMER_OTP_CODE: ${{ secrets.CUSTOMER_OTP_CODE }}
+      CONSULTANT_PHONE: ${{ secrets.CONSULTANT_PHONE }}
+      CONSULTANT_OTP_CODE: ${{ secrets.CONSULTANT_OTP_CODE }}
+      COMPANY_PHONE: ${{ secrets.COMPANY_PHONE }}
+      COMPANY_OTP_CODE: ${{ secrets.COMPANY_OTP_CODE }}
 
     steps:
       - name: Checkout
@@ -81,8 +92,9 @@ jobs:
 
       - name: Install Chromium
         # chromium drives the marketing site; product opens a chromium context to
-        # extract the UI token. The organuz-api and agent projects need no browser.
-        if: matrix.project == 'chromium' || matrix.project == 'product'
+        # extract the UI token; product-authenticated (+ its product-setup dependency)
+        # drive the dev calculator. The organuz-api and agent projects need no browser.
+        if: matrix.project == 'chromium' || matrix.project == 'product' || matrix.project == 'product-authenticated'
         run: npx playwright install --with-deps chromium
 
       - name: Run Playwright project
