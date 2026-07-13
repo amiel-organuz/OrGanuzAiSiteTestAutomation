@@ -18,9 +18,12 @@
     "agent:build": "tsc -p tsconfig.json",
     "agent:demo": "npm run agent:build && node dist/src/agent/demo/run-demo.js",
     "agent:plan": "npm run agent:build && node dist/src/agent/demo/generate-test-plan.js",
+    "test-plans:pdf": "npm run agent:build && node dist/src/tools/build-test-plan-pdfs.js",
     "agent:current-tests": "npm run agent:build && node dist/src/agent/run-current-tests.js"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@playwright/mcp": "^0.0.78",
     "@playwright/test": "^1.60.0",
     "@types/node": "^20.12.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
@@ -32,6 +35,7 @@
     "eslint": "^10.4.1",
     "json-server": "^0.17.4",
     "mammoth": "^1.12.0",
+    "marked": "^4.3.0",
     "pdf-parse": "^2.4.5",
     "typescript": "^5.4.5",
     "wait-on": "^7.2.0",

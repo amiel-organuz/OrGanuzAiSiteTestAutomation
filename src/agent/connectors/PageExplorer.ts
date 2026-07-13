@@ -85,6 +85,8 @@ const CONTROL_ROLES = new Set(['button', 'tab', 'checkbox', 'radio', 'switch', '
 /** One accessibility-tree node: `- <role> "<name>" [attr=val]`. */
 const NODE_RE = /^\s*-?\s*(\w[\w-]*)\s+"([^"]*)"(.*)$/;
 const HREF_RE = /\/url:\s*(\S+)|href[=:]\s*"?([^"\s\]]+)/i;
+/** A child `- /url: <href>` line under a link node in the MCP aria format. */
+const URL_CHILD_RE = /^\s*-?\s*\/url:\s*(\S+)/;
 const SUBMIT_HINT = /(submit|sign in|log in|login|search|send|continue|save|register)/i;
 
 /**
@@ -117,8 +119,17 @@ export function parseSnapshot(requestedUrl: string, snapshot: PageSnapshot): Pag
   const controls: DiscoveredControl[] = [];
   const fieldNames: string[] = [];
   let submitLabel: string | undefined;
+  // The Playwright MCP aria format puts a link's target on a following child
+  // line (`- /url: /pricing`); attach it to the link we most recently saw.
+  let lastLink: DiscoveredLink | undefined;
 
   for (const rawLine of snapshot.tree.split('\n')) {
+    const urlChild = URL_CHILD_RE.exec(rawLine);
+    if (urlChild) {
+      if (lastLink && !lastLink.href) lastLink.href = urlChild[1];
+      continue;
+    }
+
     const match = NODE_RE.exec(rawLine);
     if (!match) continue;
     const role = match[1].toLowerCase();
@@ -130,9 +141,12 @@ export function parseSnapshot(requestedUrl: string, snapshot: PageSnapshot): Pag
       headings.push(name);
     } else if (role === 'link') {
       const href = extractHref(rest);
-      if (!links.some((l) => l.text === name && l.href === href)) {
-        links.push({ text: name, href });
+      let link = links.find((l) => l.text === name && l.href === href);
+      if (!link) {
+        link = { text: name, href };
+        links.push(link);
       }
+      lastLink = link;
       controls.push({ role, name });
     } else if (FIELD_ROLES.has(role)) {
       if (!fieldNames.includes(name)) fieldNames.push(name);

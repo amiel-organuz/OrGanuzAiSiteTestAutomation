@@ -92,24 +92,36 @@ per form — in the exact shape the `Orchestrator` consumes, so a generated plan
 can flow straight into the run loop.
 
 ```bash
-npm run agent:plan -- https://www.organuz.ai
+npm run agent:plan -- https://www.organuz.ai            # offline stub (default)
+npm run agent:plan -- https://www.organuz.ai --live     # real browser via the Playwright MCP CLI server
+npm run agent:plan -- https://www.organuz.ai --live --headed
 ```
 
-The demo uses `StubPageExplorer` (offline, deterministic — no browser/network).
-For real exploration, construct `McpPageExplorer` with a `PlaywrightMcpClient`
-whose `navigate`/`snapshot` forward to the **Playwright MCP** tools
-(`browser_navigate` / `browser_snapshot`); `parseSnapshot` turns that
-accessibility snapshot into the `PageExploration` the agent plans from.
+Offline (default) uses `StubPageExplorer` — deterministic, no browser/network.
+
+**Live** uses the real **Playwright MCP CLI server**: `McpCliPlaywrightClient`
+launches `npx @playwright/mcp` over stdio (via `@modelcontextprotocol/sdk`) and
+forwards `navigate`/`snapshot` to the server's `browser_navigate` /
+`browser_snapshot` tools; `parseMcpSnapshotText` extracts the page URL/title and
+the fenced-yaml aria tree, and `parseSnapshot` turns that into the
+`PageExploration` the agent plans from. The SDK + server are **optional**
+`devDependencies`, loaded lazily so the offline path needs neither.
 
 ```ts
-import { McpPageExplorer, TestPlanAgent } from './src/agent';
+import { McpCliPlaywrightClient, McpPageExplorer, TestPlanAgent } from './src/agent';
 
-const explorer = new McpPageExplorer({
-  navigate: (url) => browserNavigate({ url }),          // MCP: browser_navigate
-  snapshot: async () => ({ ...(await browserSnapshot()) }), // MCP: browser_snapshot
-});
-const suite = await new TestPlanAgent(explorer).generatePlan('https://www.organuz.ai');
+const client = new McpCliPlaywrightClient({ headless: true }); // spawns npx @playwright/mcp --headless --isolated
+try {
+  const suite = await new TestPlanAgent(new McpPageExplorer(client)).generatePlan('https://www.organuz.ai');
+} finally {
+  await client.close(); // stops the MCP server subprocess
+}
 ```
+
+`McpCliPlaywrightClient` defaults to `--isolated` (a fresh browser profile per
+run) so it never hits the "Browser is already in use" lock. Any object matching
+the `PlaywrightMcpClient` interface also works — e.g. an in-session MCP tool
+binding, or a fake in tests.
 
 ## Run the current repository tests through the agent
 

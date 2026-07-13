@@ -21,6 +21,9 @@ export type {
 } from './PageExplorer';
 export { McpPageExplorer, StubPageExplorer, parseSnapshot } from './PageExplorer';
 
+export type { McpCliOptions } from './McpCliPlaywrightClient';
+export { McpCliPlaywrightClient, parseMcpSnapshotText } from './McpCliPlaywrightClient';
+
 export type {
   GitHubActionsConnector,
   GitHubActionsConfig,
