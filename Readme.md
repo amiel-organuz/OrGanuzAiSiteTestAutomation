@@ -93,7 +93,7 @@ Run the full local automation flow:
 ./scripts/run-all-tests.sh
 ```
 
-This script typechecks the project, starts the local runtime stack when needed, runs the Playwright `chromium`, `organuz-api`, `product`, and `agent` projects in one invocation (into a freshly cleaned `allure-results/`, so the report aggregates all of them), restarts the `api` container so Grafana picks up fresh results, generates an Allure 3 report, brings up all local servers (FastAPI, Scalar, Prometheus, Grafana, Allure), opens the Grafana dashboard, and prints the main service URLs at the end. The credential-gated role flows (`product-setup` → `product-authenticated`) stay out; run those directly with `npx playwright test --project=product-authenticated`.
+This script typechecks the project, starts the local runtime stack when needed, runs the Playwright `chromium`, `organuz-api`, `product`, and `agent` projects in one invocation (into a freshly cleaned `allure-results/`, so the report aggregates all of them), generates an Allure 3 report, brings up all local servers (FastAPI, Scalar, Prometheus, Pushgateway, Grafana, Allure), pushes the run's QA metrics to the Pushgateway so Grafana shows fresh results, opens the Grafana dashboard, and prints the main service URLs at the end. The credential-gated role flows (`product-setup` → `product-authenticated`) stay out; run those directly with `npx playwright test --project=product-authenticated`.
 
 Run only UI tests:
 
@@ -284,6 +284,7 @@ docker compose up -d allure
 | FastAPI built-in Swagger | `http://localhost:8000/docs` |
 | External Scalar API reference | `http://localhost:8080` |
 | Prometheus | `http://localhost:9092` |
+| Pushgateway (QA metrics) | `http://localhost:9091` |
 | Grafana | `http://localhost:3001` |
 | Grafana QA dashboard | `http://localhost:3001/d/organuz-qa-dashboard/organuz-qa-dashboard` |
 | Allure report server | `http://localhost:5050` |
@@ -292,7 +293,7 @@ Grafana is mapped to host port `3001` because port `3000` is commonly used by lo
 
 ## Grafana QA Dashboard
 
-The provisioned QA dashboard reads Prometheus metrics from the FastAPI `/metrics` endpoint. FastAPI parses the latest Playwright JSON report at `test-results/results.json` and exposes:
+The provisioned QA dashboard reads Prometheus metrics that the test runner **pushes** to the Prometheus Pushgateway. `scripts/push-qa-metrics.mjs` parses the latest Playwright JSON report at `test-results/results.json` and pushes:
 
 | Metric | Query example |
 | --- | --- |
@@ -303,7 +304,7 @@ The provisioned QA dashboard reads Prometheus metrics from the FastAPI `/metrics
 | Report age | `time() - qa_playwright_last_run_timestamp_seconds` |
 | Report loaded flag | `qa_playwright_report_present` |
 
-The API container reads `test-results/results.json` through a read-only Docker volume. Run any Playwright project before opening the dashboard if you want fresh numbers.
+`scripts/run-all-tests.sh` pushes these after each run (Prometheus then scrapes the Pushgateway with `honor_labels: true`). To refresh the numbers by hand after a run: `PUSHGATEWAY_URL=http://localhost:9091 node scripts/push-qa-metrics.mjs`. The FastAPI `/metrics` endpoint still provides the `process_*` / `up` metrics the system dashboard uses, but no longer reads the results file — which is what removed the old stale-bind-mount refresh hack.
 
 Open it locally after the stack is running:
 
@@ -377,7 +378,8 @@ Runtime configuration is read from environment variables with fallbacks in `conf
 | `BROWSER` | Browser project selection |
 | `INCLUDE_LOW_PRIORITY_TESTS` | Include broad marketing suites tagged `@low-priority` |
 | `PRODUCT_E2E_ENABLED` | Enables live product browser flows when credentials are present |
-| `QA_PLAYWRIGHT_RESULTS_PATH` | Path read by FastAPI for the latest Playwright JSON report; defaults to `test-results/results.json` |
+| `QA_PLAYWRIGHT_RESULTS_PATH` | Path read by `scripts/push-qa-metrics.mjs` for the latest Playwright JSON report; defaults to `test-results/results.json` |
+| `PUSHGATEWAY_URL` | Prometheus Pushgateway the QA metrics are pushed to; defaults to `http://localhost:9091` |
 
 The Playwright projects are:
 

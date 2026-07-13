@@ -14,6 +14,7 @@ PROMETHEUS_URL="${PROMETHEUS_URL:-http://localhost:9092}"
 GRAFANA_URL="${GRAFANA_URL:-http://localhost:3001}"
 GRAFANA_DASHBOARD_URL="${GRAFANA_DASHBOARD_URL:-${GRAFANA_URL}/d/organuz-system-tests/organuz-system-and-test-monitor}"
 ALLURE_URL="${ALLURE_URL:-http://localhost:5050}"
+PUSHGATEWAY_URL="${PUSHGATEWAY_URL:-http://localhost:9091}"
 
 api_ready() {
   curl -fsS "${API_BASE_URL}/health" >/dev/null 2>&1
@@ -28,7 +29,7 @@ stack_ready() {
 
 if [ "$AUTO_START_API" = "true" ] && [ "$API_BASE_URL" = "http://localhost:8000" ] && ! stack_ready; then
   echo "Starting local FastAPI, Scalar, Prometheus, and Grafana servers with Docker Compose..."
-  docker compose up -d --build api swagger prometheus grafana
+  docker compose up -d --build api swagger prometheus grafana pushgateway
 fi
 
 echo "Waiting for FastAPI server at ${API_BASE_URL}/health..."
@@ -71,25 +72,24 @@ if [ "$AUTO_START_API" = "true" ] && [ "$API_BASE_URL" = "http://localhost:8000"
   # Ensure every local server is running at the end of the run — the start-up
   # block above is conditional (skipped when the stack already looked ready), so
   # bring them all up explicitly here. `up -d` is idempotent for ones already up.
-  echo "Bringing up all local servers (FastAPI, Scalar, Prometheus, Grafana, Allure)..."
-  docker compose up -d --build api swagger prometheus grafana allure \
+  echo "Bringing up all local servers (FastAPI, Scalar, Prometheus, Grafana, Pushgateway, Allure)..."
+  docker compose up -d --build api swagger prometheus grafana pushgateway allure \
     || echo "One or more servers could not start; check 'docker compose ps'."
 
   # Force-recreate the Allure server so it serves the freshly generated report.
   docker compose up -d --force-recreate allure \
     || echo "Allure report server could not start on ${ALLURE_URL}."
 
-  # Refresh the API container so it re-reads the freshly written test-results/results.json.
-  # Playwright wipes and recreates test-results/ each run, which changes the host directory's
-  # inode; on macOS Docker Desktop the long-running api container stays bound to the old (now
-  # empty) inode and would otherwise report qa_playwright_report_present=0 with no test metrics.
-  echo "Refreshing FastAPI container so QA metrics reload..."
-  docker compose restart api >/dev/null 2>&1 || echo "Could not restart api container; Grafana test panels may show stale data."
-  for i in $(seq 1 30); do
-    api_ready && break
-    [ "$i" -eq 30 ] && echo "FastAPI did not come back after refresh." >&2
+  # Push this run's QA metrics to the Pushgateway (Prometheus then scrapes it).
+  # This replaces the old "restart api so it re-reads the stale test-results bind
+  # mount" hack — metrics are pushed now, so there is no file/inode to go stale.
+  echo "Pushing QA metrics to Pushgateway at ${PUSHGATEWAY_URL}..."
+  for i in $(seq 1 15); do
+    curl -fsS "${PUSHGATEWAY_URL}/-/ready" >/dev/null 2>&1 && break
     sleep 1
   done
+  PUSHGATEWAY_URL="$PUSHGATEWAY_URL" node scripts/push-qa-metrics.mjs \
+    || echo "Could not push QA metrics; Grafana test panels may be empty."
 fi
 
 echo
@@ -97,6 +97,7 @@ echo "Local servers:"
 echo "  FastAPI:     ${FASTAPI_URL}"
 echo "  Scalar:      ${SWAGGER_URL}"
 echo "  Prometheus:  ${PROMETHEUS_URL}"
+echo "  Pushgateway: ${PUSHGATEWAY_URL}"
 echo "  Grafana:     ${GRAFANA_URL}"
 echo "  Allure:      ${ALLURE_URL}"
 echo

@@ -151,7 +151,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Start service stack
-        run: docker compose up -d --build api swagger prometheus grafana
+        run: docker compose up -d --build api swagger prometheus grafana pushgateway
 
       - name: Wait for service endpoints
         run: |
@@ -159,6 +159,7 @@ jobs:
             if curl -fsS http://localhost:8000/health >/dev/null \
               && curl -fsS http://localhost:8080 >/dev/null \
               && curl -fsS http://localhost:9092/-/ready >/dev/null \
+              && curl -fsS http://localhost:9091/-/ready >/dev/null \
               && curl -fsS http://localhost:3001/api/health >/dev/null; then
               echo "Service stack is ready."
               exit 0
@@ -167,7 +168,7 @@ jobs:
           done
 
           docker compose ps
-          docker compose logs api swagger prometheus grafana
+          docker compose logs api swagger prometheus grafana pushgateway
           exit 1
 
       - name: Add service links to summary
@@ -184,6 +185,7 @@ jobs:
             echo "| Scalar | \`localhost:8080\` |"
             echo "| Grafana | \`localhost:3001\` |"
             echo "| Prometheus | \`localhost:9092\` |"
+            echo "| Pushgateway | \`localhost:9091\` |"
             echo "| Allure | Published by the report job to GitHub Pages and uploaded as an artifact |"
             echo
             echo "For externally reachable links in the final summary, set the \`FASTAPI_URL\`, \`SWAGGER_URL\`, and \`GRAFANA_URL\` repository variables."
@@ -194,7 +196,7 @@ jobs:
         continue-on-error: true
         run: |
           mkdir -p service-logs
-          docker compose logs api swagger prometheus grafana > service-logs/docker-compose-services.log
+          docker compose logs api swagger prometheus grafana pushgateway > service-logs/docker-compose-services.log
 
       - name: Store service logs
         if: always()

@@ -6,8 +6,9 @@ services:
     image: organuz-ai-fastapi-server
     ports:
       - "8000:8000"
-    volumes:
-      - ./test-results:/app/test-results:ro
+    # No test-results bind mount: QA metrics are now pushed to the Pushgateway by
+    # the test runner (scripts/push-qa-metrics.mjs), so the api no longer reads the
+    # results file (which is what went stale here on macOS after each run).
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
       interval: 5s
@@ -25,6 +26,11 @@ services:
     volumes:
       - ./server/scalar:/usr/share/nginx/html:ro
 
+  pushgateway:
+    image: prom/pushgateway:v1.10.0
+    ports:
+      - "9091:9091"
+
   prometheus:
     image: prom/prometheus:v2.55.1
     ports:
@@ -32,6 +38,8 @@ services:
     depends_on:
       api:
         condition: service_healthy
+      pushgateway:
+        condition: service_started
     volumes:
       - ./server/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     command:

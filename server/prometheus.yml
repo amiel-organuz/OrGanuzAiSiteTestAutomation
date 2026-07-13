@@ -13,3 +13,11 @@ scrape_configs:
       - targets: ["api:8000"]
         labels:
           service: organuz-ai-fastapi-server
+
+  # QA test metrics (qa_playwright_*) are pushed here by scripts/push-qa-metrics.mjs
+  # at the end of each run. honor_labels keeps the pushed job/instance labels so the
+  # metrics are not relabelled to the pushgateway target.
+  - job_name: pushgateway
+    honor_labels: true
+    static_configs:
+      - targets: ["pushgateway:9091"]
