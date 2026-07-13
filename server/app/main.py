@@ -1,13 +1,6 @@
-import json
-import os
-from datetime import datetime
-from pathlib import Path
-from typing import Any
-
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
-from prometheus_client import Gauge
 from pydantic import BaseModel, Field
 
 
@@ -89,26 +82,6 @@ AGENT_COMMANDS = [
     ),
 ]
 
-TEST_RESULTS_PATH = Path(os.getenv("QA_PLAYWRIGHT_RESULTS_PATH", "test-results/results.json"))
-QA_TESTS_TOTAL = Gauge(
-    "qa_playwright_tests_total",
-    "Latest Playwright test count by project and normalized status.",
-    ["project", "status"],
-)
-QA_DURATION_SECONDS = Gauge(
-    "qa_playwright_duration_seconds",
-    "Latest Playwright total execution duration by project.",
-    ["project"],
-)
-QA_LAST_RUN_TIMESTAMP = Gauge(
-    "qa_playwright_last_run_timestamp_seconds",
-    "Unix timestamp for the latest Playwright JSON report start time.",
-)
-QA_REPORT_PRESENT = Gauge(
-    "qa_playwright_report_present",
-    "Whether the latest Playwright JSON report was found and parsed.",
-)
-
 app = FastAPI(
     title="OrGanuz Test Automation API",
     summary="Local documentation, health, metrics, and automation metadata for the OrGanuz test stack.",
@@ -139,72 +112,10 @@ app.add_middleware(
 )
 
 
-@app.middleware("http")
-async def refresh_qa_metrics_on_scrape(request: Request, call_next):
-    if request.url.path == "/metrics":
-        refresh_qa_metrics()
-    return await call_next(request)
-
-
+# Exposes process_* / up / http_* metrics at /metrics. The QA test metrics
+# (qa_playwright_*) are no longer produced here — the test runner pushes them to
+# the Prometheus Pushgateway (see scripts/push-qa-metrics.mjs).
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
-
-
-def refresh_qa_metrics() -> None:
-    if not TEST_RESULTS_PATH.exists():
-        QA_REPORT_PRESENT.set(0)
-        return
-
-    try:
-        report = json.loads(TEST_RESULTS_PATH.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        QA_REPORT_PRESENT.set(0)
-        return
-
-    project_status_counts: dict[tuple[str, str], int] = {}
-    project_durations: dict[str, float] = {}
-    for test_case in iter_playwright_tests(report.get("suites", [])):
-        project = str(test_case.get("projectName") or test_case.get("projectId") or "unknown")
-        results = test_case.get("results") or []
-        result = results[-1] if results else {}
-        status = normalize_test_status(str(test_case.get("status") or result.get("status") or "unknown"))
-        duration_ms = float(result.get("duration") or 0)
-        project_status_counts[(project, status)] = project_status_counts.get((project, status), 0) + 1
-        project_durations[project] = project_durations.get(project, 0) + duration_ms / 1000
-
-    QA_TESTS_TOTAL.clear()
-    QA_DURATION_SECONDS.clear()
-    for (project, status), count in project_status_counts.items():
-        QA_TESTS_TOTAL.labels(project=project, status=status).set(count)
-    for project, duration_seconds in project_durations.items():
-        QA_DURATION_SECONDS.labels(project=project).set(duration_seconds)
-
-    start_time = report.get("stats", {}).get("startTime")
-    if isinstance(start_time, str):
-        QA_LAST_RUN_TIMESTAMP.set(parse_playwright_timestamp(start_time))
-    QA_REPORT_PRESENT.set(1)
-
-
-def iter_playwright_tests(suites: list[dict[str, Any]]):
-    for suite in suites:
-        for spec in suite.get("specs", []):
-            for test_case in spec.get("tests", []):
-                yield test_case
-        yield from iter_playwright_tests(suite.get("suites", []))
-
-
-def normalize_test_status(status: str) -> str:
-    status_map = {
-        "expected": "passed",
-        "unexpected": "failed",
-        "timedOut": "failed",
-        "interrupted": "failed",
-    }
-    return status_map.get(status, status)
-
-
-def parse_playwright_timestamp(value: str) -> float:
-    normalized = value.replace("Z", "+00:00")
-    return datetime.fromisoformat(normalized).timestamp()
 
 
 @app.get("/", response_model=RootInfo, tags=["service"], summary="Service metadata")

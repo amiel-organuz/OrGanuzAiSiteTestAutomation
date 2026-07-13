@@ -1,6 +1,6 @@
 # OrGanuz AI Site Test Automation
 
-Playwright + TypeScript test suite for Organuz, plus a local FastAPI/Prometheus/Grafana stack that turns Playwright results into a QA dashboard.
+Playwright + TypeScript test suite for Organuz, plus a local FastAPI/Prometheus/Grafana + Pushgateway stack that turns Playwright results into a QA dashboard. QA metrics are **pushed** to the Prometheus Pushgateway by the test runner (`scripts/push-qa-metrics.mjs`), not read from a file by the API.
 
 ## Test projects (`playwright.config.ts`)
 - **`chromium`** → `tests/ui/**` → marketing site `www.organuz.ai` (prod), default-filtered to `@other-smoke`.
@@ -35,7 +35,7 @@ Project skills live in `.claude/skills/`. Invoke with `/<name>`:
 - **`organuz-product-e2e`** — drive/debug the product calculator end-to-end: dev password gate, phone+OTP login UI, the characterization wizard (confirmed dev selectors/URLs), the `ProductFlows` fixture, and MCP driving. Use when working on `tests/product/**` or exploring dev with the Playwright MCP.
 - **`organuz-product-roles`** — per-role auth & session reuse (`product-setup` + `storageState` + `resumeSession`), the customer/consultant/company roles and their personal areas, and the role specs under `tests/product/flows`. Use when writing/fixing per-role product tests, the auth setup, or the product fixtures.
 - **`organuz-api-tests`** — write/debug contract & API tests against the Organuz Supabase backend (`tests/organuz-api/**`): projects REST resource, anon key, RLS, edge-function preflights.
-- **`organuz-monitoring`** — build/debug the Grafana+Prometheus stack: dashboards from `qa_playwright_*` metrics, the process CPU/mem/network metrics, and the port-8000 / stale-bind-mount gotchas.
+- **`organuz-monitoring`** — build/debug the Grafana+Prometheus+Pushgateway stack: dashboards from `qa_playwright_*` metrics (pushed via `scripts/push-qa-metrics.mjs`), the process CPU/mem/network metrics from the FastAPI `/metrics`, and the port-8000 gotcha.
 - **`test-suite-parity`** — keep the Playwright suite identical locally and on GitHub Actions (same projects/tests, all green). Use when adding/removing a test or project, editing `playwright.config.ts`, or `.github/workflows/parallel-tests.yml`.
 
 Per-test-group skills (how to run/extend one group; see the mapping in `Architecture.html`):
