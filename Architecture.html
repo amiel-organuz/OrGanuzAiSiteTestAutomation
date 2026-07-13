@@ -529,6 +529,10 @@
           <strong>Scalar</strong>
           <code>http://localhost:8080</code>
         </div>
+        <div class="tile" style="border-top: 6px solid var(--peach)">
+          <strong>Pushgateway</strong>
+          <code>http://localhost:9091</code>
+        </div>
         <div class="tile" style="border-top: 6px solid var(--yellow)">
           <strong>Prometheus</strong>
           <code>http://localhost:9092</code>
@@ -570,9 +574,13 @@
         <div class="card-title"><span class="badge">DOC</span> Scalar API Reference</div>
         <p class="card-desc">External Scalar docs read the FastAPI OpenAPI schema from <code>localhost:8000/openapi.json</code>.</p>
       </div>
+      <div class="card" style="--accent: var(--peach)">
+        <div class="card-title"><span class="badge">MON</span> Pushgateway</div>
+        <p class="card-desc">The Prometheus Pushgateway (<code>prom/pushgateway</code>, host <code>9091</code>) receives the <code>qa_playwright_*</code> test metrics that <code>scripts/push-qa-metrics.mjs</code> pushes after each run; Prometheus then scrapes it with <code>honor_labels: true</code>.</p>
+      </div>
       <div class="card" style="--accent: var(--yellow)">
         <div class="card-title"><span class="badge">MON</span> Prometheus</div>
-        <p class="card-desc">Scrapes FastAPI metrics from <code>api:8000/metrics</code> through <code>server/prometheus.yml</code>.</p>
+        <p class="card-desc">Scrapes FastAPI process metrics from <code>api:8000/metrics</code> and the QA test metrics from the <code>pushgateway</code>, both through <code>server/prometheus.yml</code>.</p>
       </div>
       <div class="card" style="--accent: var(--aqua)">
         <div class="card-title"><span class="badge">MON</span> Grafana</div>
@@ -594,7 +602,7 @@
 
     <h2 id="diagram">Architecture Diagram</h2>
     <div class="panel arch-wrap">
-      <svg viewBox="0 0 1020 520" role="img" aria-label="OrGanuz test automation architecture diagram" xmlns="http://www.w3.org/2000/svg">
+      <svg viewBox="0 0 1120 560" role="img" aria-label="OrGanuz test automation architecture diagram" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" fill="#8391aa"/>
@@ -604,53 +612,57 @@
           </filter>
         </defs>
 
-        <rect x="25" y="24" width="970" height="472" rx="28" fill="#ffffff" opacity="0.68" stroke="#dfe7f3"/>
+        <rect x="20" y="20" width="1080" height="520" rx="28" fill="#ffffff" opacity="0.68" stroke="#dfe7f3"/>
 
-        <rect x="70" y="70" width="250" height="98" rx="20" fill="#c7dcff" filter="url(#softShadow)"/>
-        <text x="195" y="106" text-anchor="middle" font-size="18" font-weight="800" fill="#27324a">Playwright</text>
-        <text x="195" y="132" text-anchor="middle" font-size="13" fill="#40506b">chromium · product(+auth) · organuz-api · agent</text>
-        <text x="195" y="152" text-anchor="middle" font-size="12" fill="#40506b">reports: html, junit, json, allure, blob</text>
+        <!-- top row -->
+        <rect x="45" y="70" width="330" height="104" rx="20" fill="#c7dcff" filter="url(#softShadow)"/>
+        <text x="210" y="110" text-anchor="middle" font-size="19" font-weight="800" fill="#27324a">Playwright</text>
+        <text x="210" y="136" text-anchor="middle" font-size="13" fill="#40506b">chromium · product(+auth) · organuz-api · agent</text>
+        <text x="210" y="157" text-anchor="middle" font-size="12" fill="#40506b">reports: html, junit, json, allure, blob</text>
 
-        <rect x="385" y="70" width="250" height="98" rx="20" fill="#bff4dc" filter="url(#softShadow)"/>
-        <text x="510" y="106" text-anchor="middle" font-size="18" font-weight="800" fill="#27324a">FastAPI</text>
-        <text x="510" y="132" text-anchor="middle" font-size="13" fill="#40506b">health, OpenAPI, metrics</text>
-        <text x="510" y="152" text-anchor="middle" font-size="12" fill="#40506b">localhost:8000</text>
+        <rect x="415" y="70" width="330" height="104" rx="20" fill="#bff4dc" filter="url(#softShadow)"/>
+        <text x="580" y="110" text-anchor="middle" font-size="19" font-weight="800" fill="#27324a">FastAPI</text>
+        <text x="580" y="136" text-anchor="middle" font-size="13" fill="#40506b">health, OpenAPI, metrics</text>
+        <text x="580" y="157" text-anchor="middle" font-size="12" fill="#40506b">localhost:8000</text>
 
-        <rect x="700" y="70" width="250" height="98" rx="20" fill="#d9c7ff" filter="url(#softShadow)"/>
-        <text x="825" y="106" text-anchor="middle" font-size="18" font-weight="800" fill="#27324a">Scalar</text>
-        <text x="825" y="132" text-anchor="middle" font-size="13" fill="#40506b">external API docs</text>
-        <text x="825" y="152" text-anchor="middle" font-size="12" fill="#40506b">localhost:8080</text>
+        <rect x="785" y="70" width="290" height="104" rx="20" fill="#d9c7ff" filter="url(#softShadow)"/>
+        <text x="930" y="110" text-anchor="middle" font-size="19" font-weight="800" fill="#27324a">Scalar</text>
+        <text x="930" y="136" text-anchor="middle" font-size="13" fill="#40506b">external API docs</text>
+        <text x="930" y="157" text-anchor="middle" font-size="12" fill="#40506b">localhost:8080</text>
 
-        <rect x="225" y="245" width="250" height="98" rx="20" fill="#ffeaa7" filter="url(#softShadow)"/>
-        <text x="350" y="281" text-anchor="middle" font-size="18" font-weight="800" fill="#27324a">Prometheus</text>
-        <text x="350" y="307" text-anchor="middle" font-size="13" fill="#40506b">scrapes /metrics</text>
-        <text x="350" y="327" text-anchor="middle" font-size="12" fill="#40506b">localhost:9092</text>
+        <!-- mid row -->
+        <rect x="200" y="250" width="330" height="104" rx="20" fill="#ffeaa7" filter="url(#softShadow)"/>
+        <text x="365" y="290" text-anchor="middle" font-size="19" font-weight="800" fill="#27324a">Prometheus</text>
+        <text x="365" y="316" text-anchor="middle" font-size="13" fill="#40506b">scrapes /metrics</text>
+        <text x="365" y="337" text-anchor="middle" font-size="12" fill="#40506b">localhost:9092</text>
 
-        <rect x="545" y="245" width="250" height="98" rx="20" fill="#b9edf7" filter="url(#softShadow)"/>
-        <text x="670" y="281" text-anchor="middle" font-size="18" font-weight="800" fill="#27324a">Grafana</text>
-        <text x="670" y="307" text-anchor="middle" font-size="13" fill="#40506b">QA dashboard + datasource</text>
-        <text x="670" y="327" text-anchor="middle" font-size="12" fill="#40506b">localhost:3001</text>
+        <rect x="610" y="250" width="330" height="104" rx="20" fill="#b9edf7" filter="url(#softShadow)"/>
+        <text x="775" y="290" text-anchor="middle" font-size="19" font-weight="800" fill="#27324a">Grafana</text>
+        <text x="775" y="316" text-anchor="middle" font-size="13" fill="#40506b">QA dashboard + datasource</text>
+        <text x="775" y="337" text-anchor="middle" font-size="12" fill="#40506b">localhost:3001</text>
 
-        <rect x="225" y="395" width="250" height="72" rx="18" fill="#f8b4d9" filter="url(#softShadow)"/>
-        <text x="350" y="425" text-anchor="middle" font-size="17" font-weight="800" fill="#27324a">Allure Server</text>
-        <text x="350" y="449" text-anchor="middle" font-size="12" fill="#40506b">localhost:5050</text>
+        <!-- bottom row -->
+        <rect x="200" y="420" width="290" height="80" rx="18" fill="#f8b4d9" filter="url(#softShadow)"/>
+        <text x="345" y="454" text-anchor="middle" font-size="17" font-weight="800" fill="#27324a">Allure Server</text>
+        <text x="345" y="478" text-anchor="middle" font-size="12" fill="#40506b">localhost:5050</text>
 
-        <rect x="525" y="395" width="205" height="72" rx="18" fill="#ffd9b8" filter="url(#softShadow)"/>
-        <text x="628" y="425" text-anchor="middle" font-size="17" font-weight="800" fill="#27324a">GitHub Actions</text>
-        <text x="628" y="449" text-anchor="middle" font-size="12" fill="#40506b">matrix + Pages deploy</text>
+        <rect x="545" y="420" width="300" height="80" rx="18" fill="#ffd9b8" filter="url(#softShadow)"/>
+        <text x="695" y="454" text-anchor="middle" font-size="17" font-weight="800" fill="#27324a">GitHub Actions</text>
+        <text x="695" y="478" text-anchor="middle" font-size="12" fill="#40506b">matrix + Pages deploy</text>
 
-        <rect x="760" y="395" width="190" height="72" rx="18" fill="#ffd6d6" filter="url(#softShadow)"/>
-        <text x="855" y="425" text-anchor="middle" font-size="17" font-weight="800" fill="#27324a">Supabase API</text>
-        <text x="855" y="449" text-anchor="middle" font-size="12" fill="#40506b">organuz-api tests</text>
+        <rect x="880" y="420" width="200" height="80" rx="18" fill="#ffd6d6" filter="url(#softShadow)"/>
+        <text x="980" y="454" text-anchor="middle" font-size="17" font-weight="800" fill="#27324a">Supabase API</text>
+        <text x="980" y="478" text-anchor="middle" font-size="12" fill="#40506b">organuz-api tests</text>
 
-        <path d="M 320 119 L 385 119" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
-        <path d="M 635 119 L 700 119" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
-        <path d="M 510 168 L 380 245" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
-        <path d="M 475 294 L 545 294" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
-        <path d="M 195 168 L 300 395" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
-        <path d="M 350 343 L 350 395" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
-        <path d="M 510 168 L 610 395" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
-        <path d="M 760 431 L 730 431" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
+        <path d="M 375 122 L 415 122" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
+        <path d="M 745 122 L 785 122" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
+        <path d="M 575 174 L 405 250" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
+        <path d="M 530 302 L 610 302" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
+        <path d="M 195 174 L 300 420" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
+        <path d="M 365 354 L 355 420" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
+        <path d="M 600 174 L 690 420" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
+        <path d="M 880 460 L 845 460" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
+      </svg>
     </div>
 
     <h2 id="agent-stack">QA Agent Orchestrator Stack</h2>
@@ -714,12 +726,12 @@
       <div class="step" style="--accent: var(--mint)">
         <div class="step-num">2</div>
         <h3>Start stack</h3>
-        <p>The script starts FastAPI, Scalar, Prometheus, and Grafana when local endpoints are not ready.</p>
+        <p>The script starts FastAPI, Scalar, Prometheus, the Pushgateway, and Grafana when local endpoints are not ready.</p>
       </div>
       <div class="step" style="--accent: var(--lavender)">
         <div class="step-num">3</div>
         <h3>Run tests</h3>
-        <p><code>npm test</code> executes all four projects — <code>chromium</code>, <code>product</code>, <code>organuz-api</code>, and <code>agent</code> — in one run. The local shell flow runs them while the service containers are online, then restarts the <code>api</code> container so Grafana picks up fresh results.</p>
+        <p><code>npm test</code> executes all four green projects — <code>chromium</code>, <code>product</code>, <code>organuz-api</code>, and <code>agent</code> — in one run. The local shell flow runs them while the service containers are online, then <code>scripts/push-qa-metrics.mjs</code> pushes the run's <code>qa_playwright_*</code> metrics to the Pushgateway so Grafana shows fresh results.</p>
       </div>
       <div class="step" style="--accent: var(--pink)">
         <div class="step-num">4</div>
@@ -752,10 +764,16 @@
           <td>Standalone Scalar API reference pointed at FastAPI OpenAPI JSON.</td>
         </tr>
         <tr>
+          <td><code>pushgateway</code></td>
+          <td><code>prom/pushgateway:v1.10.0</code></td>
+          <td><code>http://localhost:9091</code></td>
+          <td>Receives the <code>qa_playwright_*</code> test metrics pushed by <code>scripts/push-qa-metrics.mjs</code> after each run.</td>
+        </tr>
+        <tr>
           <td><code>prometheus</code></td>
           <td><code>prom/prometheus:v2.55.1</code></td>
           <td><code>http://localhost:9092</code></td>
-          <td>Scrapes FastAPI metrics from <code>api:8000/metrics</code>.</td>
+          <td>Scrapes FastAPI process metrics from <code>api:8000/metrics</code> and the QA test metrics from the <code>pushgateway</code>.</td>
         </tr>
         <tr>
           <td><code>grafana</code></td>
@@ -787,7 +805,7 @@
     </div>
 
     <h2 id="tests">Test Suites &mdash; Every Group in Detail</h2>
-    <p style="max-width: 74ch; color: var(--muted); margin-bottom: 6px;">Six Playwright projects, run identically locally and on GitHub Actions. <strong>59 tests total: 46 green + 13 credential-gated role specs that skip until per-role secrets are added</strong> (see the <code>test-suite-parity</code> skill). Counts below are per spec file.</p>
+    <p style="max-width: 74ch; color: var(--muted); margin-bottom: 6px;">Six Playwright projects, run identically locally and on GitHub Actions. <strong>59 tests total: 46 green + 13 credential-gated role specs that skip until per-role secrets are added</strong> (see the <code>test-suite-parity</code> skill). A seventh <code>monitoring</code> project is <strong>opt-in</strong> (registered only when <code>MONITORING_ENABLED=true</code>) and adds 50 live third-party availability checks (<strong>109 total</strong>); it runs under the External API Monitoring workflow, never in the default green gate. Counts below are per spec file.</p>
 
     <div class="panel" style="--accent: var(--blue)">
       <h3><span class="badge">UI · 12</span> chromium &nbsp;<code>tests/ui/**</code> · <code>@other-smoke</code> · prod <code>www.organuz.ai</code></h3>
@@ -839,6 +857,15 @@
       </div>
     </div>
 
+    <div class="panel" style="--accent: var(--peach)">
+      <h3><span class="badge">MON · 50</span> monitoring &nbsp;<code>tests/monitoring/**</code> · opt-in (<code>MONITORING_ENABLED=true</code>) · live third-party</h3>
+      <p>Dedicated availability + contract monitoring for the two critical third-party map dependencies the product relies on, using <code>APIRequestContext</code> only (no browser). This project is registered <strong>only</strong> when <code>MONITORING_ENABLED=true</code>, so it never runs in the default 59-test suite (109 with it); it is driven separately by the <strong>External API Monitoring</strong> workflow (<code>monitoring.yml</code>, cron every 30 min) and is <em>meant to fail</em> when a dependency is down — that failure is the alert (auto-managed GitHub issue + Slack), so a Govmap/Ofek outage can never break the green PR gate.</p>
+      <ul>
+        <li><strong><code>govmap.spec.ts</code> (25, live)</strong> — <strong>Govmap</strong> (<code>www.govmap.gov.il</code>): the map API and address geocoding.</li>
+        <li><strong><code>ofek.spec.ts</code> (25, live)</strong> — <strong>Ofek</strong> (<code>basemaps.govmap.gov.il</code>): the Survey-of-Israel national orthophoto tiles the roof scan runs on.</li>
+      </ul>
+    </div>
+
     <h2 id="skills">Test Groups &rarr; Skills</h2>
     <div class="panel">
       <p>Every test group has a task skill under <code>.claude/skills/&lt;name&gt;/SKILL.md</code> documenting how to run and extend it (invoke with <code>/&lt;name&gt;</code>):</p>
@@ -851,6 +878,7 @@
           <tr><td>Live per-role e2e</td><td><code>product-setup</code> &rarr; <code>product-authenticated</code></td><td><code>product-roles-e2e</code> (+ <code>organuz-product-roles</code>)</td></tr>
           <tr><td>Supabase projects contract</td><td><code>organuz-api</code></td><td><code>organuz-api-tests</code></td></tr>
           <tr><td>Orchestrator regression + <code>TestPlanAgent</code></td><td><code>agent</code></td><td>&mdash; (see <code>src/agent/README.md</code>)</td></tr>
+          <tr><td>External-API monitoring (Govmap + Ofek)</td><td><code>monitoring</code> (opt-in)</td><td>&mdash; (External API Monitoring workflow; <code>organuz-monitoring</code> covers the stack)</td></tr>
         </tbody>
       </table>
     </div>
@@ -892,7 +920,7 @@
 
     <h2 id="metrics">QA Dashboard Metrics</h2>
     <div class="panel">
-      <p>FastAPI parses <code>test-results/results.json</code> and exposes dashboard-friendly Prometheus metrics. Grafana provisions the <code>OrGanuz QA Dashboard</code> automatically.</p>
+      <p><code>scripts/push-qa-metrics.mjs</code> reads the latest Playwright JSON report (<code>test-results/results.json</code>, override <code>QA_PLAYWRIGHT_RESULTS_PATH</code>) and <strong>pushes</strong> the metrics to the Prometheus Pushgateway (<code>PUSHGATEWAY_URL</code>, default <code>http://localhost:9091</code>); Prometheus scrapes the Pushgateway with <code>honor_labels: true</code> and Grafana provisions the QA dashboard automatically. FastAPI's <code>/metrics</code> now serves only its own <code>process_*</code> / <code>up</code> metrics — it no longer reads the results file, which retired the old stale-bind-mount refresh hack.</p>
       <ul>
         <li><code>qa_playwright_tests_total{project,status}</code> for pass/fail/skipped counts.</li>
         <li><code>qa_playwright_duration_seconds{project}</code> for project runtime.</li>
