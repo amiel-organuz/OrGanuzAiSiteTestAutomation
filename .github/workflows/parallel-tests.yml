@@ -28,12 +28,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
@@ -79,12 +79,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
@@ -148,7 +148,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Start service stack
         run: docker compose up -d --build api swagger prometheus grafana
@@ -219,12 +219,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
@@ -360,3 +360,42 @@ jobs:
             echo
             echo "The FastAPI / Scalar / Grafana / Prometheus stack is ephemeral — the \`localhost\` ports are only live inside the runner during the services-smoke job. Set the \`FASTAPI_URL\`, \`SWAGGER_URL\`, \`GRAFANA_URL\`, and \`PROMETHEUS_URL\` repository variables to link an externally hosted deployment here instead."
           } >> "$GITHUB_STEP_SUMMARY"
+
+      # Post the report links to Slack once the whole pipeline has finished.
+      # Runs on push/dispatch (not PRs) — the GitHub Pages Allure URL only exists
+      # after deploy-allure publishes it on main/master. Posts to both webhooks;
+      # each is optional (unset = skipped) and non-fatal (a bad post never fails
+      # the run). Guard lives in the script because secrets can't be used in `if:`.
+      - name: Notify Slack with report links
+        if: always() && github.event_name != 'pull_request'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_BOT_URL: ${{ secrets.SLACK_WEBHOOK_BOT_URL }}
+          GRAFANA_LINK_URL: ${{ vars.GRAFANA_URL || 'http://localhost:3001' }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ] && [ -z "$SLACK_WEBHOOK_BOT_URL" ]; then
+            echo "No Slack webhook secrets set — skipping report notification."
+            exit 0
+          fi
+
+          # Allure: the deployed Pages URL when this run published it, else the run's
+          # artifacts (where the allure-report is always uploaded).
+          if [ -n "$DEPLOYED_URL" ]; then
+            ALLURE_LINK="<${DEPLOYED_URL}|Allure report (GitHub Pages)>"
+          else
+            ALLURE_LINK="<${RUN_URL}|Allure report (download artifact)>"
+          fi
+
+          TEXT=":bar_chart: *Organuz test automation finished* — <${RUN_URL}|View run>\n• ${ALLURE_LINK}\n• <${GRAFANA_LINK_URL}|Grafana dashboard>"
+          PAYLOAD=$(printf '{"text":"%s"}' "$TEXT")
+
+          post() { # $1 = secret name, $2 = url
+            if [ -z "$2" ]; then echo "$1 not set — skipping."; return; fi
+            if curl -fsS -X POST "$2" -H 'content-type: application/json' --data "$PAYLOAD" >/dev/null; then
+              echo "$1: posted."
+            else
+              echo "$1: post failed (non-fatal)."
+            fi
+          }
+          post SLACK_WEBHOOK_URL "$SLACK_WEBHOOK_URL"
+          post SLACK_WEBHOOK_BOT_URL "$SLACK_WEBHOOK_BOT_URL"

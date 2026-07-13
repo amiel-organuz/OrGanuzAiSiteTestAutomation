@@ -9,6 +9,7 @@
     "test:ui": "playwright test --project=chromium",
     "test:product": "playwright test --project=product",
     "test:monitoring": "MONITORING_ENABLED=true playwright test --project=monitoring",
+    "slack:test": "./scripts/slack-alert-test.sh",
     "report": "playwright show-report playwright-report",
     "clean:results": "rm -rf allure-results allure-report blob-report test-results playwright-report",
     "report:allure:fresh": "npm run clean:results && playwright test && npm run report:allure",
