@@ -46,8 +46,17 @@ for i in $(seq 1 30); do
 done
 
 echo "Running all Playwright tests..."
+# Start from a clean Allure results dir so the report reflects THIS run and not
+# leftovers from an ad-hoc single-project run (a stale dir made the report show
+# only whatever ran last).
+rm -rf allure-results
 set +e
-npx playwright test --project=chromium --project=organuz-api --project=dev-api
+# Every real, non-credential-gated project, in one invocation so their results
+# aggregate into a single Allure report: marketing UI, Supabase contract, the
+# product data-contracts + skip-safe public sanity, and the stubbed agent specs.
+# (`dev-api` was a removed project — naming it aborted the whole run.) The
+# credential-gated product-setup/product-authenticated role flows stay out.
+npx playwright test --project=chromium --project=organuz-api --project=product --project=agent
 TEST_EXIT_CODE=$?
 set -e
 
@@ -59,8 +68,16 @@ if [ -d allure-results ] && [ "$(find allure-results -mindepth 1 -print -quit)" 
 fi
 
 if [ "$AUTO_START_API" = "true" ] && [ "$API_BASE_URL" = "http://localhost:8000" ]; then
-  echo "Starting local Allure report server..."
-  docker compose up -d --force-recreate allure || echo "Allure report server could not start on ${ALLURE_URL}."
+  # Ensure every local server is running at the end of the run — the start-up
+  # block above is conditional (skipped when the stack already looked ready), so
+  # bring them all up explicitly here. `up -d` is idempotent for ones already up.
+  echo "Bringing up all local servers (FastAPI, Scalar, Prometheus, Grafana, Allure)..."
+  docker compose up -d --build api swagger prometheus grafana allure \
+    || echo "One or more servers could not start; check 'docker compose ps'."
+
+  # Force-recreate the Allure server so it serves the freshly generated report.
+  docker compose up -d --force-recreate allure \
+    || echo "Allure report server could not start on ${ALLURE_URL}."
 
   # Refresh the API container so it re-reads the freshly written test-results/results.json.
   # Playwright wipes and recreates test-results/ each run, which changes the host directory's

@@ -93,7 +93,7 @@ Run the full local automation flow:
 ./scripts/run-all-tests.sh
 ```
 
-This script typechecks the project, starts the local runtime stack when needed, runs the Playwright `chromium`, `organuz-api`, and `dev-api` projects, restarts the `api` container so Grafana picks up fresh results, generates an Allure 3 report, starts the Allure static server, opens the Grafana dashboard, and prints the main service URLs at the end. It intentionally does not run the `product` or `agent` projects by default; run those directly with `npm run test:product` and `npx playwright test --project=agent`, or through `npm run agent:current-tests`.
+This script typechecks the project, starts the local runtime stack when needed, runs the Playwright `chromium`, `organuz-api`, `product`, and `agent` projects in one invocation (into a freshly cleaned `allure-results/`, so the report aggregates all of them), restarts the `api` container so Grafana picks up fresh results, generates an Allure 3 report, brings up all local servers (FastAPI, Scalar, Prometheus, Grafana, Allure), opens the Grafana dashboard, and prints the main service URLs at the end. The credential-gated role flows (`product-setup` → `product-authenticated`) stay out; run those directly with `npx playwright test --project=product-authenticated`.
 
 Run only UI tests:
 
@@ -124,6 +124,16 @@ For the broader product suite, use:
 ```bash
 npm run test:product:all
 ```
+
+### External API monitoring (Govmap + Ofek)
+
+Dedicated availability + contract monitoring for the two critical third-party map dependencies the product relies on — **Govmap** (`www.govmap.gov.il`, map API + address geocoding) and **Ofek** (`basemaps.govmap.gov.il`, the Survey-of-Israel national orthophoto tiles the roof scan runs on). 25 checks each (50 total), using `APIRequestContext` only (no browser).
+
+```bash
+npm run test:monitoring
+```
+
+It is **opt-in** (registered only when `MONITORING_ENABLED=true`) so it never runs in the default suite, and it is *meant to fail* when a dependency is down — that is the alert. A scheduled GitHub Actions workflow (`.github/workflows/monitoring.yml`, every 30 min) runs it separately from the PR gate. On failure it opens a single auto-managed `monitoring-alert` GitHub issue (auto-closed on the next green run) and, if a `SLACK_WEBHOOK_URL` repository secret is set, posts a Slack alert. Endpoints, tokens, and tile coordinates live in `config.json → monitoring`.
 
 The broader `product` project also includes credential-free smoke specs and registration coverage. Smoke checks exercise the public calculator shell served before login — the Organuz title, arena entry points, register/login entry, the four-step characterization stepper, the address step, and the disabled "continue" state — so the project has real runnable coverage even without persona credentials. Registration specs cover property-owner form validation, required terms consent, invalid mobile gating, optional consent behavior, full property-owner signup, and company/consultant lead-form redirects.
 

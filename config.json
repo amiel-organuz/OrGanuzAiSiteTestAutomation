@@ -30,6 +30,23 @@
     "token": "63737ad91d1323cc230c86e8-508f088596f00f1e63f8337cc1c101fd",
     "timeout": 15000
   },
+  "monitoring": {
+    "govmap": {
+      "apiBaseUrl": "https://www.govmap.gov.il",
+      "embedToken": "d9592f8a-7c6d-41a0-8951-3039be573058",
+      "embedHostUrl": "https://dev1.app.organize.organuz.com/",
+      "knownAddress": "הברזל 32 תל אביב",
+      "knownStreet": "הברזל"
+    },
+    "ofek": {
+      "tilesBaseUrl": "https://basemaps.govmap.gov.il",
+      "orthoLayer": "orto2025me_update",
+      "labelsLayer": "labels_and_line_12_2025",
+      "referer": "https://www.govmap.gov.il/",
+      "sampleTile": { "z": 8, "x": 153, "y": 104 }
+    },
+    "latencyBudgetMs": 6000
+  },
   "playwright": {
     "defaultTimeout": 30000,
     "navigationTimeout": 30000,
