@@ -11,7 +11,7 @@ Playwright TypeScript automation for `www.organuz.ai` and the Organuz product ap
 - Prometheus for metrics scraping
 - Grafana for metrics dashboards, including the provisioned OrGanuz QA Dashboard
 - Allure and Playwright HTML reports for test results
-- A QA agent orchestrator (`src/agent/`) that coordinates Azure DevOps, Playwright, OneDrive, and Google Sheets, can enrich test cases from PDF/DOCX/XLSX requirements documents, and can run the repository's current Playwright projects through a real CLI-backed runner
+- A QA agent orchestrator (`src/agent/`) that coordinates Azure DevOps, Playwright, OneDrive, and Google Sheets, can enrich test cases from PDF/DOCX/XLSX requirements documents, and can run the repository's current Playwright projects through a real CLI-backed runner — plus a `TestPlanAgent` that generates a test plan from a URL by driving the Playwright MCP CLI server
 
 ## Project Structure
 
@@ -31,15 +31,18 @@ Playwright TypeScript automation for `www.organuz.ai` and the Organuz product ap
 |   |-- scalar/
 |   `-- app/
 |       `-- main.py
+|-- docs/test-plans/          # written test plan per group + index, and pdf/ renders
 |-- test-requirements-docs/   # sample requirements docs for the QA agent (generated)
 |-- src/
-|   |-- agent/                # QA agent orchestrator (see src/agent/README.md)
-|   |   |-- connectors/       # Azure DevOps, Google Sheets, OneDrive, Playwright (+ stubs)
+|   |-- agent/                # QA agent orchestrator + TestPlanAgent (see src/agent/README.md)
+|   |   |-- connectors/       # Azure DevOps, Google Sheets, OneDrive, Playwright, Playwright-MCP CLI client (+ stubs)
 |   |   |-- utils/            # RequirementsReader (PDF/DOCX/XLSX parsing)
-|   |   `-- demo/             # seed data, offline demo, sample-doc generator
+|   |   `-- demo/             # seed data, offline demo, generate-test-plan
 |   |-- api/
 |   |-- fixtures/
 |   |-- pages/
+|   |-- types/               # central types (agent, api, token, allure, organuz) + barrel
+|   |-- tools/               # build-test-plan-pdfs
 |   `-- utils/
 `-- tests/
     |-- agent/
@@ -191,6 +194,19 @@ Run the repository's real Playwright projects through the agent (stubbed Azure D
 
 ```bash
 npm run agent:current-tests
+```
+
+Generate a test plan from a URL. The `TestPlanAgent` explores a page and emits a `TestSuite` (page-load, headings, per-link, and form cases) in the same shape the orchestrator consumes. Offline by default; `--live` drives the real **Playwright MCP CLI server** (`npx @playwright/mcp`) to explore a live browser:
+
+```bash
+npm run agent:plan -- https://www.organuz.ai          # offline stub
+npm run agent:plan -- https://www.organuz.ai --live   # real browser via Playwright MCP
+```
+
+Written test plans for every test group live in [`docs/test-plans/`](docs/test-plans/) (one per group + index). Render them to PDF (`docs/test-plans/pdf/`) with:
+
+```bash
+npm run test-plans:pdf
 ```
 
 `agent:current-tests` generates one orchestrator case per current Playwright project:

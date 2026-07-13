@@ -49,7 +49,7 @@ The green baseline needs `PRODUCT_PLATFORM_PASSWORD` (the dev password-gate, so 
 
 ```bash
 npx tsc --noEmit                      # must pass first
-npx playwright test --reporter=line   # baseline: 45 passed, 13 skipped, 0 failed, exit 0 (a dev outage moves up to 8 product tests to skipped)
+npx playwright test --reporter=line   # baseline: 46 passed, 13 skipped, 0 failed, exit 0 (a dev outage moves up to 8 product tests to skipped)
 # per-project sanity (must match the matrix list):
 for p in chromium organuz-api agent product product-authenticated; do
   echo -n "$p "; npx playwright test --project=$p --list 2>/dev/null | grep -c '›'

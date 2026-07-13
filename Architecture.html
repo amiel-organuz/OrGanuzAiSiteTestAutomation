@@ -517,7 +517,7 @@
       <span class="eyebrow">Pastel architecture map</span>
       <h1>Playwright automation with Product E2E Matrix, QA orchestration, FastAPI, Scalar, Grafana, Prometheus, Organuz Supabase API tests, and Allure 3</h1>
       <p class="subtitle">
-        A single-file architecture view for the OrGanuz AI site automation stack. Local runs start the runtime services, execute the six Playwright projects, generate Allure 3, and print the main service links. The <code>product</code> project carries the property-characterization matrix and role data-contracts plus the dev UI-token sanity spec; <code>product-setup</code> → <code>product-authenticated</code> add live per-role browser sessions; <code>chromium</code> covers the marketing site, <code>organuz-api</code> the Supabase/PostgREST backend, and <code>agent</code> the QA-orchestrator regression. GitHub Actions runs the same projects in parallel and publishes Allure to GitHub Pages.
+        A single-file architecture view for the OrGanuz AI site automation stack. Local runs start the runtime services, execute the six Playwright projects, generate Allure 3, and print the main service links. The <code>product</code> project carries the property-characterization matrix and role data-contracts plus the dev UI-token sanity spec; <code>product-setup</code> → <code>product-authenticated</code> add live per-role browser sessions; <code>chromium</code> covers the marketing site, <code>organuz-api</code> the Supabase/PostgREST backend, and <code>agent</code> the QA-orchestrator regression plus the <code>TestPlanAgent</code> (URL → Playwright-MCP exploration → generated test plan). GitHub Actions runs the same projects in parallel and publishes Allure to GitHub Pages.
       </p>
 
       <div class="services" id="services" aria-label="Local service links">
@@ -548,7 +548,7 @@
     <div class="cards">
       <div class="card" style="--accent: var(--blue)">
         <div class="card-title"><span class="badge">TS</span> Playwright Tests</div>
-        <p class="card-desc">Six projects: <code>chromium</code> (marketing UI), <code>product</code> (token-sanity + matrix &amp; role data-contracts), <code>product-setup</code> → <code>product-authenticated</code> (live per-role sessions), <code>organuz-api</code> (Supabase/PostgREST), and <code>agent</code> (orchestrator regression). 58 tests: 45 green (chromium 12, product 31, organuz-api 1, agent 1) + 13 credential-gated role specs that skip until per-role secrets exist.</p>
+        <p class="card-desc">Six projects: <code>chromium</code> (marketing UI), <code>product</code> (token-sanity + matrix &amp; role data-contracts), <code>product-setup</code> → <code>product-authenticated</code> (live per-role sessions), <code>organuz-api</code> (Supabase/PostgREST), and <code>agent</code> (orchestrator regression + <code>TestPlanAgent</code> URL→plan generator). 59 tests: 46 green (chromium 12, product 31, organuz-api 1, agent 2) + 13 credential-gated role specs that skip until per-role secrets exist.</p>
       </div>
       <div class="card" style="--accent: var(--green)">
         <div class="card-title"><span class="badge">E2E</span> Product Coverage</div>
@@ -588,7 +588,7 @@
       </div>
       <div class="card" style="--accent: var(--violet)">
         <div class="card-title"><span class="badge">AGENT</span> QA Orchestrator</div>
-        <p class="card-desc">Coordinates Azure DevOps, Google Sheets, Playwright, and OneDrive. The CLI-backed runner maps orchestrator cases to real Playwright projects and reports pass/fail evidence back through the agent loop.</p>
+        <p class="card-desc">Coordinates Azure DevOps, Google Sheets, Playwright, and OneDrive. The CLI-backed runner maps orchestrator cases to real Playwright projects and reports pass/fail evidence back through the agent loop. Its sibling <code>TestPlanAgent</code> goes the other way — given a <strong>URL</strong>, it drives the <strong>Playwright MCP CLI server</strong> (<code>npx @playwright/mcp</code>) to explore the live page and <em>generate</em> a <code>TestSuite</code> (<code>npm run agent:plan -- &lt;url&gt; --live</code>).</p>
       </div>
     </div>
 
@@ -787,7 +787,7 @@
     </div>
 
     <h2 id="tests">Test Suites &mdash; Every Group in Detail</h2>
-    <p style="max-width: 74ch; color: var(--muted); margin-bottom: 6px;">Six Playwright projects, run identically locally and on GitHub Actions. <strong>58 tests total: 45 green + 13 credential-gated role specs that skip until per-role secrets are added</strong> (see the <code>test-suite-parity</code> skill). Counts below are per spec file.</p>
+    <p style="max-width: 74ch; color: var(--muted); margin-bottom: 6px;">Six Playwright projects, run identically locally and on GitHub Actions. <strong>59 tests total: 46 green + 13 credential-gated role specs that skip until per-role secrets are added</strong> (see the <code>test-suite-parity</code> skill). Counts below are per spec file.</p>
 
     <div class="panel" style="--accent: var(--blue)">
       <h3><span class="badge">UI · 12</span> chromium &nbsp;<code>tests/ui/**</code> · <code>@other-smoke</code> · prod <code>www.organuz.ai</code></h3>
@@ -834,8 +834,8 @@
         <p>One live contract test against the Supabase/PostgREST <code>/rest/v1/projects</code> resource (public anon key). Over every returned row it asserts: 200 + JSON non-empty array; all required fields present and non-null; numeric and string-array field types; and each bilingual (he/en) pair present and non-empty.</p>
       </div>
       <div class="panel" style="--accent: var(--aqua)">
-        <h3><span class="badge">QA · 1</span> agent &nbsp;<code>orchestrator/</code> · <code>@other-smoke</code></h3>
-        <p>One orchestrator regression (pure stubs, no network/browser): a runner crash is marked <em>blocked</em> and the suite keeps running, proving crash isolation through the real <code>Orchestrator</code> with stubbed Azure DevOps / Sheets / OneDrive / Playwright connectors.</p>
+        <h3><span class="badge">QA · 2</span> agent &nbsp;<code>orchestrator/</code> · <code>test-plan/</code> · <code>@other-smoke</code></h3>
+        <p>Two unit specs (pure stubs, no network/browser): (1) an <strong>orchestrator</strong> regression — a runner crash is marked <em>blocked</em> and the suite keeps running, proving crash isolation through the real <code>Orchestrator</code> with stubbed Azure DevOps / Sheets / OneDrive / Playwright connectors; (2) a <strong><code>TestPlanAgent</code></strong> spec — a URL is explored through a fake Playwright-MCP client and a <code>TestSuite</code> (page-load, headings, per-link, form cases) is generated, incl. parsing the real MCP aria snapshot.</p>
       </div>
     </div>
 
@@ -850,7 +850,7 @@
           <tr><td>Matrix &amp; role data contracts</td><td><code>product</code></td><td><code>product-matrix-contract</code></td></tr>
           <tr><td>Live per-role e2e</td><td><code>product-setup</code> &rarr; <code>product-authenticated</code></td><td><code>product-roles-e2e</code> (+ <code>organuz-product-roles</code>)</td></tr>
           <tr><td>Supabase projects contract</td><td><code>organuz-api</code></td><td><code>organuz-api-tests</code></td></tr>
-          <tr><td>Orchestrator regression</td><td><code>agent</code></td><td>&mdash; (see <code>src/agent/README.md</code>)</td></tr>
+          <tr><td>Orchestrator regression + <code>TestPlanAgent</code></td><td><code>agent</code></td><td>&mdash; (see <code>src/agent/README.md</code>)</td></tr>
         </tbody>
       </table>
     </div>
@@ -882,7 +882,7 @@
     <div class="panel">
       <h2 id="tags">Tags &amp; Gating</h2>
       <ul>
-        <li><code>@other-smoke</code> — the default filter for the non-product projects; every <code>chromium</code> (12), <code>organuz-api</code> (1), and <code>agent</code> (1) test carries it.</li>
+        <li><code>@other-smoke</code> — the default filter for the non-product projects; every <code>chromium</code> (12), <code>organuz-api</code> (1), and <code>agent</code> (2) test carries it.</li>
         <li><code>@ui</code> — marketing-site specs; <code>@organuz-api @contract</code> — the backend contract test.</li>
         <li><code>@product @api @sanity</code> — the dev token-sanity spec (<code>@critical</code>/<code>@security</code> on individual checks); <code>@product @roles @e2e</code> — the live per-role specs. The <code>product</code> project has no grep filter, so every matched spec runs.</li>
         <li>Sanctioned env-conditional skips: <code>token-sanity</code> (dev-gateway outage) and the live role specs (<code>product-setup</code> + <code>product-authenticated</code>, no credential/session). Everything else must pass — baseline 40 passed, 13 skipped.</li>
@@ -951,6 +951,8 @@
           <li><code>npm run test:product</code></li>
           <li><code>npx playwright test --project=agent</code></li>
           <li><code>npm run agent:current-tests</code></li>
+          <li><code>npm run agent:plan -- &lt;url&gt; [--live]</code></li>
+          <li><code>npm run test-plans:pdf</code></li>
           <li><code>npm run report</code></li>
         </ul>
       </div>
@@ -962,6 +964,7 @@
       |-- <span class="file">Dockerfile</span><br>
       |-- <span class="file">docker-compose.yml</span><br>
       |-- <span class="file">playwright.config.ts</span><br>
+      |-- <span class="dir">docs/test-plans/</span> <span class="file">one written plan per group + index, and pdf/</span><br>
       |-- <span class="dir">scripts/</span><br>
       |   `-- <span class="file">run-all-tests.sh</span><br>
       |-- <span class="dir">server/</span><br>
@@ -976,14 +979,15 @@
       |   |-- <span class="dir">scalar/</span><br>
       |   `-- <span class="file">prometheus.yml</span><br>
       |-- <span class="dir">src/</span><br>
-      |   |-- <span class="dir">agent/</span> <span class="file">Orchestrator, connectors, services, run-current-tests</span><br>
+      |   |-- <span class="dir">agent/</span> <span class="file">Orchestrator, TestPlanAgent, connectors (incl. Playwright-MCP CLI client), services, run-current-tests</span><br>
       |   |-- <span class="dir">api/</span> <span class="file">ApiClient, OrganuzApi, RestApiConstants, ApiConstants</span><br>
       |   |-- <span class="dir">fixtures/</span><br>
       |   |-- <span class="dir">pages/</span> <span class="file">HomePage, BlogPage, BasePage</span><br>
-      |   |-- <span class="dir">types/</span><br>
+      |   |-- <span class="dir">types/</span> <span class="file">central types — agent, api, token, allure, organuz</span><br>
+      |   |-- <span class="dir">tools/</span> <span class="file">build-test-plan-pdfs</span><br>
       |   `-- <span class="dir">utils/</span> <span class="file">config, allure, logger, selfHeal</span><br>
       `-- <span class="dir">tests/</span><br>
-          |-- <span class="dir">agent/orchestrator/</span><br>
+          |-- <span class="dir">agent/orchestrator/</span> · <span class="dir">agent/test-plan/</span><br>
           |-- <span class="dir">organuz-api/contracts/</span><br>
           |-- <span class="dir">product/api/</span> <span class="file">token-sanity.spec.ts</span><br>
           |-- <span class="dir">product/matrix/</span> <span class="file">data files + matrix &amp; roles data-contract specs</span><br>
