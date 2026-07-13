@@ -59,8 +59,16 @@ if [ -d allure-results ] && [ "$(find allure-results -mindepth 1 -print -quit)" 
 fi
 
 if [ "$AUTO_START_API" = "true" ] && [ "$API_BASE_URL" = "http://localhost:8000" ]; then
-  echo "Starting local Allure report server..."
-  docker compose up -d --force-recreate allure || echo "Allure report server could not start on ${ALLURE_URL}."
+  # Ensure every local server is running at the end of the run — the start-up
+  # block above is conditional (skipped when the stack already looked ready), so
+  # bring them all up explicitly here. `up -d` is idempotent for ones already up.
+  echo "Bringing up all local servers (FastAPI, Scalar, Prometheus, Grafana, Allure)..."
+  docker compose up -d --build api swagger prometheus grafana allure \
+    || echo "One or more servers could not start; check 'docker compose ps'."
+
+  # Force-recreate the Allure server so it serves the freshly generated report.
+  docker compose up -d --force-recreate allure \
+    || echo "Allure report server could not start on ${ALLURE_URL}."
 
   # Refresh the API container so it re-reads the freshly written test-results/results.json.
   # Playwright wipes and recreates test-results/ each run, which changes the host directory's

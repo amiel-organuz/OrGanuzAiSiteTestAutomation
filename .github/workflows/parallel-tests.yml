@@ -258,6 +258,13 @@ jobs:
               '</html>' \
               > allure-report/index.html
           fi
+          # GitHub Pages hardening for the Allure SPA:
+          #  - .nojekyll stops Pages' Jekyll step from dropping files (Allure ships
+          #    hashed asset bundles and a data/ dir that Jekyll can mangle).
+          #  - 404.html mirrors index.html so a deep link / hard refresh into a
+          #    client-side route resolves to the app instead of a Pages 404.
+          touch allure-report/.nojekyll
+          cp allure-report/index.html allure-report/404.html
 
       - name: Upload generated Allure report
         if: always()
@@ -266,6 +273,7 @@ jobs:
         with:
           name: allure-report
           path: allure-report/
+          include-hidden-files: true  # carry .nojekyll through to the deploy job
           if-no-files-found: error
           retention-days: 14
 
@@ -311,22 +319,32 @@ jobs:
       - services-smoke
     if: always()
     env:
-      # Show the server URLs in the summary: a repository variable when set (an
-      # externally hosted deployment), otherwise the local/in-runner default.
-      FASTAPI_URL: ${{ vars.FASTAPI_URL || 'http://localhost:8000' }}
-      SWAGGER_URL: ${{ vars.SWAGGER_URL || 'http://localhost:8080' }}
-      GRAFANA_URL: ${{ vars.GRAFANA_URL || 'http://localhost:3001' }}
+      # External URLs only when a repository variable points at a hosted deployment.
+      # Unset => empty => rendered as inline code, because the in-runner localhost
+      # ports are not reachable from a browser and must not appear as broken links.
+      FASTAPI_URL: ${{ vars.FASTAPI_URL }}
+      SWAGGER_URL: ${{ vars.SWAGGER_URL }}
+      GRAFANA_URL: ${{ vars.GRAFANA_URL }}
+      PROMETHEUS_URL: ${{ vars.PROMETHEUS_URL }}
+      DEPLOYED_URL: ${{ needs.deploy-allure.outputs.page_url }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
     steps:
       - name: Add report links to summary
         if: always()
         run: |
-          REPOSITORY_NAME="${GITHUB_REPOSITORY#*/}"
-          ALLURE_URL="https://${GITHUB_REPOSITORY_OWNER}.github.io/${REPOSITORY_NAME}/"
-          DEPLOYED_URL="${{ needs.deploy-allure.outputs.page_url }}"
+          # A cell is a real markdown link when an external URL is configured,
+          # otherwise inline code labelled with the in-runner port (not clickable).
+          cell() { if [ -n "$1" ]; then printf '[%s](%s)' "$1" "$1"; else printf '`%s`' "$2"; fi; }
 
+          # Allure: link the deployed Pages report when this run published it (push to
+          # main/master). Otherwise link the run's artifacts, where the allure-report is
+          # always uploaded — on pull requests the deploy job is intentionally skipped,
+          # so the old github.io fallback pointed at a 404/stale page.
           if [ -n "$DEPLOYED_URL" ]; then
-            ALLURE_URL="$DEPLOYED_URL"
+            ALLURE_CELL="[Open report]($DEPLOYED_URL)"
+          else
+            ALLURE_CELL="not deployed for this run — [download the \`allure-report\` artifact]($RUN_URL)"
           fi
 
           {
@@ -334,11 +352,11 @@ jobs:
             echo
             echo "| Report | Link |"
             echo "| --- | --- |"
-            echo "| Allure 3 report | ${ALLURE_URL} |"
-            echo "| FastAPI server | ${FASTAPI_URL} |"
-            echo "| Scalar API reference | ${SWAGGER_URL} |"
-            echo "| Grafana dashboard | ${GRAFANA_URL} |"
+            echo "| Allure 3 report | ${ALLURE_CELL} |"
+            echo "| FastAPI server | $(cell "$FASTAPI_URL" 'localhost:8000') |"
+            echo "| Scalar API reference | $(cell "$SWAGGER_URL" 'localhost:8080') |"
+            echo "| Grafana dashboard | $(cell "$GRAFANA_URL" 'localhost:3001') |"
+            echo "| Prometheus | $(cell "$PROMETHEUS_URL" 'localhost:9092') |"
             echo
-            echo "The FastAPI / Scalar / Grafana stack is ephemeral (the \`localhost\` URLs are only live inside the runner during the services-smoke job)."
-            echo "Set repository variables \`FASTAPI_URL\`, \`SWAGGER_URL\`, and \`GRAFANA_URL\` to link an externally hosted deployment here instead."
+            echo "The FastAPI / Scalar / Grafana / Prometheus stack is ephemeral — the \`localhost\` ports are only live inside the runner during the services-smoke job. Set the \`FASTAPI_URL\`, \`SWAGGER_URL\`, \`GRAFANA_URL\`, and \`PROMETHEUS_URL\` repository variables to link an externally hosted deployment here instead."
           } >> "$GITHUB_STEP_SUMMARY"
