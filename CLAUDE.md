@@ -12,7 +12,7 @@ Playwright + TypeScript test suite for Organuz, plus a local FastAPI/Prometheus/
 
 The default `npx playwright test` runs 59 tests: 46 green (chromium 12, product 31, organuz-api 1, agent 2) plus 13 live per-role specs (product-setup 3 + product-authenticated 10) that **skip** without per-role credentials. (Of the 31 product tests, token-sanity 3 + public-app-sanity 5 open the live dev app and skip only on a genuine dev outage.) GitHub Actions runs the identical set — keep the two in sync per the **`test-suite-parity`** skill.
 
-Page objects: `src/pages` (marketing site), `tests/product/support/ProductAppPage.ts` (product app). Shared fixtures: `src/fixtures` (+ the token-extractor fixtures in `src/fixtures/token-fixtures.ts`). API client: `src/api` (+ `OrganuzApi`). Shared config: `src/utils/config.ts` reads `config.json` with env-var overrides.
+Page objects: `src/pages` (marketing site), `tests/product/support/ProductAppPage.ts` (product app). Shared fixtures: `src/fixtures` (+ the token-extractor fixtures in `src/fixtures/token-fixtures.ts`). API client: `src/api` (+ `OrganuzApi`). Shared config: `src/utils/config.ts` reads `config.json` with env-var overrides. Shared types live centrally in `src/types` (agent, api, token, allure, organuz + barrel); old paths re-export them, so import from either. The `agent` project also carries the `TestPlanAgent` (URL → test plan): `npm run agent:plan -- <url>` (add `--live` to drive the real Playwright MCP CLI server, `npx @playwright/mcp`). Written per-group test plans live in `docs/test-plans/` (+ PDFs via `npm run test-plans:pdf`).
 
 ## Environments & secrets
 - `QA_TARGET_ENV` selects the product target; `APP_BASE_URL`/`APP_ADMIN_URL` override explicitly.

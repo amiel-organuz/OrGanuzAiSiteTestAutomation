@@ -2,24 +2,20 @@ import { logger } from '../../utils/logger';
 import { execFile } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { DataRow, ExecutionResult, LocalArtifact, RunEnvironment, StepResult, TestCase } from '../types';
+import type {
+  DataRow,
+  ExecutionResult,
+  LocalArtifact,
+  PlaywrightCommandRunner,
+  PlaywrightRunner,
+  RunEnvironment,
+  StepResult,
+  TestCase,
+} from '../../types/agent.types';
 import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 const PLAYWRIGHT_JSON_REPORT_PATH = 'test-results/results.json';
-
-/**
- * The execution engine. Given a case, its data row, and the target environment,
- * it drives the browser through the flow, asserts expected vs actual, and
- * captures a trace + video. In the real implementation this is backed by the
- * Playwright MCP for authoring/exploring and the @playwright/cli skill for bulk
- * execution (the ~4x token saving noted in the design). Here it is a stub that
- * deterministically simulates a run from the data row.
- */
-export interface PlaywrightRunner {
-  /** Execute a single case and return its raw result + local artifacts. */
-  execute(testCase: TestCase, dataRow: DataRow | undefined, env: RunEnvironment): Promise<ExecutionResult>;
-}
 
 interface PlaywrightJsonReport {
   stats?: {
@@ -60,10 +56,6 @@ interface PlaywrightCommandResult {
   stdout: string;
   stderr: string;
   exitCode: number;
-}
-
-export interface PlaywrightCommandRunner {
-  run(args: string[], env: NodeJS.ProcessEnv): Promise<PlaywrightCommandResult>;
 }
 
 export class ExecFilePlaywrightCommandRunner implements PlaywrightCommandRunner {

@@ -1,4 +1,10 @@
 import { logger } from '../../utils/logger';
+import type {
+  GitHubActionsConfig,
+  GitHubActionsConnector,
+  WorkflowDispatchInput,
+  WorkflowDispatchResult,
+} from '../../types/agent.types';
 
 /**
  * Triggers GitHub Actions workflows on the repository.
@@ -12,39 +18,6 @@ import { logger } from '../../utils/logger';
  * on the interface, and the real implementation is backed by the GitHub REST API
  * while tests use the stub.
  */
-
-/** Inputs for a single workflow dispatch. */
-export interface WorkflowDispatchInput {
-  /** Branch or tag to run the workflow on. Defaults to the connector's ref. */
-  ref?: string;
-  /** Optional `workflow_dispatch` inputs, keyed by input name. */
-  inputs?: Record<string, string>;
-}
-
-/** Outcome of dispatching a workflow. */
-export interface WorkflowDispatchResult {
-  triggered: boolean;
-  /** Workflow file the dispatch targeted, e.g. "parallel-tests.yml". */
-  workflowFile: string;
-  /** Ref the dispatch ran against. */
-  ref: string;
-  /** Best-effort URL of the created run (the dispatch API itself returns no body). */
-  runUrl?: string;
-}
-
-export interface GitHubActionsConnector {
-  /** Dispatch the configured workflow. Resolves once GitHub accepts the request. */
-  triggerWorkflow(options?: WorkflowDispatchInput): Promise<WorkflowDispatchResult>;
-}
-
-export interface GitHubActionsConfig {
-  owner: string;
-  repo: string;
-  /** Workflow file name (as it sits under .github/workflows), e.g. "parallel-tests.yml". */
-  workflowFile: string;
-  /** Default branch/tag to dispatch against. */
-  ref: string;
-}
 
 const GITHUB_API = 'https://api.github.com';
 const API_VERSION = '2022-11-28';

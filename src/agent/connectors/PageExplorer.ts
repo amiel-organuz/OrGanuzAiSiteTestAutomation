@@ -1,4 +1,13 @@
 import { logger } from '../../utils/logger';
+import type {
+  DiscoveredControl,
+  DiscoveredForm,
+  DiscoveredLink,
+  PageExplorer,
+  PageExploration,
+  PageSnapshot,
+  PlaywrightMcpClient,
+} from '../../types/agent.types';
 
 /**
  * Page exploration connector.
@@ -14,69 +23,6 @@ import { logger } from '../../utils/logger';
  * MCP tool calls themselves are injected as a {@link PlaywrightMcpClient} so this
  * module stays free of any tool binding and remains unit-testable offline.
  */
-export interface PageExplorer {
-  /** Open `url`, explore the page, and report its testable affordances. */
-  explore(url: string): Promise<PageExploration>;
-}
-
-/** A discovered navigation link. */
-export interface DiscoveredLink {
-  text: string;
-  href: string;
-}
-
-/** A discovered form and the fields a test would need to fill. */
-export interface DiscoveredForm {
-  /** Accessible name of the form, or a synthesised label. */
-  name: string;
-  /** Accessible names of the input/textbox/combobox fields. */
-  fields: string[];
-  /** Label of the submit control, when one is present. */
-  submitLabel?: string;
-}
-
-/** A discovered interactive control (button, tab, checkbox, …). */
-export interface DiscoveredControl {
-  /** ARIA role, e.g. "button", "tab", "checkbox". */
-  role: string;
-  /** Accessible name. */
-  name: string;
-}
-
-/** The testable surface of a single page. */
-export interface PageExploration {
-  url: string;
-  title: string;
-  headings: string[];
-  links: DiscoveredLink[];
-  forms: DiscoveredForm[];
-  controls: DiscoveredControl[];
-}
-
-/**
- * Thin transport over the Playwright MCP browser tools. A caller wires these to
- * the actual MCP tool invocations (`browser_navigate`, `browser_snapshot`), or
- * to the `@playwright/test` API, or to a fake in tests.
- */
-export interface PlaywrightMcpClient {
-  /** Navigate the shared browser tab to `url` (maps to `browser_navigate`). */
-  navigate(url: string): Promise<void>;
-  /** Return the current page's accessibility snapshot (maps to `browser_snapshot`). */
-  snapshot(): Promise<PageSnapshot>;
-}
-
-/** The subset of a Playwright MCP snapshot this explorer consumes. */
-export interface PageSnapshot {
-  /** Page URL after any redirects. */
-  url?: string;
-  /** Document title. */
-  title?: string;
-  /**
-   * The accessibility tree as emitted by `browser_snapshot`: one node per line,
-   * e.g. `- link "Home" [ref=e3]` or `- heading "Welcome" [level=1]`.
-   */
-  tree: string;
-}
 
 /** Roles that count as fillable form fields in a snapshot. */
 const FIELD_ROLES = new Set(['textbox', 'searchbox', 'combobox', 'spinbutton', 'slider']);
@@ -85,6 +31,8 @@ const CONTROL_ROLES = new Set(['button', 'tab', 'checkbox', 'radio', 'switch', '
 /** One accessibility-tree node: `- <role> "<name>" [attr=val]`. */
 const NODE_RE = /^\s*-?\s*(\w[\w-]*)\s+"([^"]*)"(.*)$/;
 const HREF_RE = /\/url:\s*(\S+)|href[=:]\s*"?([^"\s\]]+)/i;
+/** A child `- /url: <href>` line under a link node in the MCP aria format. */
+const URL_CHILD_RE = /^\s*-?\s*\/url:\s*(\S+)/;
 const SUBMIT_HINT = /(submit|sign in|log in|login|search|send|continue|save|register)/i;
 
 /**
@@ -117,8 +65,17 @@ export function parseSnapshot(requestedUrl: string, snapshot: PageSnapshot): Pag
   const controls: DiscoveredControl[] = [];
   const fieldNames: string[] = [];
   let submitLabel: string | undefined;
+  // The Playwright MCP aria format puts a link's target on a following child
+  // line (`- /url: /pricing`); attach it to the link we most recently saw.
+  let lastLink: DiscoveredLink | undefined;
 
   for (const rawLine of snapshot.tree.split('\n')) {
+    const urlChild = URL_CHILD_RE.exec(rawLine);
+    if (urlChild) {
+      if (lastLink && !lastLink.href) lastLink.href = urlChild[1];
+      continue;
+    }
+
     const match = NODE_RE.exec(rawLine);
     if (!match) continue;
     const role = match[1].toLowerCase();
@@ -130,9 +87,12 @@ export function parseSnapshot(requestedUrl: string, snapshot: PageSnapshot): Pag
       headings.push(name);
     } else if (role === 'link') {
       const href = extractHref(rest);
-      if (!links.some((l) => l.text === name && l.href === href)) {
-        links.push({ text: name, href });
+      let link = links.find((l) => l.text === name && l.href === href);
+      if (!link) {
+        link = { text: name, href };
+        links.push(link);
       }
+      lastLink = link;
       controls.push({ role, name });
     } else if (FIELD_ROLES.has(role)) {
       if (!fieldNames.includes(name)) fieldNames.push(name);

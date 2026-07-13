@@ -6,7 +6,7 @@ import { authFile, hasSavedSession } from './auth';
 import type { ProductPersonaId } from '../matrix/e2e-matrix.data';
 
 // Re-export the token-fixture types so specs can import them from the domain fixture.
-export type { ProductTokenSetup, ProductAuthTokenSetup } from '../../../src/fixtures/token-fixtures';
+export type { ProductTokenSetup, ProductAuthTokenSetup } from '../../../src/types/token.types';
 
 /**
  * Product-app test fixture: exposes `product` (high-level ProductFlows) on top of

@@ -22,6 +22,7 @@ Tests are grouped by subject so each Playwright project stays easy to scan.
 | Product support | `tests/product/support/` | Product app page helpers, `ProductFlows`, fixtures, and the `product-setup` auth (`auth.setup.ts` + `auth.ts` save each role's `storageState` for reuse). |
 | UI support | `tests/ui/support/` | UI-only fixture extensions, including `siteFlows`, layered on top of the shared `src/fixtures`. |
 | Agent orchestrator | `tests/agent/orchestrator/` | QA agent orchestration regression specs. |
+| Agent test-plan | `tests/agent/test-plan/` | `TestPlanAgent` spec — URL → Playwright-MCP exploration → generated `TestSuite`. |
 
 The Playwright project globs remain recursive:
 
@@ -33,10 +34,10 @@ The Playwright project globs remain recursive:
 - `dev-api`: `tests/dev-api/**/*.spec.ts`, default-filtered to `@other-smoke`
 - `agent`: `tests/agent/**/*.spec.ts`, default-filtered to `@other-smoke`
 
-Non-product projects intentionally expose only five default `@other-smoke` checks:
-two UI checks, one Organuz API contract, one dev RPC contract, and one agent
-orchestrator regression. The broader non-product specs remain in the repo but are not
-selected by the default project config.
+Non-product projects intentionally expose only six default `@other-smoke` checks:
+two UI checks, one Organuz API contract, one dev RPC contract, and two agent tests
+(the orchestrator regression and the `TestPlanAgent` URL→plan generator). The broader
+non-product specs remain in the repo but are not selected by the default project config.
 
 The `product-authenticated` project depends on `product-setup`, which logs each
 authenticated role (`customer`, `consultant`, `company`) in once and saves its

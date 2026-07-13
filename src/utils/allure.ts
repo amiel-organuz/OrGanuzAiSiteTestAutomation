@@ -12,8 +12,9 @@ import {
 } from 'allure-js-commons';
 import { test } from '@playwright/test';
 import { logger } from './logger';
+import type { Severity } from '../types/allure.types';
 
-export type Severity = 'blocker' | 'critical' | 'normal' | 'minor' | 'trivial';
+export type { Severity } from '../types/allure.types';
 
 export const allureSeverity  = (s: Severity) => severity(s);
 export const allureEpic      = (name: string) => epic(name);

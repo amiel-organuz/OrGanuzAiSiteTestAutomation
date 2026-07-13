@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { TestPlanAgent } from '../../../src/agent/TestPlanAgent';
-import { McpPageExplorer } from '../../../src/agent/connectors';
+import { McpPageExplorer, parseMcpSnapshotText, parseSnapshot } from '../../../src/agent/connectors';
 import type { PageSnapshot, PlaywrightMcpClient } from '../../../src/agent/connectors';
 
 /**
@@ -67,5 +67,30 @@ test.describe('TestPlanAgent', () => {
     const formCase = suite.cases.find((c) => c.title.includes('primary form'))!;
     expect(formCase.steps.some((s) => s.includes('Email, Password'))).toBe(true);
     expect(formCase.steps.some((s) => s.includes('Click "Sign in"'))).toBe(true);
+
+    // The live client (McpCliPlaywrightClient) parses the raw text a real
+    // `browser_snapshot` MCP call returns — header lines plus a fenced yaml aria
+    // tree where a link's target sits on a child `/url:` line — into the same
+    // PageSnapshot the explorer consumes.
+    const mcpText = [
+      '- Page URL: https://www.organuz.ai/',
+      '- Page Title: OrGanuz',
+      '- Page Snapshot:',
+      '```yaml',
+      '- heading "Welcome" [level=1] [ref=e1]',
+      '- link "Pricing" [ref=e2]:',
+      '  - /url: /pricing',
+      '- button "Sign in" [ref=e3]',
+      '```',
+    ].join('\n');
+    const parsed = parseMcpSnapshotText(mcpText);
+    expect(parsed.url).toBe('https://www.organuz.ai/');
+    expect(parsed.title).toBe('OrGanuz');
+    expect(parsed.tree).not.toContain('```'); // yaml fences stripped
+
+    // The child `/url:` line is attached to the link it belongs to.
+    const exploration = parseSnapshot('https://www.organuz.ai', parsed);
+    expect(exploration.headings).toContain('Welcome');
+    expect(exploration.links).toEqual([{ text: 'Pricing', href: '/pricing' }]);
   });
 });

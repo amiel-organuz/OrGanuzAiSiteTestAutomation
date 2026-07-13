@@ -1,18 +1,12 @@
 import { logger } from '../utils/logger';
 import type { AgentConfig } from './config';
 import type {
-  AzureDevOpsConnector,
-  GitHubActionsConnector,
-  GoogleSheetsConnector,
-  OneDriveConnector,
-  PlaywrightRunner,
-} from './connectors';
-import type {
   Artifact,
   BugItem,
   CaseResult,
   DataRow,
   ExecutionResult,
+  OrchestratorDeps,
   RunEnvironment,
   RunSummary,
   TestCase,
@@ -22,19 +16,6 @@ import { RequirementsEnricher } from './services/RequirementsEnricher';
 import { ResultTextFormatter } from './services/ResultTextFormatter';
 import { RunSummaryBuilder } from './services/RunSummaryBuilder';
 import { RunSummaryLogger } from './services/RunSummaryLogger';
-
-/** The four connectors the orchestrator depends on, injected for testability. */
-export interface OrchestratorDeps {
-  ado: AzureDevOpsConnector;
-  sheets: GoogleSheetsConnector;
-  oneDrive: OneDriveConnector;
-  runner: PlaywrightRunner;
-  /** Optional: dispatch a GitHub Actions workflow after the run (CI pipeline). */
-  github?: GitHubActionsConnector;
-  formatter?: ResultTextFormatter;
-  summaryBuilder?: RunSummaryBuilder;
-  summaryLogger?: RunSummaryLogger;
-}
 
 /**
  * The QA agent. Implements the agent loop from the design:
