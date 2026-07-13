@@ -5,27 +5,36 @@ description: Run the Organuz Playwright suites (ui / organuz-api / product) agai
 
 # Running the Organuz test suites
 
-Three Playwright projects (`playwright.config.ts`), each with its own `baseURL`:
+The default `npx playwright test` runs **59 tests** across six projects (`playwright.config.ts`). The green core is 46 (chromium 12, product 31, organuz-api 1, agent 2); the remaining 13 (product-setup 3 + product-authenticated 10) skip without per-role credentials. The main project targets:
 
 | Project | testMatch | Target |
 |---|---|---|
-| `chromium` | `tests/ui/**` | Marketing site `www.organuz.ai` (prod) |
-| `product` | `tests/product/**` | Product app — `QA_TARGET_ENV` (default **dev** `dev1.app.organize.organuz.com`) |
-| `organuz-api` | `tests/organuz-api/**` | Organuz Supabase backend (`/rest/v1/projects`, edge functions) |
+| `chromium` | `tests/ui/**` (`@other-smoke`) | Marketing site `www.organuz.ai` (prod) |
+| `product` | `tests/product/**` (excl. `flows/**`) | Product app — `QA_TARGET_ENV` (default **dev** `dev1.app.organize.organuz.com`) |
+| `organuz-api` | `tests/organuz-api/**` (`@other-smoke`) | Organuz Supabase backend (`/rest/v1/projects`, edge functions) |
+| `agent` | `tests/agent/**` (`@other-smoke`) | QA-agent orchestrator unit spec (stubs, no network) |
+| `product-setup` → `product-authenticated` | `tests/product/support/auth.setup.ts` → `tests/product/flows/**` | Live per-role sanity e2e (skip-safe without creds) |
 
 ## Commands
-- Full local run + server stack + reports: `./scripts/run-all-tests.sh` (typechecks, brings up Docker: FastAPI:8000, Scalar:8080, Prometheus:9092, Grafana:3001, Allure:5050; runs `chromium`+`organuz-api`; opens the servers including the Grafana dashboard). It restarts the api container after tests so Grafana test metrics refresh.
-- One project: `npx playwright test --project=organuz-api --reporter=list`
-- Product smoke (credential-free, safe) vs dev: `npx playwright test --project=product tests/product/smoke`
+- **Full local run + server stack + reports:** `./scripts/run-all-tests.sh`. It:
+  1. typechecks (`npx tsc --noEmit`);
+  2. auto-starts the Docker stack (`api swagger prometheus grafana pushgateway`) if it isn't already healthy;
+  3. runs every real project in one invocation so Allure aggregates the whole suite — `--project=chromium --project=organuz-api --project=product --project=agent` (the credential-gated role flows stay out), then generates the Allure 3 report;
+  4. brings all servers up (adding `allure`) and **pushes this run's QA metrics to the Pushgateway** via `scripts/push-qa-metrics.mjs` (Prometheus scrapes it → Grafana);
+  5. opens the servers (incl. the Grafana dashboard) and posts the Allure + Grafana links to Slack.
+- **Server ports:** FastAPI `api` **8000**, Scalar/Swagger **8080**, Pushgateway **9091**, Prometheus **9092**, Grafana **3001**, Allure **5050**.
+- One project: `npx playwright test --project=organuz-api --reporter=list` (or `npm run test:ui` / `test:product`).
 - Switch environment: `QA_TARGET_ENV=prod npx playwright test --project=product` (or set it in `.env`).
+- **Opt-in live monitoring:** `npm run test:monitoring` (`MONITORING_ENABLED=true`) registers the `monitoring` project — Govmap 25 + Ofek 25 = 50 live third-party availability checks (total suite 109). The default suite never runs these, so the green PR gate can't break on a Govmap/Ofek outage. `run-all-tests.sh` also adds `--project=monitoring` when `MONITORING_ENABLED=true`.
 - Always `npx tsc --noEmit` before a run — the script does this first.
 
 ## Env / secrets
 - Local overrides live in the **gitignored** `.env` (target env, dev credentials — Restricted). `.env.example` documents the vars. `.env` MUST stay gitignored.
-- Product persona E2E is gated by `PRODUCT_E2E_ENABLED=true` + persona phones + OTP `7777` (see [organuz-product-roles] skill). The credential-free `tests/product/smoke` always runs.
-- `--project=product` auto-runs its `product-setup` dependency (`tests/product/support/auth.setup.ts`), which logs each role in once and saves `storageState`; per-role specs reuse it, so a full run does one OTP send per role. Sessions land in `playwright/.auth/` (gitignored); delete them to force a fresh login.
+- The token-sanity / public-app-sanity dev checks need `PRODUCT_PLATFORM_PASSWORD` (dev password gate). Live per-role specs need per-role `<ROLE>_PHONE` / `<ROLE>_OTP_CODE` (CUSTOMER, CONSULTANT, COMPANY); absent → those roles skip. See the [organuz-product-roles] skill.
+- The `product-setup` project (a dependency of `product-authenticated`) logs each role in once and saves `storageState`; per-role specs reuse it, so a full run does one OTP send per role. Sessions land in `playwright/.auth/` (gitignored); delete them to force a fresh login.
+- Slack report links come from the gitignored `.env`: `SLACK_WEBHOOK_URL` and `SLACK_WEBHOOK_BOT_URL` (either/both; unset = skipped). Disable posting with `NOTIFY_SLACK=false`.
 
 ## Gotchas
 - **Port 8000 conflict:** a leftover `ai_automation_testing` compose stack also binds 8000. If `run-all-tests.sh` fails with "port is already allocated", `docker stop ai_automation_testing-automation-server-1`.
-- **Stale Grafana test data:** Playwright wipes `test-results/` each run, changing its inode; on macOS the long-running `api` container then serves an empty mount. The script now `docker compose restart api` after tests to fix this.
+- **QA metrics now go via the Pushgateway** (`scripts/push-qa-metrics.mjs` reads `test-results/results.json` → pushes `qa_playwright_*`). The `api` container no longer bind-mounts / reads `test-results`, so the old "stale bind-mount / restart api after tests" gotcha is gone. If Grafana test panels are empty, check the push step ran (Pushgateway ready at :9091, `results.json` present).
 - Never use `waitForLoadState('networkidle')` in product tests (map iframe keeps the network busy).
