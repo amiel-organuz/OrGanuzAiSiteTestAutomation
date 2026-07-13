@@ -17,6 +17,7 @@
     "typecheck": "tsc --noEmit",
     "agent:build": "tsc -p tsconfig.json",
     "agent:demo": "npm run agent:build && node dist/src/agent/demo/run-demo.js",
+    "agent:plan": "npm run agent:build && node dist/src/agent/demo/generate-test-plan.js",
     "agent:current-tests": "npm run agent:build && node dist/src/agent/run-current-tests.js"
   },
   "devDependencies": {
