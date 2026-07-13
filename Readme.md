@@ -133,7 +133,7 @@ Dedicated availability + contract monitoring for the two critical third-party ma
 npm run test:monitoring
 ```
 
-It is **opt-in** (registered only when `MONITORING_ENABLED=true`) so it never runs in the default suite, and it is *meant to fail* when a dependency is down — that is the alert. A scheduled GitHub Actions workflow (`.github/workflows/monitoring.yml`, every 30 min) runs it separately from the PR gate. Endpoints, tokens, and tile coordinates live in `config.json → monitoring`.
+It is **opt-in** (registered only when `MONITORING_ENABLED=true`) so it never runs in the default suite, and it is *meant to fail* when a dependency is down — that is the alert. A scheduled GitHub Actions workflow (`.github/workflows/monitoring.yml`, every 30 min) runs it separately from the PR gate. On failure it opens a single auto-managed `monitoring-alert` GitHub issue (auto-closed on the next green run) and, if a `SLACK_WEBHOOK_URL` repository secret is set, posts a Slack alert. Endpoints, tokens, and tile coordinates live in `config.json → monitoring`.
 
 The broader `product` project also includes credential-free smoke specs and registration coverage. Smoke checks exercise the public calculator shell served before login — the Organuz title, arena entry points, register/login entry, the four-step characterization stepper, the address step, and the disabled "continue" state — so the project has real runnable coverage even without persona credentials. Registration specs cover property-owner form validation, required terms consent, invalid mobile gating, optional consent behavior, full property-owner signup, and company/consultant lead-form redirects.
 

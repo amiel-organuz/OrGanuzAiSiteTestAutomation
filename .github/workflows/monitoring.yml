@@ -18,6 +18,7 @@ concurrency:
 
 permissions:
   contents: read
+  issues: write # open/close the auto-managed monitoring alert issue
 
 jobs:
   monitor:
@@ -53,3 +54,78 @@ jobs:
             echo "❌ A Govmap/Ofek monitoring check failed — a critical map dependency may be degraded." >> "$GITHUB_STEP_SUMMARY"
             echo "See the job log for the failing endpoint. This does not affect the PR test suite." >> "$GITHUB_STEP_SUMMARY"
           fi
+
+      # ---- Alerting -----------------------------------------------------------
+      # On failure: open a single auto-managed issue (or comment on the open one),
+      # so a dependency outage is tracked without spamming a new issue each run.
+      - name: Open / refresh alert issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = 'External API monitoring failing (Govmap / Ofek)';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'monitoring-alert',
+            });
+            if (open.length) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: open[0].number,
+                body: `Still failing as of ${new Date().toISOString()} — ${runUrl}`,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo,
+                title,
+                labels: ['monitoring-alert'],
+                body: [
+                  'A scheduled **Govmap / Ofek** monitoring run failed — a critical map dependency may be degraded.',
+                  '',
+                  `Failing run: ${runUrl}`,
+                  '',
+                  '_Auto-managed: this issue closes itself on the next green monitoring run._',
+                ].join('\n'),
+              });
+            }
+
+      # On recovery: comment and close any open alert issue.
+      - name: Close alert issue on recovery
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'monitoring-alert',
+            });
+            for (const issue of open) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: issue.number,
+                body: '✅ Recovered — Govmap + Ofek monitoring is green again. Closing.',
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: issue.number, state: 'closed',
+              });
+            }
+
+      # Optional Slack ping on failure — only fires when the SLACK_WEBHOOK_URL
+      # repository secret is configured (no-op otherwise). Secrets can't be used
+      # in step `if:`, so the guard lives inside the script.
+      - name: Slack alert on failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "No SLACK_WEBHOOK_URL secret set — skipping Slack notification."
+            exit 0
+          fi
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          curl -fsS -X POST "$SLACK_WEBHOOK_URL" \
+            -H 'content-type: application/json' \
+            --data "{\"text\":\":rotating_light: Govmap/Ofek monitoring failed — a critical map dependency may be degraded. <${RUN_URL}|View run>\"}" \
+            || echo "Slack post failed (non-fatal)."
