@@ -130,20 +130,29 @@ jobs:
               });
             }
 
-      # Optional Slack ping on failure — only fires when the SLACK_WEBHOOK_URL
-      # repository secret is configured (no-op otherwise). Secrets can't be used
-      # in step `if:`, so the guard lives inside the script.
+      # Optional Slack ping on failure — posts to every configured webhook
+      # (a general channel + a bot channel). Each is independent and optional:
+      # an unset secret is skipped, and a failed post is non-fatal so one bad
+      # webhook never masks the real alert. Secrets can't be used in step `if:`,
+      # so the guard lives inside the script.
       - name: Slack alert on failure
         if: failure()
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_BOT_URL: ${{ secrets.SLACK_WEBHOOK_BOT_URL }}
         run: |
-          if [ -z "$SLACK_WEBHOOK_URL" ]; then
-            echo "No SLACK_WEBHOOK_URL secret set — skipping Slack notification."
-            exit 0
-          fi
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          curl -fsS -X POST "$SLACK_WEBHOOK_URL" \
-            -H 'content-type: application/json' \
-            --data "{\"text\":\":rotating_light: Govmap/Ofek monitoring failed — a critical map dependency may be degraded. <${RUN_URL}|View run>\"}" \
-            || echo "Slack post failed (non-fatal)."
+          PAYLOAD="{\"text\":\":rotating_light: Govmap/Ofek monitoring failed — a critical map dependency may be degraded. <${RUN_URL}|View run>\"}"
+          post() { # $1 = secret name, $2 = url
+            if [ -z "$2" ]; then echo "$1 not set — skipping."; return; fi
+            if curl -fsS -X POST "$2" -H 'content-type: application/json' --data "$PAYLOAD" >/dev/null; then
+              echo "$1: posted."
+            else
+              echo "$1: post failed (non-fatal)."
+            fi
+          }
+          post SLACK_WEBHOOK_URL "$SLACK_WEBHOOK_URL"
+          post SLACK_WEBHOOK_BOT_URL "$SLACK_WEBHOOK_BOT_URL"
+          if [ -z "$SLACK_WEBHOOK_URL" ] && [ -z "$SLACK_WEBHOOK_BOT_URL" ]; then
+            echo "No Slack webhook secrets set — skipped Slack notification."
+          fi
