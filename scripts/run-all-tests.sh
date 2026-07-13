@@ -129,5 +129,39 @@ if [ "$OPEN_BROWSER" = "true" ]; then
   fi
 fi
 
+# ---- Slack notification -----------------------------------------------------
+# Once the run has finished, post the report links (Allure + Grafana) to both
+# Slack channels, mirroring the CI report-summary step. Webhooks come from the
+# gitignored .env (or the environment); each is optional (unset = skipped) and a
+# failed post never breaks the run. Disable with NOTIFY_SLACK=false.
+NOTIFY_SLACK="${NOTIFY_SLACK:-true}"
+if [ "$NOTIFY_SLACK" = "true" ]; then
+  set -a; { [ -f .env ] && . ./.env; } || true; set +a
+  SLACK_WEBHOOK_URL="${SLACK_WEBHOOK_URL:-}"
+  SLACK_WEBHOOK_BOT_URL="${SLACK_WEBHOOK_BOT_URL:-}"
+  if [ -n "$SLACK_WEBHOOK_URL" ] || [ -n "$SLACK_WEBHOOK_BOT_URL" ]; then
+    if [ "$TEST_EXIT_CODE" -eq 0 ]; then
+      SLACK_STATUS=":white_check_mark: passed"
+    else
+      SLACK_STATUS=":x: failed (exit ${TEST_EXIT_CODE})"
+    fi
+    SLACK_TEXT=":bar_chart: *Organuz local test run finished* — ${SLACK_STATUS}\n• <${ALLURE_URL}|Allure report>\n• <${GRAFANA_DASHBOARD_URL}|Grafana dashboard>"
+    SLACK_PAYLOAD=$(printf '{"text":"%s"}' "$SLACK_TEXT")
+    slack_post() { # $1 = label, $2 = url
+      if [ -z "$2" ]; then echo "  $1: not set — skipping."; return 0; fi
+      if curl -fsS -X POST "$2" -H 'content-type: application/json' --data "$SLACK_PAYLOAD" >/dev/null 2>&1; then
+        echo "  $1: posted."
+      else
+        echo "  $1: post failed (non-fatal)."
+      fi
+    }
+    echo "Posting report links to Slack..."
+    slack_post SLACK_WEBHOOK_URL "$SLACK_WEBHOOK_URL"
+    slack_post SLACK_WEBHOOK_BOT_URL "$SLACK_WEBHOOK_BOT_URL"
+  else
+    echo "No SLACK_WEBHOOK_URL / SLACK_WEBHOOK_BOT_URL set — skipping Slack notification."
+  fi
+fi
+
 echo "Test run complete."
 exit "$TEST_EXIT_CODE"
