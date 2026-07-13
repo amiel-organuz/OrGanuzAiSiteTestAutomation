@@ -82,7 +82,7 @@ Run all tests locally with the project defaults:
 npm test
 ```
 
-`npm test` runs every project configured in `playwright.config.ts`: `chromium`, `product`, `product-setup`, `product-authenticated`, `organuz-api`, `dev-api`, and the internal `agent` orchestrator project. Product live browser flows stay gated unless `PRODUCT_E2E_ENABLED=true` and persona credentials are set. Non-product projects are intentionally default-filtered to exactly five `@other-smoke` tests total: two UI checks, one Organuz API contract, one dev RPC contract, and one agent orchestrator regression.
+`npm test` runs every project configured in `playwright.config.ts`: `chromium`, `product`, `product-setup`, `product-authenticated`, `organuz-api`, `dev-api`, and the internal `agent` orchestrator project. Product live browser flows stay gated unless `PRODUCT_E2E_ENABLED=true` and persona credentials are set. Non-product projects are intentionally default-filtered to exactly six `@other-smoke` tests total: two UI checks, one Organuz API contract, one dev RPC contract, and two agent tests (the orchestrator regression and the URL-driven test-plan generator).
 
 Run the full local automation flow:
 
