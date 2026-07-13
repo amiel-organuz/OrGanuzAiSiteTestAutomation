@@ -21,3 +21,22 @@ scrape_configs:
     honor_labels: true
     static_configs:
       - targets: ["pushgateway:9091"]
+
+# --- Ship metrics to a hosted Grafana (e.g. Grafana Cloud) -------------------
+# GitHub Pages can't run Grafana (static host, no backend), so to get an
+# interactive dashboard with clickable links we host Grafana externally and
+# remote_write this Prometheus's metrics up to its hosted Prometheus. The
+# hosted Grafana then queries that data and the same dashboard JSON renders.
+#
+# Setup (see Readme "Hosting Grafana externally"):
+#   1. Create a free Grafana Cloud stack -> note its Prometheus remote_write URL
+#      and instance ID (username); create a "MetricsPublisher" API token.
+#   2. Put the token in the gitignored file server/grafana-cloud-token (one line,
+#      no newline) — it is mounted into the prometheus container, never committed.
+#   3. Uncomment the block below and set the url + username.
+#
+# remote_write:
+#   - url: https://prometheus-prod-XX-REGION.grafana.net/api/prom/push
+#     basic_auth:
+#       username: "<GRAFANA_CLOUD_INSTANCE_ID>"
+#       password_file: /etc/prometheus/grafana-cloud-token

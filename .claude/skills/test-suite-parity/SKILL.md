@@ -44,6 +44,7 @@ The green baseline needs `PRODUCT_PLATFORM_PASSWORD` (the dev password-gate, so 
 
 - **Locally:** in the gitignored `.env` (Restricted). Never commit it.
 - **CI:** a GitHub repo secret `PRODUCT_PLATFORM_PASSWORD`, wired in the `tests` job `env:`. Without it the gate never opens, so token-sanity's `beforeAll` captures no token and its `beforeEach` **skips** the 3 tests (the dev app is treated as unavailable). The job stays green but coverage silently drops — so a missing/rotated secret shows up as 3 skips, not a failure.
+- **Slack (both workflows):** `SLACK_WEBHOOK_URL` and `SLACK_WEBHOOK_BOT_URL` repo secrets post the report/alert links from `parallel-tests.yml` and `monitoring.yml`. Both are optional and non-fatal (an unset or failing webhook is skipped) and are **not** part of the green test baseline.
 - `QA_TARGET_ENV: dev` is set explicitly in the workflow (also the `config.json` default) so `product` targets `dev1.app.organize.organuz.com`.
 
 ## Verify parity

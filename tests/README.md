@@ -12,9 +12,6 @@ Tests are grouped by subject so each Playwright project stays easy to scan.
 | Organuz API resources | `tests/organuz-api/resources/` | `projects` query behaviours (select, order, filter, count). |
 | Organuz API security | `tests/organuz-api/security/` | Anon-key auth, RLS, and negative cases. |
 | Organuz API functions | `tests/organuz-api/functions/` | Edge-function CORS preflight checks (no live POSTs). |
-| Dev API contracts | `tests/dev-api/contracts/` | `organuz.flamiingo.com` RPC gateway envelope + invariant contracts (`get_arena_types`, `get_remaining_projects`). |
-| Dev API security | `tests/dev-api/security/` | RPC negative/security, input-validation, and token-hardening cases. |
-| Dev API support | `tests/dev-api/support/` | `FlamiingoApi` RPC client and fixtures. |
 | Product smoke | `tests/product/smoke/` | Credential-free public calculator shell checks. |
 | Product flows | `tests/product/flows/` | Registration, gated full-flow, sign-out, and per-role specs (`registration`, `full-flow`, `roles`, `role-areas`, `role-session`, `role-sanity`, `role-logout`). |
 | Product API | `tests/product/api/` | Public product token sanity checks. |
@@ -23,6 +20,7 @@ Tests are grouped by subject so each Playwright project stays easy to scan.
 | UI support | `tests/ui/support/` | UI-only fixture extensions, including `siteFlows`, layered on top of the shared `src/fixtures`. |
 | Agent orchestrator | `tests/agent/orchestrator/` | QA agent orchestration regression specs. |
 | Agent test-plan | `tests/agent/test-plan/` | `TestPlanAgent` spec — URL → Playwright-MCP exploration → generated `TestSuite`. |
+| External monitoring | `tests/monitoring/` | Live Govmap + Ofek third-party availability checks (opt-in `monitoring` project, `MONITORING_ENABLED=true`). |
 
 The Playwright project globs remain recursive:
 
@@ -31,13 +29,15 @@ The Playwright project globs remain recursive:
 - `product-setup`: `tests/product/support/auth.setup.ts`
 - `product-authenticated`: per-role specs that resume saved sessions (depends on `product-setup`)
 - `organuz-api`: `tests/organuz-api/**/*.spec.ts`, default-filtered to `@other-smoke`
-- `dev-api`: `tests/dev-api/**/*.spec.ts`, default-filtered to `@other-smoke`
 - `agent`: `tests/agent/**/*.spec.ts`, default-filtered to `@other-smoke`
+- `monitoring` *(opt-in)*: `tests/monitoring/**/*.spec.ts` — live Govmap + Ofek availability
+  checks; registered only when `MONITORING_ENABLED=true`, so it is never in the default suite
+  (it runs on a schedule via `.github/workflows/monitoring.yml`)
 
-Non-product projects intentionally expose only six default `@other-smoke` checks:
-two UI checks, one Organuz API contract, one dev RPC contract, and two agent tests
-(the orchestrator regression and the `TestPlanAgent` URL→plan generator). The broader
-non-product specs remain in the repo but are not selected by the default project config.
+Non-product projects run only their default `@other-smoke` checks: 12 UI checks (`chromium`),
+one Organuz API contract, and two agent tests (the orchestrator regression and the
+`TestPlanAgent` URL→plan generator). The broader non-product specs remain in the repo but are
+not selected by the default project config.
 
 The `product-authenticated` project depends on `product-setup`, which logs each
 authenticated role (`customer`, `consultant`, `company`) in once and saves its

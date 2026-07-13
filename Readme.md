@@ -4,7 +4,7 @@ Playwright TypeScript automation for `www.organuz.ai` and the Organuz product ap
 
 ## Stack
 
-- Playwright for marketing UI, product smoke/registration/matrix/role flows, Organuz Supabase backend API, dev product-app RPC gateway, and agent-orchestrator regression tests
+- Playwright for marketing UI, product smoke/registration/matrix/role flows, Organuz Supabase backend API, and agent-orchestrator regression tests
 - TypeScript for test and framework code
 - FastAPI service for local API endpoints and health checks
 - Scalar API reference for external OpenAPI documentation
@@ -21,7 +21,9 @@ Playwright TypeScript automation for `www.organuz.ai` and the Organuz product ap
 |-- docker-compose.yml
 |-- playwright.config.ts
 |-- scripts/
-|   `-- run-all-tests.sh
+|   |-- run-all-tests.sh        # typecheck -> start stack -> run suite -> push QA metrics -> Slack links
+|   |-- push-qa-metrics.mjs      # push qa_playwright_* metrics from results.json to the Pushgateway
+|   `-- slack-alert-test.sh      # local smoke test that posts a marked TEST message to each webhook
 |-- server/
 |   |-- Dockerfile
 |   |-- grafana/
@@ -52,10 +54,6 @@ Playwright TypeScript automation for `www.organuz.ai` and the Organuz product ap
     |   |-- resources/         # projects query behaviours (select, order, filter, count)
     |   |-- security/          # anon auth, RLS, and negative cases
     |   `-- functions/         # edge-function CORS preflight checks
-    |-- dev-api/
-    |   |-- contracts/         # organuz.flamiingo.com RPC gateway envelope + invariants
-    |   |-- security/          # RPC negative/security + input-validation cases
-    |   `-- support/           # FlamiingoApi RPC client + fixtures
     |-- product/
     |   |-- matrix/            # product E2E matrix data + specs (credential-gated)
     |   |-- flows/             # registration, full-flow, role specs (roles, areas, session, sanity, logout)
@@ -73,6 +71,8 @@ Playwright TypeScript automation for `www.organuz.ai` and the Organuz product ap
 
 ## Local Setup
 
+Requires **Node.js 22** (the CI workflows pin `node-version: 22`; Node 20 is deprecated for this repo).
+
 Install dependencies:
 
 ```bash
@@ -85,7 +85,7 @@ Run all tests locally with the project defaults:
 npm test
 ```
 
-`npm test` runs every project configured in `playwright.config.ts`: `chromium`, `product`, `product-setup`, `product-authenticated`, `organuz-api`, `dev-api`, and the internal `agent` orchestrator project. Product live browser flows stay gated unless `PRODUCT_E2E_ENABLED=true` and persona credentials are set. Non-product projects are intentionally default-filtered to exactly six `@other-smoke` tests total: two UI checks, one Organuz API contract, one dev RPC contract, and two agent tests (the orchestrator regression and the URL-driven test-plan generator).
+`npm test` runs every project configured in `playwright.config.ts`: `chromium`, `product`, `product-setup`, `product-authenticated`, `organuz-api`, and the internal `agent` orchestrator project. The default suite is **59 tests** (46 green + 13 credential-gated per-role specs that skip without secrets); the opt-in `monitoring` project (`MONITORING_ENABLED=true`, see [External API monitoring](#external-api-monitoring-govmap--ofek)) adds 50 more for **109 total** and is never part of the default green gate. Product live browser flows stay gated unless `PRODUCT_E2E_ENABLED=true` and persona credentials are set. Non-product projects are intentionally default-filtered to their `@other-smoke` defaults: `chromium` 12 UI checks, one Organuz API contract, and two agent tests (the orchestrator regression and the URL-driven test-plan generator).
 
 Run the full local automation flow:
 
@@ -93,7 +93,7 @@ Run the full local automation flow:
 ./scripts/run-all-tests.sh
 ```
 
-This script typechecks the project, starts the local runtime stack when needed, runs the Playwright `chromium`, `organuz-api`, `product`, and `agent` projects in one invocation (into a freshly cleaned `allure-results/`, so the report aggregates all of them), generates an Allure 3 report, brings up all local servers (FastAPI, Scalar, Prometheus, Pushgateway, Grafana, Allure), pushes the run's QA metrics to the Pushgateway so Grafana shows fresh results, opens the Grafana dashboard, and prints the main service URLs at the end. The credential-gated role flows (`product-setup` → `product-authenticated`) stay out; run those directly with `npx playwright test --project=product-authenticated`.
+This script typechecks the project, starts the local runtime stack when needed, runs the Playwright `chromium`, `organuz-api`, `product`, and `agent` projects in one invocation (into a freshly cleaned `allure-results/`, so the report aggregates all of them), generates an Allure 3 report, brings up all local servers (FastAPI, Scalar, Prometheus, Pushgateway, Grafana, Allure), pushes the run's QA metrics to the Pushgateway so Grafana shows fresh results, opens the Grafana dashboard, posts the Allure + Grafana links to every configured Slack webhook (`SLACK_WEBHOOK_URL` / `SLACK_WEBHOOK_BOT_URL`, each message labeled by source — Local vs GitHub Actions), and prints the main service URLs at the end. The credential-gated role flows (`product-setup` → `product-authenticated`) stay out; run those directly with `npx playwright test --project=product-authenticated`. To smoke-test the webhooks without a full run, `./scripts/slack-alert-test.sh` posts a clearly-marked TEST message to each one (it never prints the URLs).
 
 Run only UI tests:
 
@@ -133,7 +133,7 @@ Dedicated availability + contract monitoring for the two critical third-party ma
 npm run test:monitoring
 ```
 
-It is **opt-in** (registered only when `MONITORING_ENABLED=true`) so it never runs in the default suite, and it is *meant to fail* when a dependency is down — that is the alert. A scheduled GitHub Actions workflow (`.github/workflows/monitoring.yml`, every 30 min) runs it separately from the PR gate. On failure it opens a single auto-managed `monitoring-alert` GitHub issue (auto-closed on the next green run) and, if a `SLACK_WEBHOOK_URL` repository secret is set, posts a Slack alert. Endpoints, tokens, and tile coordinates live in `config.json → monitoring`.
+It is **opt-in** (registered only when `MONITORING_ENABLED=true`) so it never runs in the default suite, and it is *meant to fail* when a dependency is down — that is the alert. A scheduled GitHub Actions workflow (`.github/workflows/monitoring.yml`, every 30 min) runs it separately from the PR gate. On failure it opens a single auto-managed `monitoring-alert` GitHub issue (auto-closed on the next green run) and posts a Slack alert to every configured webhook — `SLACK_WEBHOOK_URL` and/or `SLACK_WEBHOOK_BOT_URL` (repository secrets in CI, gitignored `.env` locally). The `force_fail` `workflow_dispatch` input exercises the alert path on demand. Endpoints, tokens, and tile coordinates live in `config.json → monitoring`.
 
 The broader `product` project also includes credential-free smoke specs and registration coverage. Smoke checks exercise the public calculator shell served before login — the Organuz title, arena entry points, register/login entry, the four-step characterization stepper, the address step, and the disabled "continue" state — so the project has real runnable coverage even without persona credentials. Registration specs cover property-owner form validation, required terms consent, invalid mobile gating, optional consent behavior, full property-owner signup, and company/consultant lead-form redirects.
 
@@ -161,14 +161,6 @@ npx playwright test --project=organuz-api
 ```
 
 The `organuz-api` project targets the Organuz Supabase/PostgREST backend (`config.json → organuzApi`). It exercises the `/rest/v1/projects` REST resource (contracts, query behaviours, anon-key auth/RLS) and the edge-function CORS preflights, using the public `anon` key baked into the site bundle. Tests are read-only; they never POST to the edge functions.
-
-Run the dev product-app API tests:
-
-```bash
-npx playwright test --project=dev-api
-```
-
-The `dev-api` project targets the dev/test product-app backend at `organuz.flamiingo.com` (`config.json → devApi`). It is not REST but an RPC gateway: every call is `POST /` with a form body `action=token&token=<token>&call=<method>`, returning a JSON `{ status: "ok", ... }` envelope. The tests cover the read-only public methods the app calls before login (`get_arena_types`, `get_remaining_projects`) plus envelope invariants, token/input hardening, and RPC negative/security cases, using the public token baked into the app bundle.
 
 Run the agent regression tests:
 
@@ -314,6 +306,22 @@ docker compose up -d --build api prometheus grafana
 
 Then browse to `http://localhost:3001/d/organuz-qa-dashboard/organuz-qa-dashboard`.
 
+### Hosting Grafana externally (clickable dashboard links)
+
+GitHub Pages **cannot** host Grafana — Pages is static hosting, and Grafana is a live server that queries Prometheus as a backend. To get an interactive dashboard with browser-clickable links (in Slack alerts and the CI report summary), host Grafana somewhere with a backend and point the links at it. The repo is already wired for this — you only supply the host.
+
+**Recommended: Grafana Cloud (free tier, fully managed).**
+
+1. Create a free Grafana Cloud stack. From its Prometheus data source, note the **remote_write URL** and **instance ID** (username), and create a **MetricsPublisher** API token.
+2. Save the token to the gitignored file `server/grafana-cloud-token` (one line, no trailing newline). It is mounted into the `prometheus` container and never committed.
+3. In `server/prometheus.yml`, uncomment the `remote_write:` block and set the `url` + `username`. In `docker-compose.yml`, uncomment the `grafana-cloud-token` volume on the `prometheus` service. Restart: `docker compose up -d --force-recreate prometheus`. Your local Prometheus now ships all metrics (incl. `qa_playwright_*`) up to Grafana Cloud.
+4. In Grafana Cloud, import the dashboards from `server/grafana/provisioning/dashboards/*.json` (keep the same UIDs, e.g. `organuz-system-tests`, so the dashboard URL path matches).
+5. Point the links at it:
+   - **Local:** set `GRAFANA_URL=https://<your-stack>.grafana.net` in your gitignored `.env`. `run-all-tests.sh` derives `GRAFANA_DASHBOARD_URL` from it, so the Slack "Local test run" message links to the hosted dashboard.
+   - **CI:** set the `GRAFANA_URL` repository **variable** (Settings → Secrets and variables → Actions → Variables). The report-summary + Slack notification link to it automatically.
+
+**Self-host instead (Fly.io, a small VM, etc.):** run this same `docker-compose.yml` stack on the host, expose Grafana over HTTPS, and set `GRAFANA_URL` to that origin — no `remote_write` needed since Prometheus and Grafana live together.
+
 ## Reports
 
 Docker test runs write reports back to the host through bind mounts:
@@ -371,7 +379,6 @@ Runtime configuration is read from environment variables with fallbacks in `conf
 | `QA_TARGET_ENV` | Product target environment (`dev` \| `test` \| `prod`, default `dev`), resolved from `config.json → environments` |
 | `APP_BASE_URL` / `APP_ADMIN_URL` | Explicit overrides for the product app / admin URLs |
 | `ORGANUZ_API_ANON_KEY` | Overrides the public Supabase anon key used by the `organuz-api` tests |
-| `DEV_API_BASE_URL` / `DEV_API_TOKEN` | Base URL and public token for the `dev-api` RPC gateway tests (`organuz.flamiingo.com`) |
 | `DEFAULT_TIMEOUT` | Playwright default timeout |
 | `NAVIGATION_TIMEOUT` | Navigation timeout |
 | `WORKERS` | Playwright worker count |
@@ -390,7 +397,6 @@ The Playwright projects are:
 | `product-setup` | `tests/product/support/auth.setup.ts` | Logs each product role in once and saves its `storageState` | runs automatically as a `product-authenticated` dependency |
 | `product-authenticated` | Per-role product specs that resume saved sessions | Authenticated customer / consultant / company role coverage | `npx playwright test --project=product-authenticated` |
 | `organuz-api` | `tests/organuz-api/**/*.spec.ts` filtered to `@other-smoke` | Organuz Supabase/PostgREST backend (`/rest/v1/projects`, edge functions) | `npx playwright test --project=organuz-api` |
-| `dev-api` | `tests/dev-api/**/*.spec.ts` filtered to `@other-smoke` | Dev product-app RPC gateway `organuz.flamiingo.com` (`get_arena_types`, `get_remaining_projects`, error envelopes) | `npx playwright test --project=dev-api` |
 
 The `agent` project (`tests/agent/**/*.spec.ts`, filtered to `@other-smoke`) also exists for orchestrator regression coverage but is internal.
 
@@ -414,7 +420,7 @@ Local service URL variables used by `scripts/run-all-tests.sh`:
 The parallel pipeline in `.github/workflows/parallel-tests.yml` runs:
 
 - `typecheck`
-- Playwright `chromium`, `organuz-api`, and `dev-api` projects in parallel (matrix), each filtered to its `@other-smoke` default checks
+- Playwright `chromium` and `organuz-api` projects in parallel (matrix), each filtered to its `@other-smoke` default checks
 - A credential-free product smoke job (`npx playwright test --project=product --grep @smoke`) against prod
 - The 50-test product E2E matrix is available locally via `npm run test:product`; the broader product suite is available via `npm run test:product:all`. Add either to CI separately if you want the pipeline to gate on those flows.
 - FastAPI, Scalar API reference, Prometheus, and Grafana service smoke checks
@@ -447,6 +453,6 @@ Set these repository variables when the summary should point to externally reach
 
 Open [Architecture.html](Architecture.html) in a browser for a pastel, single-file visual overview of the Docker Compose services, CLI flow, GitHub Actions pipeline, report publishing, the QA agent orchestrator, product matrix, QA dashboard, and project structure.
 
-The test suite is organized by subject under `tests/`: UI homepage/content/flows/support/diagnostics, Organuz backend API contracts/resources/security/functions, dev product-app RPC contracts/security/support, product smoke/registration/matrix/role flows/API/support, and agent orchestrator coverage.
+The test suite is organized by subject under `tests/`: UI homepage/content/flows/support/diagnostics, Organuz backend API contracts/resources/security/functions, product smoke/registration/matrix/role flows/API/support, and agent orchestrator coverage.
 
 For the QA agent specifically — its architecture diagram, the orchestration loop, the design decisions it encodes, and how to swap stubs for real connectors — see [`src/agent/README.md`](src/agent/README.md).

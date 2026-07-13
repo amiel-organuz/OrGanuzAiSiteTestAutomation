@@ -3,6 +3,11 @@ set -Eeuo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
+# Playwright's TypeScript loader still calls module.register(), which Node 22+/26
+# reports as DEP0205 — one line per worker. Silence just that one deprecation so
+# the run output stays readable (harmless on Node versions that don't emit it).
+export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--disable-warning=DEP0205"
+
 echo "Running TypeScript typecheck..."
 npx tsc --noEmit
 

@@ -42,6 +42,9 @@ services:
         condition: service_started
     volumes:
       - ./server/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # Uncomment when shipping metrics to a hosted Grafana (Grafana Cloud) via the
+      # remote_write block in prometheus.yml. The token file is gitignored.
+      # - ./server/grafana-cloud-token:/etc/prometheus/grafana-cloud-token:ro
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"

@@ -20,11 +20,19 @@ skill whenever a test is added or removed.
 | 4 | [Product Roles E2E](04-product-roles-e2e.md) | `product-setup` → `product-authenticated` | `tests/product/flows/**` | 13 | Dev calculator (per-role login) |
 | 5 | [Organuz API Contracts](05-organuz-api.md) | `organuz-api` | `tests/organuz-api/**` | 1 | Organuz Supabase / PostgREST |
 | 6 | [QA Agent](06-agent.md) | `agent` | `tests/agent/**` | 2 | Offline — stubs, no network/browser |
+| 7 | [External API Monitoring](07-monitoring.md) | `monitoring` (opt-in) | `tests/monitoring/**` | 50 | Live third-party maps — Govmap + Ofek |
 
 **Default run** (`npx playwright test`): 59 tests — **46 green** (chromium 12,
 product 31, organuz-api 1, agent 2) + **13 credential-gated** role specs
 (product-setup 3 + product-authenticated 10) that skip until per-role secrets
 exist.
+
+**Opt-in monitoring** (`npm run test:monitoring`, i.e. `MONITORING_ENABLED=true`):
+adds the `monitoring` project — 50 live Govmap + Ofek availability checks
+(govmap 25 + ofek 25). It is **never** in the default suite, so a Govmap/Ofek
+outage can't break the PR gate; it runs on the scheduled **External API
+Monitoring** workflow and alerts via an auto-managed issue + Slack. With
+monitoring enabled the total is **109**.
 
 ## Sanctioned skips (never failures)
 
