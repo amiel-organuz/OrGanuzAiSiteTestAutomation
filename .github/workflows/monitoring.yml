@@ -10,6 +10,11 @@ on:
   schedule:
     - cron: '*/30 * * * *' # every 30 minutes
   workflow_dispatch:
+    inputs:
+      force_fail:
+        description: 'Force a failure to exercise the alert path (opens the alert issue + pings Slack) without a real outage. The next green run auto-closes the issue.'
+        type: boolean
+        default: false
 
 # Never run two monitoring passes at once; a new one supersedes an in-flight one.
 concurrency:
@@ -39,16 +44,29 @@ jobs:
         run: npm ci
 
       # No browser install needed — the monitoring specs use APIRequestContext only.
+      # Skipped when force_fail is requested, so the alert-path test stays fast and
+      # doesn't hammer the live APIs.
       - name: Run Govmap + Ofek monitoring
         id: monitor
+        if: ${{ !inputs.force_fail }}
         env:
           MONITORING_ENABLED: 'true'
         run: npx playwright test --project=monitoring --reporter=list
 
+      # Manual alert-path test: `workflow_dispatch` with force_fail=true fails here on
+      # purpose so you can confirm the issue + Slack alerting works end to end.
+      - name: Force failure (manual alert-path test)
+        if: ${{ inputs.force_fail }}
+        run: |
+          echo "::warning::force_fail=true — intentionally failing to exercise the alert path (issue + Slack). This is a test, not a real outage."
+          exit 1
+
       - name: Summary
         if: always()
         run: |
-          if [ "${{ steps.monitor.outcome }}" = "success" ]; then
+          if [ "${{ inputs.force_fail }}" = "true" ]; then
+            echo "🧪 Forced failure (workflow_dispatch \`force_fail\`) — this run failed on purpose to test the alert path. No real outage." >> "$GITHUB_STEP_SUMMARY"
+          elif [ "${{ steps.monitor.outcome }}" = "success" ]; then
             echo "✅ Govmap + Ofek are healthy (50 checks passed)." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "❌ A Govmap/Ofek monitoring check failed — a critical map dependency may be degraded." >> "$GITHUB_STEP_SUMMARY"
