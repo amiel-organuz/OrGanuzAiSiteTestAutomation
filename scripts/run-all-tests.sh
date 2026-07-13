@@ -57,7 +57,15 @@ set +e
 # product data-contracts + skip-safe public sanity, and the stubbed agent specs.
 # (`dev-api` was a removed project — naming it aborted the whole run.) The
 # credential-gated product-setup/product-authenticated role flows stay out.
-npx playwright test --project=chromium --project=organuz-api --project=product --project=agent
+PROJECT_ARGS=(--project=chromium --project=organuz-api --project=product --project=agent)
+# Opt-in live Govmap/Ofek monitoring: MONITORING_ENABLED=true registers the
+# `monitoring` project in playwright.config.ts, so add it to the run too. These
+# 50 checks hit the real map APIs and are meant to fail when a dependency is down.
+if [ "${MONITORING_ENABLED:-}" = "true" ]; then
+  echo "MONITORING_ENABLED=true — including the live Govmap/Ofek monitoring project."
+  PROJECT_ARGS+=(--project=monitoring)
+fi
+npx playwright test "${PROJECT_ARGS[@]}"
 TEST_EXIT_CODE=$?
 set -e
 
@@ -86,6 +94,15 @@ if [ "$AUTO_START_API" = "true" ] && [ "$API_BASE_URL" = "http://localhost:8000"
   echo "Pushing QA metrics to Pushgateway at ${PUSHGATEWAY_URL}..."
   for i in $(seq 1 15); do
     curl -fsS "${PUSHGATEWAY_URL}/-/ready" >/dev/null 2>&1 && break
+    sleep 1
+  done
+  # Wait for the Playwright JSON report to be on disk before pushing. It is written
+  # as the test process exits; on a big multi-project run it can land a beat after
+  # the summary prints, so guard against reading too early (else we'd push
+  # report_present=0 and blank the dashboard).
+  RESULTS_PATH="${QA_PLAYWRIGHT_RESULTS_PATH:-test-results/results.json}"
+  for i in $(seq 1 10); do
+    [ -s "$RESULTS_PATH" ] && break
     sleep 1
   done
   PUSHGATEWAY_URL="$PUSHGATEWAY_URL" node scripts/push-qa-metrics.mjs \
