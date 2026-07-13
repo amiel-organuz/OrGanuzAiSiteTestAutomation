@@ -1,28 +1,7 @@
 import { stat, readdir, readFile } from 'node:fs/promises';
 import { join, basename, extname } from 'node:path';
 import { logger } from '../../utils/logger';
-import type { Artifact, LocalArtifact } from '../types';
-
-/**
- * OneDrive is the durable evidence store. Screenshots, failure videos,
- * Playwright traces, and the run's HTML report land here, and the agent grabs
- * shareable links to embed in bugs and reports.
- *
- * It is also used to download requirements documents.
- */
-export interface OneDriveConnector {
-  /**
-   * Upload a local artifact and return it with a shareable link.
-   * `folder` namespaces the run, e.g. "runs/2026-06-14/suite-42".
-   */
-  upload(folder: string, artifact: LocalArtifact): Promise<Artifact>;
-
-  /** Convenience: upload many artifacts under the same folder. */
-  uploadAll(folder: string, artifacts: LocalArtifact[]): Promise<Artifact[]>;
-
-  /** Download requirements documents under the specified path. */
-  downloadFiles(path: string): Promise<Array<{ name: string; content: Buffer }>>;
-}
+import type { Artifact, LocalArtifact, OneDriveConnector } from '../../types/agent.types';
 
 /** In-memory stub that mints deterministic fake share links. */
 export class StubOneDriveConnector implements OneDriveConnector {

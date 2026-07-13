@@ -1,23 +1,5 @@
 import { logger } from '../utils/logger';
-import type { PageExplorer, PageExploration } from './connectors/PageExplorer';
-import type { TestCase, TestSuite } from './types';
-
-/**
- * Options for a generated plan. All optional — sensible ids/tags are derived
- * from the URL when omitted.
- */
-export interface TestPlanOptions {
-  /** Plan id for the generated {@link TestSuite}. Default: `PLAN-<host>`. */
-  planId?: string;
-  /** Suite id for the generated {@link TestSuite}. Default: `SUITE-<host>`. */
-  suiteId?: string;
-  /** Human-readable suite name. Default: derived from the page title. */
-  name?: string;
-  /** Cap the number of generated cases (0 = no cap). Default: 0. */
-  maxCases?: number;
-  /** Tags applied to every generated case, on top of `@generated`. Default: `['@smoke']`. */
-  tags?: string[];
-}
+import type { PageExplorer, PageExploration, TestCase, TestPlanOptions, TestSuite } from './types';
 
 /**
  * Turns a **URL** into a draft **test plan**.

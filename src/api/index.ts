@@ -10,4 +10,4 @@ export type {
   ApiResponseLog,
   HttpMethod,
   RequestOptions,
-} from './ApiClient';
+} from '../types/api.types';

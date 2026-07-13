@@ -1,4 +1,13 @@
 import { logger } from '../../utils/logger';
+import type {
+  DiscoveredControl,
+  DiscoveredForm,
+  DiscoveredLink,
+  PageExplorer,
+  PageExploration,
+  PageSnapshot,
+  PlaywrightMcpClient,
+} from '../../types/agent.types';
 
 /**
  * Page exploration connector.
@@ -14,69 +23,6 @@ import { logger } from '../../utils/logger';
  * MCP tool calls themselves are injected as a {@link PlaywrightMcpClient} so this
  * module stays free of any tool binding and remains unit-testable offline.
  */
-export interface PageExplorer {
-  /** Open `url`, explore the page, and report its testable affordances. */
-  explore(url: string): Promise<PageExploration>;
-}
-
-/** A discovered navigation link. */
-export interface DiscoveredLink {
-  text: string;
-  href: string;
-}
-
-/** A discovered form and the fields a test would need to fill. */
-export interface DiscoveredForm {
-  /** Accessible name of the form, or a synthesised label. */
-  name: string;
-  /** Accessible names of the input/textbox/combobox fields. */
-  fields: string[];
-  /** Label of the submit control, when one is present. */
-  submitLabel?: string;
-}
-
-/** A discovered interactive control (button, tab, checkbox, …). */
-export interface DiscoveredControl {
-  /** ARIA role, e.g. "button", "tab", "checkbox". */
-  role: string;
-  /** Accessible name. */
-  name: string;
-}
-
-/** The testable surface of a single page. */
-export interface PageExploration {
-  url: string;
-  title: string;
-  headings: string[];
-  links: DiscoveredLink[];
-  forms: DiscoveredForm[];
-  controls: DiscoveredControl[];
-}
-
-/**
- * Thin transport over the Playwright MCP browser tools. A caller wires these to
- * the actual MCP tool invocations (`browser_navigate`, `browser_snapshot`), or
- * to the `@playwright/test` API, or to a fake in tests.
- */
-export interface PlaywrightMcpClient {
-  /** Navigate the shared browser tab to `url` (maps to `browser_navigate`). */
-  navigate(url: string): Promise<void>;
-  /** Return the current page's accessibility snapshot (maps to `browser_snapshot`). */
-  snapshot(): Promise<PageSnapshot>;
-}
-
-/** The subset of a Playwright MCP snapshot this explorer consumes. */
-export interface PageSnapshot {
-  /** Page URL after any redirects. */
-  url?: string;
-  /** Document title. */
-  title?: string;
-  /**
-   * The accessibility tree as emitted by `browser_snapshot`: one node per line,
-   * e.g. `- link "Home" [ref=e3]` or `- heading "Welcome" [level=1]`.
-   */
-  tree: string;
-}
 
 /** Roles that count as fillable form fields in a snapshot. */
 const FIELD_ROLES = new Set(['textbox', 'searchbox', 'combobox', 'spinbutton', 'slider']);

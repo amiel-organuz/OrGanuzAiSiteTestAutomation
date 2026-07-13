@@ -1,36 +1,5 @@
 import { logger } from '../../utils/logger';
-import type { BugItem, CaseStatus, TestSuite } from '../types';
-
-/**
- * Azure DevOps is the system of record on both ends of the loop.
- *
- * On the way IN  — read which suite/cases to run + acceptance criteria.
- * On the way OUT — write pass/fail back onto the case, and file bugs on failure.
- *
- * Real implementations should honour the read-only scoping discussed in the
- * design: keep the server read-only (X-MCP-Readonly) while only reading the
- * plan, and only widen to write access for the reporting step. The
- * {@link AzureDevOpsConnector.setReadOnly} hook models that toggle.
- */
-export interface AzureDevOpsConnector {
-  /** Toggle read-only scoping. Reads are allowed read-only; writes require false. */
-  setReadOnly(readOnly: boolean): void;
-
-  /** Read a suite (cases + acceptance criteria) from Azure DevOps Test Plans. */
-  getSuite(planId: string, suiteId: string): Promise<TestSuite>;
-
-  /** Write the pass/fail outcome back onto a test case. */
-  reportCaseResult(caseId: string, status: CaseStatus, comment?: string): Promise<void>;
-
-  /**
-   * Idempotency guard: return an existing OPEN bug id for a case, or null.
-   * Called before filing so re-runs don't spawn duplicates.
-   */
-  findOpenBug(caseId: string): Promise<string | null>;
-
-  /** File a new bug work item and return it with its assigned id. */
-  fileBug(bug: BugItem): Promise<BugItem>;
-}
+import type { AzureDevOpsConnector, BugItem, CaseStatus, TestSuite } from '../../types/agent.types';
 
 /**
  * In-memory stub. Seeds a small suite and records writes so the demo loop runs

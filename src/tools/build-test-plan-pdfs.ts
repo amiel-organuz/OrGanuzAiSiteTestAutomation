@@ -14,7 +14,6 @@ import { chromium } from 'playwright';
 import { logger } from '../utils/logger';
 
 // marked v4 is CommonJS-friendly; require keeps it simple under `module: commonjs`.
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { marked } = require('marked') as { marked: { parse(md: string): string } };
 
 const PLANS_DIR = join(process.cwd(), 'docs', 'test-plans');

@@ -1,5 +1,5 @@
 import { logger } from '../../utils/logger';
-import type { PageSnapshot, PlaywrightMcpClient } from './PageExplorer';
+import type { McpCliOptions, PageSnapshot, PlaywrightMcpClient } from '../../types/agent.types';
 
 /**
  * A {@link PlaywrightMcpClient} backed by the real **Playwright MCP CLI server**.
@@ -26,21 +26,6 @@ interface McpClientLike {
   close(): Promise<void>;
 }
 
-export interface McpCliOptions {
-  /** npx package spec for the server. Default `@playwright/mcp@latest`. */
-  serverSpec?: string;
-  /** Run the browser headless. Default `true`. */
-  headless?: boolean;
-  /**
-   * Use a fresh, isolated browser profile per run. Default `true` — this avoids
-   * the "Browser is already in use" lock when another Playwright MCP session
-   * (or a prior run) holds the shared profile.
-   */
-  isolated?: boolean;
-  /** Extra CLI args passed to the Playwright MCP server (e.g. `['--device', 'iPhone 15']`). */
-  args?: string[];
-}
-
 export class McpCliPlaywrightClient implements PlaywrightMcpClient {
   private client?: McpClientLike;
 
@@ -57,10 +42,8 @@ export class McpCliPlaywrightClient implements PlaywrightMcpClient {
       env?: Record<string, string>;
     }) => unknown;
     try {
-      /* eslint-disable @typescript-eslint/no-var-requires */
       ({ Client: ClientCtor } = require('@modelcontextprotocol/sdk/client/index.js'));
       ({ StdioClientTransport: TransportCtor } = require('@modelcontextprotocol/sdk/client/stdio.js'));
-      /* eslint-enable @typescript-eslint/no-var-requires */
     } catch (err) {
       throw new Error(
         'The live Playwright MCP client requires @modelcontextprotocol/sdk and @playwright/mcp. ' +

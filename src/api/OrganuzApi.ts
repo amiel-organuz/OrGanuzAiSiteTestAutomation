@@ -1,5 +1,6 @@
 import { APIResponse } from '@playwright/test';
-import { ApiClient, RequestOptions } from './ApiClient';
+import { ApiClient } from './ApiClient';
+import type { RequestOptions } from '../types/api.types';
 import { RestApiConstants } from './RestApiConstants';
 
 const { Tables, SELECT_ALL, Headers, Prefer } = RestApiConstants;

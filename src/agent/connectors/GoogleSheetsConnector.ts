@@ -1,23 +1,5 @@
 import { logger } from '../../utils/logger';
-import type { CaseResult, DataRow, RunEnvironment } from '../types';
-
-/**
- * Google Sheets plays two roles in the design:
- *   - parametrised test-data source (environments, input rows, expected values)
- *   - a live results log / dashboard the team can read without opening Azure DevOps
- *
- * Secrets are never stored here — only references resolved at runtime.
- */
-export interface GoogleSheetsConnector {
-  /** Resolve a named environment (base URL + secret references). */
-  getEnvironment(name: string): Promise<RunEnvironment>;
-
-  /** Pull the parametrised data rows for a set of case ids + environment. */
-  getDataRows(caseIds: string[], environment: string): Promise<DataRow[]>;
-
-  /** Append one row to the live results log per finished case. */
-  appendResultRow(result: CaseResult): Promise<void>;
-}
+import type { CaseResult, DataRow, GoogleSheetsConnector, RunEnvironment } from '../../types/agent.types';
 
 /** In-memory stub seeded with environments and data rows for the demo. */
 export class StubGoogleSheetsConnector implements GoogleSheetsConnector {
