@@ -12,12 +12,12 @@ description: Keep the Playwright suite identical locally and on GitHub Actions �
 
 The matrix `project:` list MUST equal the project names in `playwright.config.ts`. CI shards by project; locally they all run in one invocation. Same projects ⇒ same tests.
 
-## Current suite (15 tests, all passing)
+## Current suite (20 tests, all passing)
 
 | Project | testMatch | Default filter | Tests | Needs |
 |---|---|---|---|---|
 | `chromium` | `tests/ui/**` | `@other-smoke` | 2 | none (prod `www.organuz.ai`, public) |
-| `product` | `tests/product/**` | — (all) | 11 | dev reachable + `PRODUCT_PLATFORM_PASSWORD` (token-sanity opens dev calculator); matrix data-contract needs nothing |
+| `product` | `tests/product/**` | — (all) | 16 | dev reachable + `PRODUCT_PLATFORM_PASSWORD` (token-sanity opens dev calculator); matrix data-contract needs nothing |
 | `organuz-api` | `tests/organuz-api/**` | `@other-smoke` | 1 | none (Supabase anon key baked in `config.json`) |
 | `agent` | `tests/agent/**` | `@other-smoke` | 1 | none (pure stubs, no network/browser) |
 
@@ -44,7 +44,7 @@ The only secret the green suite needs is `PRODUCT_PLATFORM_PASSWORD` (the dev pa
 
 ```bash
 npx tsc --noEmit                      # must pass first
-npx playwright test --reporter=line   # expect 15 passed, 0 skipped, 0 failed, exit 0
+npx playwright test --reporter=line   # expect 20 passed, 0 skipped, 0 failed, exit 0
 # per-project sanity (must match the matrix list):
 for p in chromium organuz-api agent product; do
   echo -n "$p "; npx playwright test --project=$p --list 2>/dev/null | grep -c '›'

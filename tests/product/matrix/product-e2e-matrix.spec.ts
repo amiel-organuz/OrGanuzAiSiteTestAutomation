@@ -4,9 +4,11 @@ import {
   EXPECTED_MAIN_SCENARIO_IDS,
   EXPECTED_PERSONA_SCENARIO_COUNT,
   MAIN_E2E_SCENARIOS,
+  NEGATIVE_PANEL_SCENARIOS,
   POLYGON_TYPES,
   PRODUCT_PERSONAS,
   PROPERTY_TYPES,
+  RAMOT_SCENARIOS,
   ROOF_SURFACE_TYPES,
   RUNTIME_ONLY_FIELDS,
   UI_ONLY_SCENARIOS,
@@ -71,5 +73,53 @@ test.describe('Product E2E matrix data contract', { tag: '@product' }, () => {
       panelMode: 'none',
     });
     expect(MAIN_E2E_SCENARIOS.map((scenario) => scenario.id)).not.toContain('CALC-ROOF-022');
+  });
+
+  test('assigns a unique id to every matrix scenario', () => {
+    const ids = ALL_MATRIX_SCENARIOS.map((scenario) => scenario.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  test('keeps arena type consistent with each scenario group', () => {
+    for (const scenario of MAIN_E2E_SCENARIOS) {
+      expect(scenario.arenaType, `${scenario.id} is on the main arena`).toBe('ARENA_TYPE_MAIN');
+    }
+    for (const scenario of RAMOT_SCENARIOS) {
+      expect(scenario.arenaType, `${scenario.id} is on the ramot arena`).toBe('ARENA_TYPE_RAMOT');
+    }
+  });
+
+  test('keeps the negative scenario below the quotable panel minimum', () => {
+    const quotableMinimum = Math.min(
+      ...MAIN_E2E_SCENARIOS.filter((scenario) => scenario.panelMode === 'quotable').map(
+        (scenario) => scenario.minimumPanelCount,
+      ),
+    );
+    for (const scenario of NEGATIVE_PANEL_SCENARIOS) {
+      expect(scenario.panelMode).toBe('below-minimum');
+      expect(scenario.minimumPanelCount).toBeLessThan(quotableMinimum);
+    }
+  });
+
+  test('grants elevated company privileges to exactly one persona', () => {
+    const withManagement = PRODUCT_PERSONAS.filter((persona) => persona.canOpenCompanyManagement);
+    const withPricing = PRODUCT_PERSONAS.filter((persona) => persona.canOpenCompanyPricing);
+    expect(withManagement.map((persona) => persona.id)).toEqual(['company']);
+    expect(withPricing.map((persona) => persona.id)).toEqual(['company']);
+
+    const employee = PRODUCT_PERSONAS.find((persona) => persona.id === 'company-employee');
+    expect(employee?.canOpenCompanyManagement).toBe(false);
+    expect(employee?.canOpenCompanyPricing).toBe(false);
+    expect(employee?.canOpenQuotationsFromResults).toBe(false);
+  });
+
+  test('aligns panel counts with each scenario panel mode', () => {
+    for (const scenario of ALL_MATRIX_SCENARIOS) {
+      if (scenario.panelMode === 'quotable') {
+        expect(scenario.minimumPanelCount, `${scenario.id} needs a quotable minimum`).toBeGreaterThanOrEqual(5);
+      } else if (scenario.panelMode === 'none') {
+        expect(scenario.minimumPanelCount, `${scenario.id} marks no panels`).toBe(0);
+      }
+    }
   });
 });

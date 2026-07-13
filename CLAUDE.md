@@ -8,7 +8,7 @@ Playwright + TypeScript test suite for Organuz, plus a local FastAPI/Prometheus/
 - **`organuz-api`** → `tests/organuz-api/**` → Organuz Supabase backend (`/rest/v1/projects`, edge functions) with a public anon key, default-filtered to `@other-smoke`.
 - **`agent`** → `tests/agent/**` → QA-agent orchestrator unit spec (stubs, no network/browser), default-filtered to `@other-smoke`.
 
-The default `npx playwright test` runs 15 all-passing tests (chromium 2, product 11, organuz-api 1, agent 1). GitHub Actions runs the identical set — keep the two in sync per the **`test-suite-parity`** skill.
+The default `npx playwright test` runs 20 all-passing tests (chromium 2, product 16, organuz-api 1, agent 1). GitHub Actions runs the identical set — keep the two in sync per the **`test-suite-parity`** skill.
 
 Page objects: `src/pages` (marketing site), `tests/product/support/ProductAppPage.ts` (product app). Shared fixtures: `src/fixtures` (+ the token-extractor fixtures in `src/fixtures/token-fixtures.ts`). API client: `src/api` (+ `OrganuzApi`). Shared config: `src/utils/config.ts` reads `config.json` with env-var overrides.
 
