@@ -22,7 +22,7 @@ The matrix `project:` list MUST equal the *invokable* project names in `playwrig
 | `product-authenticated` | `tests/product/flows/**` | — | 10 | a saved session per role from product-setup; **skips** the role otherwise |
 | `organuz-api` | `tests/organuz-api/**` | `@other-smoke` | 1 | none (Supabase anon key baked in `config.json`) |
 | `agent` | `tests/agent/**` | `@other-smoke` | 2 | none (pure stubs, no network/browser): orchestrator run-loop + `TestPlanAgent` (URL → MCP exploration → plan) |
-| `monitoring` *(opt-in, not in the count)* | `tests/monitoring/**` | — | 50 | live Govmap + Ofek; only registered when `MONITORING_ENABLED=true`; runs on cron in `monitoring.yml`, **not** in the PR matrix, and is expected to fail when a dependency is down |
+| `monitoring` *(opt-in, not in the count)* | `tests/monitoring/**` | — | 50 | live Govmap + Ofek; only registered when `MONITORING_ENABLED=true`; runs on cron in `monitoring.yml` **and** as a **non-blocking `monitoring` job** in `parallel-tests.yml` (`continue-on-error: true`) on every push/PR. It is expected to fail when a dependency is down — hence non-blocking (never a matrix shard, so it can't red the gate) |
 
 Non-`product` projects intentionally run only their `@other-smoke`-tagged tests by default (see CLAUDE.md). The plain `product` project runs everything under `tests/product/**` except `flows/**` (those need saved sessions and run in `product-authenticated`).
 
