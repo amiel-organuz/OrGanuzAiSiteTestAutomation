@@ -411,7 +411,7 @@
     <div class="cards">
       <div class="card" style="--accent: var(--blue)">
         <div class="card-title"><span class="badge">TS</span> Playwright Tests</div>
-        <p class="card-desc">Six projects: <code>chromium</code> (marketing UI), <code>product</code> (token-sanity + matrix &amp; role data-contracts), <code>product-setup</code> → <code>product-authenticated</code> (live per-role sessions), <code>organuz-api</code> (Supabase/PostgREST), and <code>agent</code> (orchestrator regression). 53 tests: 40 always green (chromium 12, product 26, organuz-api 1, agent 1) + 13 credential-gated role specs that skip until per-role secrets exist.</p>
+        <p class="card-desc">Six projects: <code>chromium</code> (marketing UI), <code>product</code> (token-sanity + matrix &amp; role data-contracts), <code>product-setup</code> → <code>product-authenticated</code> (live per-role sessions), <code>organuz-api</code> (Supabase/PostgREST), and <code>agent</code> (orchestrator regression). 58 tests: 45 green (chromium 12, product 31, organuz-api 1, agent 1) + 13 credential-gated role specs that skip until per-role secrets exist.</p>
       </div>
       <div class="card" style="--accent: var(--green)">
         <div class="card-title"><span class="badge">E2E</span> Product Coverage</div>
@@ -650,7 +650,7 @@
     </div>
 
     <h2 id="tests">Test Suites &mdash; Every Group in Detail</h2>
-    <p style="max-width: 74ch; color: var(--muted); margin-bottom: 6px;">Six Playwright projects, run identically locally and on GitHub Actions. <strong>53 tests total: 40 always green + 13 credential-gated role specs that skip until per-role secrets are added</strong> (see the <code>test-suite-parity</code> skill). Counts below are per spec file.</p>
+    <p style="max-width: 74ch; color: var(--muted); margin-bottom: 6px;">Six Playwright projects, run identically locally and on GitHub Actions. <strong>58 tests total: 45 green + 13 credential-gated role specs that skip until per-role secrets are added</strong> (see the <code>test-suite-parity</code> skill). Counts below are per spec file.</p>
 
     <div class="panel" style="--accent: var(--blue)">
       <h3><span class="badge">UI · 12</span> chromium &nbsp;<code>tests/ui/**</code> · <code>@other-smoke</code> · prod <code>www.organuz.ai</code></h3>
@@ -700,6 +700,22 @@
         <h3><span class="badge">QA · 1</span> agent &nbsp;<code>orchestrator/</code> · <code>@other-smoke</code></h3>
         <p>One orchestrator regression (pure stubs, no network/browser): a runner crash is marked <em>blocked</em> and the suite keeps running, proving crash isolation through the real <code>Orchestrator</code> with stubbed Azure DevOps / Sheets / OneDrive / Playwright connectors.</p>
       </div>
+    </div>
+
+    <h2>Test Groups &rarr; Skills</h2>
+    <div class="panel">
+      <p>Every test group has a task skill under <code>.claude/skills/&lt;name&gt;/SKILL.md</code> documenting how to run and extend it (invoke with <code>/&lt;name&gt;</code>):</p>
+      <table>
+        <thead><tr><th>Group</th><th>Project</th><th>Skill</th></tr></thead>
+        <tbody>
+          <tr><td>Marketing-site sanity</td><td><code>chromium</code></td><td><code>ui-sanity-tests</code></td></tr>
+          <tr><td>Public dev-calculator sanity</td><td><code>product</code></td><td><code>product-public-sanity</code></td></tr>
+          <tr><td>Matrix &amp; role data contracts</td><td><code>product</code></td><td><code>product-matrix-contract</code></td></tr>
+          <tr><td>Live per-role e2e</td><td><code>product-setup</code> &rarr; <code>product-authenticated</code></td><td><code>product-roles-e2e</code> (+ <code>organuz-product-roles</code>)</td></tr>
+          <tr><td>Supabase projects contract</td><td><code>organuz-api</code></td><td><code>organuz-api-tests</code></td></tr>
+          <tr><td>Orchestrator regression</td><td><code>agent</code></td><td>&mdash; (see <code>src/agent/README.md</code>)</td></tr>
+        </tbody>
+      </table>
     </div>
 
     <div class="grid-2">
