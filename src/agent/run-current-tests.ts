@@ -32,10 +32,10 @@ const environment: RunEnvironment = {
 const projectMappings: ProjectMapping[] = [
   {
     id: 'PW-API',
-    title: 'Run API Playwright project',
-    project: 'api',
+    title: 'Run organuz-api Playwright project',
+    project: 'organuz-api',
     tags: ['@playwright', '@api'],
-    acceptanceCriterion: { id: 'AC-API', description: 'API project exits successfully' },
+    acceptanceCriterion: { id: 'AC-API', description: 'organuz-api project exits successfully' },
   },
   {
     id: 'PW-CHROMIUM',
@@ -46,11 +46,10 @@ const projectMappings: ProjectMapping[] = [
   },
   {
     id: 'PW-PRODUCT',
-    title: 'Run 50 product E2E matrix tests',
+    title: 'Run product Playwright project',
     project: 'product',
-    grep: 'Product calculator and quotation E2E matrix',
     tags: ['@playwright', '@product'],
-    acceptanceCriterion: { id: 'AC-PRODUCT', description: '50 product E2E matrix tests exit successfully' },
+    acceptanceCriterion: { id: 'AC-PRODUCT', description: 'product project exits successfully' },
   },
   {
     id: 'PW-AGENT',
