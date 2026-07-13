@@ -8,6 +8,12 @@ import { config } from './src/utils/config';
 
 const includeLowPriorityTests = process.env.INCLUDE_LOW_PRIORITY_TESTS === 'true';
 
+// External-API monitoring (Govmap + Ofek) is opt-in: it hits live third-party
+// services and is meant to FAIL when they break (the alert), so it runs on a
+// schedule / on demand, never in the default green suite. Enable with
+// MONITORING_ENABLED=true (see `npm run test:monitoring`).
+const includeMonitoring = process.env.MONITORING_ENABLED === 'true';
+
 // Shared browser context for the product app: the auth-setup project and the product
 // project must use the same origin/viewport so saved sessions restore cleanly.
 const productUse = {
@@ -111,6 +117,16 @@ export default defineConfig({
       testMatch: 'tests/agent/**/*.spec.ts',
       grep: /@other-smoke/,
     },
+    // Opt-in external-dependency monitoring; only registered when MONITORING_ENABLED=true
+    // so the default suite never runs live third-party checks.
+    ...(includeMonitoring
+      ? [
+          {
+            name: 'monitoring',
+            testMatch: 'tests/monitoring/**/*.spec.ts',
+          },
+        ]
+      : []),
     // {
     //   name: 'firefox',
     //   use: { ...devices['Desktop Firefox'], baseURL: config.web.baseUrl },

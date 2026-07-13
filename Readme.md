@@ -125,6 +125,16 @@ For the broader product suite, use:
 npm run test:product:all
 ```
 
+### External API monitoring (Govmap + Ofek)
+
+Dedicated availability + contract monitoring for the two critical third-party map dependencies the product relies on — **Govmap** (`www.govmap.gov.il`, map API + address geocoding) and **Ofek** (`basemaps.govmap.gov.il`, the Survey-of-Israel national orthophoto tiles the roof scan runs on). 25 checks each (50 total), using `APIRequestContext` only (no browser).
+
+```bash
+npm run test:monitoring
+```
+
+It is **opt-in** (registered only when `MONITORING_ENABLED=true`) so it never runs in the default suite, and it is *meant to fail* when a dependency is down — that is the alert. A scheduled GitHub Actions workflow (`.github/workflows/monitoring.yml`, every 30 min) runs it separately from the PR gate. Endpoints, tokens, and tile coordinates live in `config.json → monitoring`.
+
 The broader `product` project also includes credential-free smoke specs and registration coverage. Smoke checks exercise the public calculator shell served before login — the Organuz title, arena entry points, register/login entry, the four-step characterization stepper, the address step, and the disabled "continue" state — so the project has real runnable coverage even without persona credentials. Registration specs cover property-owner form validation, required terms consent, invalid mobile gating, optional consent behavior, full property-owner signup, and company/consultant lead-form redirects.
 
 The live persona browser flows are opt-in until live app credentials and stable selectors are available:

@@ -1,0 +1,55 @@
+name: External API Monitoring
+
+# Dedicated availability monitoring for the critical third-party dependencies the
+# product relies on — Govmap (map + address geocoding) and Ofek (Survey-of-Israel
+# orthophoto tiles). These have caused product incidents; this workflow is the
+# early-warning signal. It is SEPARATE from the PR test suite (parallel-tests.yml)
+# so a Govmap/Ofek outage alerts here without ever failing the green PR gate.
+
+on:
+  schedule:
+    - cron: '*/30 * * * *' # every 30 minutes
+  workflow_dispatch:
+
+# Never run two monitoring passes at once; a new one supersedes an in-flight one.
+concurrency:
+  group: external-api-monitoring
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  monitor:
+    name: Govmap + Ofek health
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # No browser install needed — the monitoring specs use APIRequestContext only.
+      - name: Run Govmap + Ofek monitoring
+        id: monitor
+        env:
+          MONITORING_ENABLED: 'true'
+        run: npx playwright test --project=monitoring --reporter=list
+
+      - name: Summary
+        if: always()
+        run: |
+          if [ "${{ steps.monitor.outcome }}" = "success" ]; then
+            echo "✅ Govmap + Ofek are healthy (50 checks passed)." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "❌ A Govmap/Ofek monitoring check failed — a critical map dependency may be degraded." >> "$GITHUB_STEP_SUMMARY"
+            echo "See the job log for the failing endpoint. This does not affect the PR test suite." >> "$GITHUB_STEP_SUMMARY"
+          fi
