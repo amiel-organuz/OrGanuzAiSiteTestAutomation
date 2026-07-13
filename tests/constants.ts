@@ -46,7 +46,14 @@ export const FaqQuestions = [
   'למה Organuz התחילה בישראל?',
 ];
 
-export const ContactData = {
+export interface ContactDetails {
+  name: string;
+  email: string;
+  phone: string;
+  message: string;
+}
+
+export const ContactData: ContactDetails = {
   name:    'ישראל ישראלי',
   email:   'test@example.com',
   phone:   '0501234567',

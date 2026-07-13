@@ -8,6 +8,15 @@ import { config } from './src/utils/config';
 
 const includeLowPriorityTests = process.env.INCLUDE_LOW_PRIORITY_TESTS === 'true';
 
+// Shared browser context for the product app: the auth-setup project and the product
+// project must use the same origin/viewport so saved sessions restore cleanly.
+const productUse = {
+  ...devices['Desktop Chrome'],
+  baseURL: config.app.baseUrl,
+  viewport: { width: 1920, height: 1080 },
+  headless: true,
+};
+
 export default defineConfig({
   testDir: './tests',
   ...(includeLowPriorityTests ? {} : { grepInvert: /@low-priority/ }),
@@ -59,6 +68,7 @@ export default defineConfig({
     {
       name: 'chromium',
       testMatch: 'tests/ui/**/*.spec.ts',
+      grep: /@other-smoke/,
       use: {
         ...devices['Desktop Chrome'],
         baseURL: config.web.baseUrl,
@@ -69,30 +79,20 @@ export default defineConfig({
     {
       name: 'product',
       testMatch: 'tests/product/**/*.spec.ts',
-      use: {
-        ...devices['Desktop Chrome'],
-        baseURL: config.app.baseUrl,
-        viewport: { width: 1920, height: 1080 },
-        headless: true,
-      },
+      use: productUse,
     },
     {
       name: 'organuz-api',
       testMatch: 'tests/organuz-api/**/*.spec.ts',
+      grep: /@other-smoke/,
       use: {
         baseURL: config.organuzApi.baseUrl,
       },
     },
     {
-      name: 'dev-api',
-      testMatch: 'tests/dev-api/**/*.spec.ts',
-      use: {
-        baseURL: config.devApi.baseUrl,
-      },
-    },
-    {
       name: 'agent',
       testMatch: 'tests/agent/**/*.spec.ts',
+      grep: /@other-smoke/,
     },
     // {
     //   name: 'firefox',

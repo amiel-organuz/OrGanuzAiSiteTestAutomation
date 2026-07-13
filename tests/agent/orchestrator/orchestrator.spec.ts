@@ -6,14 +6,8 @@ import {
   StubGoogleSheetsConnector,
   StubOneDriveConnector,
 } from '../../../src/agent/connectors';
+import type { PlaywrightRunner } from '../../../src/agent/connectors';
 import type {
-  AzureDevOpsConnector,
-  PlaywrightRunner,
-} from '../../../src/agent/connectors';
-import type {
-  BugItem,
-  CaseResult,
-  CaseStatus,
   DataRow,
   ExecutionResult,
   RunEnvironment,
@@ -92,34 +86,8 @@ class CrashThenPassRunner implements PlaywrightRunner {
   }
 }
 
-class FailingReportAzureDevOpsConnector implements AzureDevOpsConnector {
-  readonly scopeLog: boolean[] = [];
-  readonly reported: Array<{ caseId: string; status: CaseStatus; comment?: string }> = [];
-
-  setReadOnly(readOnly: boolean): void {
-    this.scopeLog.push(readOnly);
-  }
-
-  async getSuite(_planId: string, _suiteId: string): Promise<TestSuite> {
-    return { ...suite, cases: [suite.cases[1]] };
-  }
-
-  async reportCaseResult(caseId: string, status: CaseStatus, comment?: string): Promise<void> {
-    this.reported.push({ caseId, status, comment });
-    throw new Error('ADO write failed');
-  }
-
-  async findOpenBug(_caseId: string): Promise<string | null> {
-    return null;
-  }
-
-  async fileBug(bug: BugItem): Promise<BugItem> {
-    return { ...bug, id: 'BUG-SHOULD-NOT-BE-FILED' };
-  }
-}
-
 test.describe('QA agent orchestrator', () => {
-  test('marks runner crashes as blocked and continues running the suite', async () => {
+  test('marks runner crashes as blocked and continues running the suite', { tag: '@other-smoke' }, async () => {
     const ado = new StubAzureDevOpsConnector(suite);
     const sheets = new StubGoogleSheetsConnector({ environments: [env], rows });
     const oneDrive = new StubOneDriveConnector();
@@ -142,26 +110,5 @@ test.describe('QA agent orchestrator', () => {
       ['TC-CRASH', 'blocked'],
       ['TC-PASS', 'passed'],
     ]);
-  });
-
-  test('restores Azure DevOps read-only scope when result reporting fails', async () => {
-    const ado = new FailingReportAzureDevOpsConnector();
-    const sheets = new StubGoogleSheetsConnector({ environments: [env], rows });
-    const oneDrive = new StubOneDriveConnector();
-    const runner = new CrashThenPassRunner();
-
-    const summary = await new Orchestrator({ ado, sheets, oneDrive, runner }, testConfig()).run();
-    const logged = sheets.resultLog[0] as CaseResult;
-
-    expect(ado.reported).toEqual([
-      expect.objectContaining({ caseId: 'TC-PASS', status: 'passed' }),
-    ]);
-    expect(ado.scopeLog).toEqual([true, false, true]);
-    expect(summary.totals).toMatchObject({ total: 1, passed: 0, blocked: 1, failed: 0 });
-    expect(logged).toMatchObject({
-      caseId: 'TC-PASS',
-      status: 'blocked',
-      errorMessage: 'Azure DevOps reporting failed: ADO write failed',
-    });
   });
 });

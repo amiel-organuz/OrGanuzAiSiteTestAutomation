@@ -2,6 +2,7 @@ node_modules
 dist
 __pycache__/
 *.py[cod]
+venv/
 
 # Local env / secrets (dev & test credentials are Restricted — never commit)
 .env
@@ -27,3 +28,6 @@ blob-report/
 
 # Claude Code local settings (machine-specific)
 .claude/settings.local.json
+
+# Per-role authenticated sessions saved by the product-setup project
+playwright/.auth/

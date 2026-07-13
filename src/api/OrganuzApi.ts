@@ -1,5 +1,9 @@
 import { APIResponse } from '@playwright/test';
 import { ApiClient, RequestOptions } from './ApiClient';
+import { RestApiConstants } from './RestApiConstants';
+
+const { Tables, SELECT_ALL, Headers, Prefer } = RestApiConstants;
+const PROJECTS_PATH = RestApiConstants.resource(Tables.projects);
 
 /**
  * Thin service wrapper over the organuz Supabase/PostgREST API.
@@ -10,31 +14,31 @@ export class OrganuzApi {
 
   /** GET /rest/v1/projects — full table (select=* by default). */
   getProjects(opts: RequestOptions = {}): Promise<APIResponse> {
-    return this.client.get('/rest/v1/projects', {
+    return this.client.get(PROJECTS_PATH, {
       ...opts,
-      params: { select: '*', ...(opts.params ?? {}) },
+      params: { select: SELECT_ALL, ...(opts.params ?? {}) },
     });
   }
 
   /** GET a single project row filtered by its UUID. */
   getProjectById(id: string, opts: RequestOptions = {}): Promise<APIResponse> {
-    return this.client.get('/rest/v1/projects', {
+    return this.client.get(PROJECTS_PATH, {
       ...opts,
-      params: { id: `eq.${id}`, select: '*', ...(opts.params ?? {}) },
+      params: { id: RestApiConstants.eq(id), select: SELECT_ALL, ...(opts.params ?? {}) },
     });
   }
 
   /** GET an arbitrary REST resource (used for negative/unknown-table checks). */
   getTable(table: string, opts: RequestOptions = {}): Promise<APIResponse> {
-    return this.client.get(`/rest/v1/${table}`, {
+    return this.client.get(RestApiConstants.resource(table), {
       ...opts,
-      params: { select: '*', ...(opts.params ?? {}) },
+      params: { select: SELECT_ALL, ...(opts.params ?? {}) },
     });
   }
 
   /** Attempt an insert — expected to be rejected by row-level security for the anon role. */
   insertProject(payload: unknown, opts: RequestOptions = {}): Promise<APIResponse> {
-    return this.client.post('/rest/v1/projects', { ...opts, data: payload });
+    return this.client.post(PROJECTS_PATH, { ...opts, data: payload });
   }
 
   /**
@@ -43,10 +47,10 @@ export class OrganuzApi {
    * modified). Pass a non-existent id to guarantee no real row is ever targeted.
    */
   updateProject(id: string, payload: unknown, opts: RequestOptions = {}): Promise<APIResponse> {
-    return this.client.patch('/rest/v1/projects', {
+    return this.client.patch(PROJECTS_PATH, {
       ...opts,
-      params: { id: `eq.${id}`, ...(opts.params ?? {}) },
-      headers: { Prefer: 'return=representation', ...(opts.headers ?? {}) },
+      params: { id: RestApiConstants.eq(id), ...(opts.params ?? {}) },
+      headers: { [Headers.prefer]: Prefer.returnRepresentation, ...(opts.headers ?? {}) },
       data: payload,
     });
   }
@@ -57,10 +61,10 @@ export class OrganuzApi {
    * removed). Pass a non-existent id to guarantee no real row is ever targeted.
    */
   deleteProject(id: string, opts: RequestOptions = {}): Promise<APIResponse> {
-    return this.client.delete('/rest/v1/projects', {
+    return this.client.delete(PROJECTS_PATH, {
       ...opts,
-      params: { id: `eq.${id}`, ...(opts.params ?? {}) },
-      headers: { Prefer: 'return=representation', ...(opts.headers ?? {}) },
+      params: { id: RestApiConstants.eq(id), ...(opts.params ?? {}) },
+      headers: { [Headers.prefer]: Prefer.returnRepresentation, ...(opts.headers ?? {}) },
     });
   }
 }

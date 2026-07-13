@@ -1,5 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
-import { ProductAppPage } from '../support/ProductAppPage';
+import { expect, test } from '@playwright/test';
 import {
   ALL_MATRIX_SCENARIOS,
   EXPECTED_MAIN_SCENARIO_IDS,
@@ -9,14 +8,11 @@ import {
   POLYGON_TYPES,
   PRODUCT_PERSONAS,
   PROPERTY_TYPES,
+  RAMOT_SCENARIOS,
   ROOF_SURFACE_TYPES,
   RUNTIME_ONLY_FIELDS,
   UI_ONLY_SCENARIOS,
-  type ProductPersona,
-  type PropertyCharacterizationData,
 } from './e2e-matrix.data';
-
-const productE2eEnabled = process.env.PRODUCT_E2E_ENABLED === 'true';
 
 test.describe('Product E2E matrix data contract', { tag: '@product' }, () => {
   test('keeps runtime-only values out of checked-in matrix data', () => {
@@ -78,95 +74,52 @@ test.describe('Product E2E matrix data contract', { tag: '@product' }, () => {
     });
     expect(MAIN_E2E_SCENARIOS.map((scenario) => scenario.id)).not.toContain('CALC-ROOF-022');
   });
-});
 
-test.describe('Product calculator and quotation E2E matrix', { tag: ['@product', '@critical'] }, () => {
-  test.skip(
-    !productE2eEnabled,
-    'Set PRODUCT_E2E_ENABLED=true plus persona credentials to run live product E2E flows.',
-  );
+  test('assigns a unique id to every matrix scenario', () => {
+    const ids = ALL_MATRIX_SCENARIOS.map((scenario) => scenario.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
 
-  for (const scenario of MAIN_E2E_SCENARIOS) {
-    for (const persona of PRODUCT_PERSONAS) {
-      test(`${scenario.id} - ${persona.name} completes characterization and reaches expected destination`, async ({ page }) => {
-        await runSuccessfulCharacterization(page, persona, scenario);
-      });
+  test('keeps arena type consistent with each scenario group', () => {
+    for (const scenario of MAIN_E2E_SCENARIOS) {
+      expect(scenario.arenaType, `${scenario.id} is on the main arena`).toBe('ARENA_TYPE_MAIN');
     }
-  }
+    for (const scenario of RAMOT_SCENARIOS) {
+      expect(scenario.arenaType, `${scenario.id} is on the ramot arena`).toBe('ARENA_TYPE_RAMOT');
+    }
+  });
 
-  for (const scenario of NEGATIVE_PANEL_SCENARIOS) {
-    test(`${scenario.id} shows insufficient panels and does not continue to quotations`, async ({ page }) => {
-      const persona = PRODUCT_PERSONAS.find((candidate) => candidate.id === 'customer');
-      expect(persona).toBeDefined();
+  test('keeps the negative scenario below the quotable panel minimum', () => {
+    const quotableMinimum = Math.min(
+      ...MAIN_E2E_SCENARIOS.filter((scenario) => scenario.panelMode === 'quotable').map(
+        (scenario) => scenario.minimumPanelCount,
+      ),
+    );
+    for (const scenario of NEGATIVE_PANEL_SCENARIOS) {
+      expect(scenario.panelMode).toBe('below-minimum');
+      expect(scenario.minimumPanelCount).toBeLessThan(quotableMinimum);
+    }
+  });
 
-      const app = new ProductAppPage(page);
-      await app.login(credentialsFor(persona as ProductPersona));
-      await app.createProject(scenario);
-      await app.characterizeRoof(scenario);
-      await app.expectInsufficientPanelsModal();
-      expect(app.captureRuntimeIds().quotationId).toBeFalsy();
-    });
-  }
+  test('grants elevated company privileges to exactly one persona', () => {
+    const withManagement = PRODUCT_PERSONAS.filter((persona) => persona.canOpenCompanyManagement);
+    const withPricing = PRODUCT_PERSONAS.filter((persona) => persona.canOpenCompanyPricing);
+    expect(withManagement.map((persona) => persona.id)).toEqual(['company']);
+    expect(withPricing.map((persona) => persona.id)).toEqual(['company']);
 
-  test('Company Employee can characterize a property but is blocked from company pricing and management', async ({ page }) => {
-    const persona = PRODUCT_PERSONAS.find((candidate) => candidate.id === 'company-employee');
-    expect(persona).toBeDefined();
+    const employee = PRODUCT_PERSONAS.find((persona) => persona.id === 'company-employee');
+    expect(employee?.canOpenCompanyManagement).toBe(false);
+    expect(employee?.canOpenCompanyPricing).toBe(false);
+    expect(employee?.canOpenQuotationsFromResults).toBe(false);
+  });
 
-    const app = new ProductAppPage(page);
-    await app.login(credentialsFor(persona as ProductPersona));
-    await app.createProject(MAIN_E2E_SCENARIOS[0]);
-    await app.characterizeRoof(MAIN_E2E_SCENARIOS[0]);
-    await app.answerFunding(MAIN_E2E_SCENARIOS[0]);
-    await app.expectPostFundingDestination(persona as ProductPersona);
-
-    await app.expectAccessBlocked(process.env.PRODUCT_COMPANY_PRICING_PATH ?? '/company/pricing');
-    await app.expectAccessBlocked(process.env.PRODUCT_COMPANY_MANAGEMENT_PATH ?? '/company/management');
+  test('aligns panel counts with each scenario panel mode', () => {
+    for (const scenario of ALL_MATRIX_SCENARIOS) {
+      if (scenario.panelMode === 'quotable') {
+        expect(scenario.minimumPanelCount, `${scenario.id} needs a quotable minimum`).toBeGreaterThanOrEqual(5);
+      } else if (scenario.panelMode === 'none') {
+        expect(scenario.minimumPanelCount, `${scenario.id} marks no panels`).toBe(0);
+      }
+    }
   });
 });
-
-async function runSuccessfulCharacterization(
-  page: Page,
-  persona: ProductPersona,
-  scenario: PropertyCharacterizationData,
-): Promise<void> {
-  const credentials = credentialsFor(persona);
-  const app = new ProductAppPage(page);
-
-  const loginRuntime = await app.login(credentials);
-  const projectRuntime = await app.createProject(scenario);
-  const roofRuntime = await app.characterizeRoof(scenario);
-  const fundingRuntime = await app.answerFunding(scenario);
-
-  expect(mergeRuntimeIds(loginRuntime, projectRuntime, roofRuntime, fundingRuntime).projectId).toBeTruthy();
-  await app.expectPostFundingDestination(persona);
-
-  if (persona.canOpenQuotationsFromResults && persona.expectedPostFundingDestination === 'results') {
-    await app.openQuotationsFromResults();
-  }
-
-  if (persona.id === 'company') {
-    await app.downloadOwnQuotation();
-  }
-}
-
-function credentialsFor(persona: ProductPersona) {
-  const key = persona.id.toUpperCase().replace(/-/g, '_');
-  const phone = process.env[`${key}_PHONE`];
-  const otpCode = process.env[`${key}_OTP_CODE`];
-  const email = process.env[`${key}_EMAIL`];
-  const password = process.env[`${key}_PASSWORD`];
-
-  if (phone) {
-    return { phone, otpCode };
-  }
-
-  if (email && password) {
-    return { email, password };
-  }
-
-  throw new Error(`Missing ${key}_PHONE or ${key}_EMAIL/${key}_PASSWORD for product E2E persona ${persona.id}.`);
-}
-
-function mergeRuntimeIds<T extends object[]>(...ids: T) {
-  return Object.assign({}, ...ids);
-}

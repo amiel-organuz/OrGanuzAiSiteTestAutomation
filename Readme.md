@@ -4,7 +4,7 @@ Playwright TypeScript automation for `www.organuz.ai` and the Organuz product ap
 
 ## Stack
 
-- Playwright for marketing UI, product E2E matrix, Organuz Supabase backend API, dev product-app RPC gateway, and agent-orchestrator regression tests
+- Playwright for marketing UI, product smoke/registration/matrix/role flows, Organuz Supabase backend API, dev product-app RPC gateway, and agent-orchestrator regression tests
 - TypeScript for test and framework code
 - FastAPI service for local API endpoints and health checks
 - Scalar API reference for external OpenAPI documentation
@@ -55,14 +55,15 @@ Playwright TypeScript automation for `www.organuz.ai` and the Organuz product ap
     |   `-- support/           # FlamiingoApi RPC client + fixtures
     |-- product/
     |   |-- matrix/            # product E2E matrix data + specs (credential-gated)
-    |   |-- flows/             # gated full-flow + role sanity specs
+    |   |-- flows/             # registration, full-flow, role specs (roles, areas, session, sanity, logout)
     |   |-- api/               # gated product role backend API checks
     |   |-- smoke/             # credential-free public calculator shell checks
-    |   `-- support/           # product app page helpers, ProductFlows, fixtures
+    |   `-- support/           # page helpers, ProductFlows, fixtures, product-setup auth (storageState)
     |-- ui/
     |   |-- content/           # blog, FAQ, agents, projects, static pages
     |   |-- diagnostics/       # expected-failure pipeline checks
     |   |-- flows/             # cross-section critical user journeys
+    |   |-- support/           # UI-only flow fixtures such as siteFlows
     |   `-- homepage/          # hero, navigation, contact
     `-- constants.ts
 ```
@@ -81,7 +82,7 @@ Run all tests locally with the project defaults:
 npm test
 ```
 
-`npm test` runs every project configured in `playwright.config.ts`: `chromium`, `product`, `organuz-api`, `dev-api`, and the internal `agent` orchestrator project. Product live browser flows stay gated unless `PRODUCT_E2E_ENABLED=true` and persona credentials are set.
+`npm test` runs every project configured in `playwright.config.ts`: `chromium`, `product`, `product-setup`, `product-authenticated`, `organuz-api`, `dev-api`, and the internal `agent` orchestrator project. Product live browser flows stay gated unless `PRODUCT_E2E_ENABLED=true` and persona credentials are set. Non-product projects are intentionally default-filtered to exactly five `@other-smoke` tests total: two UI checks, one Organuz API contract, one dev RPC contract, and one agent orchestrator regression.
 
 Run the full local automation flow:
 
@@ -97,13 +98,13 @@ Run only UI tests:
 npm run test:ui
 ```
 
-Run the product E2E matrix:
+Run the 50-test product E2E matrix:
 
 ```bash
 npm run test:product
 ```
 
-The product matrix is data-driven from `tests/product/matrix/e2e-matrix.data.ts`. It includes:
+The product suite is split into the plain `product` project and the role-session `product-authenticated` project. The matrix is data-driven from `tests/product/matrix/e2e-matrix.data.ts` and includes:
 
 - 12 main `CALC-ROOF-*` characterization scenarios from the working document.
 - 4 personas per main scenario: customer, consultant, company, and company employee.
@@ -113,7 +114,15 @@ The product matrix is data-driven from `tests/product/matrix/e2e-matrix.data.ts`
 - Negative coverage for fewer than 5 panels.
 - UI-only tracking for the no-panel case, where the request should not be sent.
 
-The `product` project also includes a credential-free smoke spec (`tests/product/smoke/product-app.smoke.spec.ts`) that runs unconditionally. It exercises the public calculator shell served before login — the Organuz title, arena entry points, register/login entry, the four-step characterization stepper, the address step, and the disabled "continue" state — so the project has real runnable coverage even without persona credentials.
+`npm run test:product` is intentionally scoped to the 50 live E2E matrix tests in `Product calculator and quotation E2E matrix`: 48 main scenario/persona combinations, one insufficient-panels negative case, and one company-employee access-blocking case.
+
+For the broader product suite, use:
+
+```bash
+npm run test:product:all
+```
+
+The broader `product` project also includes credential-free smoke specs and registration coverage. Smoke checks exercise the public calculator shell served before login — the Organuz title, arena entry points, register/login entry, the four-step characterization stepper, the address step, and the disabled "continue" state — so the project has real runnable coverage even without persona credentials. Registration specs cover property-owner form validation, required terms consent, invalid mobile gating, optional consent behavior, full property-owner signup, and company/consultant lead-form redirects.
 
 The live persona browser flows are opt-in until live app credentials and stable selectors are available:
 
@@ -127,6 +136,8 @@ npm run test:product
 ```
 
 Email/password variables are still supported as a fallback, but the live app currently exposes a phone/OTP login path.
+
+Under the hood, only the `product-authenticated` project depends on `product-setup` (`tests/product/support/auth.setup.ts`). Setup logs each authenticated role — `customer`, `consultant`, `company` — in once and saves its `storageState` to `playwright/.auth/` (gitignored). The per-role specs (`roles`, `role-areas`, `role-session`, `role-sanity`, `role-backend`) then resume that saved session via `test.use({ authRole })` + `product.resumeSession()` instead of logging in again, so those specs perform at most one OTP send per role. Registration, smoke, matrix, full-flow, and sign-out stay in the plain `product` project so they do not trigger shared auth setup unnecessarily. `company-employee` has no phone and cannot sign in.
 
 By default, broad lower-priority marketing suites tagged `@low-priority` are excluded. Set `INCLUDE_LOW_PRIORITY_TESTS=true` to include them.
 
@@ -144,7 +155,7 @@ Run the dev product-app API tests:
 npx playwright test --project=dev-api
 ```
 
-The `dev-api` project targets the dev/test product-app backend at `organuz.flamiingo.com` (`config.json → devApi`). It is not REST but an RPC gateway: every call is `POST /` with a form body `action=token&token=<token>&call=<method>`, returning a JSON `{ status: "ok", ... }` envelope. The tests cover the read-only public methods the app calls before login (`get_arena_types`, `get_remaining_projects`) plus envelope invariants and RPC negative/security cases, using the public token baked into the app bundle.
+The `dev-api` project targets the dev/test product-app backend at `organuz.flamiingo.com` (`config.json → devApi`). It is not REST but an RPC gateway: every call is `POST /` with a form body `action=token&token=<token>&call=<method>`, returning a JSON `{ status: "ok", ... }` envelope. The tests cover the read-only public methods the app calls before login (`get_arena_types`, `get_remaining_projects`) plus envelope invariants, token/input hardening, and RPC negative/security cases, using the public token baked into the app bundle.
 
 Run the agent regression tests:
 
@@ -188,7 +199,7 @@ npm run agent:current-tests
 | --- | --- |
 | `PW-ORGANUZ-API` | `npx playwright test --project=organuz-api` |
 | `PW-CHROMIUM` | `npx playwright test --project=chromium` |
-| `PW-PRODUCT` | `npx playwright test --project=product` |
+| `PW-PRODUCT` | `npx playwright test --project=product --grep "Product calculator and quotation E2E matrix"` |
 | `PW-AGENT` | `npx playwright test --project=agent` |
 
 The command exits non-zero if any mapped project fails or is blocked.
@@ -346,12 +357,14 @@ The Playwright projects are:
 
 | Project | Test files | Target | Typical command |
 | --- | --- | --- | --- |
-| `chromium` | `tests/ui/**/*.spec.ts` | Marketing site `https://www.organuz.ai` (prod) | `npx playwright test --project=chromium` |
-| `product` | `tests/product/**/*.spec.ts` | Product calculator app, environment from `QA_TARGET_ENV` (default dev `https://dev1.app.organize.organuz.com`) | `npx playwright test --project=product` |
-| `organuz-api` | `tests/organuz-api/**/*.spec.ts` | Organuz Supabase/PostgREST backend (`/rest/v1/projects`, edge functions) | `npx playwright test --project=organuz-api` |
-| `dev-api` | `tests/dev-api/**/*.spec.ts` | Dev product-app RPC gateway `organuz.flamiingo.com` (`get_arena_types`, `get_remaining_projects`, error envelopes) | `npx playwright test --project=dev-api` |
+| `chromium` | `tests/ui/**/*.spec.ts` filtered to `@other-smoke` | Marketing site `https://www.organuz.ai` (prod) | `npx playwright test --project=chromium` |
+| `product` | Product specs that do not need shared role storage | Product calculator app, environment from `QA_TARGET_ENV` (default dev `https://dev1.app.organize.organuz.com`) | `npx playwright test --project=product` |
+| `product-setup` | `tests/product/support/auth.setup.ts` | Logs each product role in once and saves its `storageState` | runs automatically as a `product-authenticated` dependency |
+| `product-authenticated` | Per-role product specs that resume saved sessions | Authenticated customer / consultant / company role coverage | `npx playwright test --project=product-authenticated` |
+| `organuz-api` | `tests/organuz-api/**/*.spec.ts` filtered to `@other-smoke` | Organuz Supabase/PostgREST backend (`/rest/v1/projects`, edge functions) | `npx playwright test --project=organuz-api` |
+| `dev-api` | `tests/dev-api/**/*.spec.ts` filtered to `@other-smoke` | Dev product-app RPC gateway `organuz.flamiingo.com` (`get_arena_types`, `get_remaining_projects`, error envelopes) | `npx playwright test --project=dev-api` |
 
-The `agent` project (`tests/agent/**/*.spec.ts`) also exists for orchestrator regression coverage but is internal.
+The `agent` project (`tests/agent/**/*.spec.ts`, filtered to `@other-smoke`) also exists for orchestrator regression coverage but is internal.
 
 Real credentials and local overrides live only in a gitignored `.env` (Restricted). The dev and test product apps sit behind a shared password gate; dev login uses phone + a fixed OTP `7777`. `.env.example` documents every variable with placeholders — never commit `.env` or move secrets into tracked files.
 
@@ -373,9 +386,9 @@ Local service URL variables used by `scripts/run-all-tests.sh`:
 The parallel pipeline in `.github/workflows/parallel-tests.yml` runs:
 
 - `typecheck`
-- Playwright `chromium`, `organuz-api`, and `dev-api` projects in parallel (matrix)
+- Playwright `chromium`, `organuz-api`, and `dev-api` projects in parallel (matrix), each filtered to its `@other-smoke` default checks
 - A credential-free product smoke job (`npx playwright test --project=product --grep @smoke`) against prod
-- The full product persona matrix and agent orchestrator regression tests are available locally as the `product` and `agent` projects; add them to CI separately if you want the pipeline to gate on those flows.
+- The 50-test product E2E matrix is available locally via `npm run test:product`; the broader product suite is available via `npm run test:product:all`. Add either to CI separately if you want the pipeline to gate on those flows.
 - FastAPI, Scalar API reference, Prometheus, and Grafana service smoke checks
 - Allure 3 report generation
 - GitHub Pages deployment for the Allure report on `main` or `master`
@@ -406,6 +419,6 @@ Set these repository variables when the summary should point to externally reach
 
 Open [Architecture.html](Architecture.html) in a browser for a pastel, single-file visual overview of the Docker Compose services, CLI flow, GitHub Actions pipeline, report publishing, the QA agent orchestrator, product matrix, QA dashboard, and project structure.
 
-The test suite is organized by subject under `tests/`: UI homepage/content/flows/diagnostics, Organuz backend API contracts/resources/security/functions, dev product-app RPC contracts/security/support, product matrix/flows/api/smoke/support, and agent orchestrator coverage.
+The test suite is organized by subject under `tests/`: UI homepage/content/flows/support/diagnostics, Organuz backend API contracts/resources/security/functions, dev product-app RPC contracts/security/support, product smoke/registration/matrix/role flows/API/support, and agent orchestrator coverage.
 
 For the QA agent specifically — its architecture diagram, the orchestration loop, the design decisions it encodes, and how to swap stubs for real connectors — see [`src/agent/README.md`](src/agent/README.md).

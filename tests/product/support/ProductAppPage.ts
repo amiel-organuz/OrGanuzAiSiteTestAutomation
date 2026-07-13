@@ -5,12 +5,24 @@ import {
   type PropertyCharacterizationData,
 } from '../matrix/e2e-matrix.data';
 import { unlockProductEnvironment } from './env-gate';
+import { OtpUnavailableError, AppUnavailableError, APP_UNAVAILABLE_REASON } from './errors';
+
+// Re-export so existing importers (the matrix spec) can keep importing from here.
+export { OtpUnavailableError, AppUnavailableError, APP_UNAVAILABLE_REASON } from './errors';
 
 export interface ProductCredentials {
   readonly phone?: string;
   readonly otpCode?: string;
   readonly email?: string;
   readonly password?: string;
+}
+
+/** Details for a fresh self-serve property-owner ("בעלי נכסים") registration. */
+export interface NewCustomerAccount {
+  readonly firstName: string;
+  readonly lastName: string;
+  readonly phone: string;
+  readonly email: string;
 }
 
 export interface ProductRuntimeIds {
@@ -27,6 +39,12 @@ export class ProductAppPage {
     await this.page.goto(process.env.PRODUCT_LOGIN_PATH ?? '/');
     // DEV/TEST sit behind a shared password gate before the app loads (no-op on prod).
     await unlockProductEnvironment(this.page);
+
+    // The calculator shell must render; if only the header loads, the backend is down —
+    // surface it so the caller skips instead of failing on a missing phone field etc.
+    if (!(await this.isAppShellLoaded())) {
+      throw new AppUnavailableError(APP_UNAVAILABLE_REASON);
+    }
 
     // Idempotent: a persisted session ("זכרו אותי") may already be authenticated.
     if (await this.isLoggedIn()) {
@@ -60,7 +78,16 @@ export class ProductAppPage {
           this.page.getByRole('button', { name: /שלחו שנית|resend|send.*again/i }),
           sendCode,
         ]).catch(() => undefined);
-        await otpHeading.waitFor({ state: 'visible', timeout: 15_000 });
+        try {
+          await otpHeading.waitFor({ state: 'visible', timeout: 15_000 });
+        } catch {
+          // Dev limits OTP sends per phone; when a number is hammered (exploration +
+          // reruns of the other product specs) the code step never renders until a
+          // cooldown. Environmental — surface it so the caller can skip. See the skill.
+          throw new OtpUnavailableError(
+            `OTP step never rendered for ${credentials.phone} — dev OTP rate-limit cooldown.`,
+          );
+        }
       }
 
       if (credentials.otpCode) {
@@ -89,7 +116,120 @@ export class ProductAppPage {
     // Avoid networkidle: the calculator's embedded map iframe keeps the network busy.
     await this.page.waitForLoadState('domcontentloaded');
 
+    // Verify the session is actually authenticated. When phone auth was used but the app
+    // still shows the login entry point, the dev OTP rate-limit (or a dropped code step)
+    // prevented sign-in. Surface it so the caller skips, rather than returning a half-
+    // logged-in session that fails a later identity/nav assertion confusingly.
+    if (credentials.phone && !(await this.isLoggedIn())) {
+      throw new OtpUnavailableError(
+        `Login did not authenticate ${credentials.phone} — likely dev OTP rate-limit cooldown.`,
+      );
+    }
+
     return this.captureRuntimeIds();
+  }
+
+  // --- Registration ---------------------------------------------------------
+  // Property owners self-register in-app (the flow below); solar companies and
+  // entrepreneurs (company/consultant) are not self-serve — their "הירשמו כאן"
+  // opens the marketing-site contact/lead form instead (openSolarCompanyRegistration).
+
+  /**
+   * Open the property-owner ("הרשמת בעלי נכסים") self-registration form. The login
+   * dialog lists two "הירשמו כאן" CTAs — [0] property owners, [1] solar company /
+   * entrepreneur; this opens the first. Throws AppUnavailableError if the shell (hence
+   * the login dialog) never renders, so callers skip rather than fail.
+   */
+  async openCustomerRegistration(): Promise<void> {
+    if (!(await this.isAppShellLoaded())) {
+      throw new AppUnavailableError(APP_UNAVAILABLE_REASON);
+    }
+    await this.openLoginDialogIfNeeded();
+    await this.page.getByRole('button', { name: 'הירשמו כאן' }).first().click();
+    await expect(this.page.getByRole('heading', { name: 'הרשמת בעלי נכסים' })).toBeVisible({ timeout: 15_000 });
+  }
+
+  /** The property-owner registration submit button ("הרשמה והתחברות"). */
+  registrationSubmitButton(): Locator {
+    return this.page.getByRole('button', { name: 'הרשמה והתחברות' });
+  }
+
+  /** Required terms consent checkbox ("תקנון האתר"). */
+  registrationTermsCheckbox(): Locator {
+    return this.page.getByRole('checkbox').first();
+  }
+
+  /** Optional marketing/updates consent checkbox; it must not gate registration. */
+  registrationOptionalConsentCheckbox(): Locator {
+    return this.page.getByRole('checkbox').nth(1);
+  }
+
+  /** Fill the four registration text fields (name, phone, email) — not the consent boxes. */
+  async fillCustomerRegistrationFields(account: NewCustomerAccount): Promise<void> {
+    await this.page.getByRole('textbox', { name: 'שם פרטי' }).fill(account.firstName);
+    await this.page.getByRole('textbox', { name: 'שם משפחה' }).fill(account.lastName);
+    await this.page.getByRole('textbox', { name: 'טלפון נייד' }).fill(account.phone);
+    await this.page.getByRole('textbox', { name: 'דואר אלקטרוני' }).fill(account.email);
+  }
+
+  /** Tick the required terms consent ("תקנון האתר"); the first checkbox in the form. */
+  async acceptRegistrationTerms(): Promise<void> {
+    const terms = this.registrationTermsCheckbox();
+    if (!(await terms.isChecked())) {
+      await terms.check();
+    }
+  }
+
+  /**
+   * Submit the filled registration, complete the OTP step (same 4-box code dialog as
+   * login), and confirm the new session is authenticated. Throws OtpUnavailableError —
+   * which callers turn into a skip — if the OTP step never renders or sign-in doesn't
+   * take (dev OTP rate-limit / an already-registered phone).
+   */
+  async submitCustomerRegistration(otpCode: string): Promise<void> {
+    await expect(this.registrationSubmitButton()).toBeEnabled({ timeout: 10_000 });
+    await this.registrationSubmitButton().click();
+
+    const otpHeading = this.page
+      .getByRole('heading', { name: /הזנת קוד|verification|קוד אימות|enter.*code/i })
+      .first();
+    try {
+      await otpHeading.waitFor({ state: 'visible', timeout: 20_000 });
+    } catch {
+      throw new OtpUnavailableError(
+        'Registration OTP step never rendered — dev OTP rate-limit cooldown or phone already registered.',
+      );
+    }
+
+    await this.fillOtpCode(otpCode);
+    await this.clickFirstVisible([
+      this.page.getByTestId('verify-otp'),
+      this.page.getByRole('button', { name: /אישור והתחברות|verify|continue|login|אימות|המשך|כניסה/i }),
+    ]);
+    await this.page.waitForLoadState('domcontentloaded');
+
+    if (!(await this.isLoggedIn())) {
+      throw new OtpUnavailableError(
+        'Registration did not authenticate the new account — likely dev OTP rate-limit cooldown.',
+      );
+    }
+  }
+
+  /**
+   * Open the solar-company / entrepreneur registration ("חברה סולארית? יזם סולארי?").
+   * This is NOT a self-serve in-app form: it opens the marketing-site contact/lead form
+   * (organuz.ai/#contact) in a new tab, which this returns for the caller to assert on.
+   */
+  async openSolarCompanyRegistration(): Promise<Page> {
+    if (!(await this.isAppShellLoaded())) {
+      throw new AppUnavailableError(APP_UNAVAILABLE_REASON);
+    }
+    await this.openLoginDialogIfNeeded();
+    const popupPromise = this.page.waitForEvent('popup');
+    await this.page.getByRole('button', { name: 'הירשמו כאן' }).nth(1).click();
+    const popup = await popupPromise;
+    await popup.waitForLoadState('domcontentloaded');
+    return popup;
   }
 
   /**
@@ -184,7 +324,7 @@ export class ProductAppPage {
       this.page.getByTestId('roof-next'),
       this.page.getByRole('button', { name: /calculate|next|continue|חשב|המשך/i }),
     ]);
-    await this.page.waitForLoadState('networkidle');
+    await this.expectRoofCalculationDestination(data);
 
     return this.captureRuntimeIds();
   }
@@ -207,7 +347,7 @@ export class ProductAppPage {
       this.page.getByTestId('funding-next'),
       this.page.getByRole('button', { name: /next|continue|finish|סיום|המשך/i }),
     ]);
-    await this.page.waitForLoadState('networkidle');
+    await expect(this.page).toHaveURL(/quotation|quote|result|summary|pricing/i);
 
     return this.captureRuntimeIds();
   }
@@ -308,6 +448,31 @@ export class ProductAppPage {
     ).toBeVisible();
   }
 
+  /**
+   * True when the calculator shell has rendered (property-type buttons or the step
+   * tracker). When the backend is down the app shows only its header, so this stays
+   * false — callers treat that as an environmental outage and skip. The header's
+   * `הרשמה / כניסה` / `עברית` render even when the backend is down, so they are NOT a
+   * reliable signal; the calculator content is.
+   */
+  async isAppShellLoaded(): Promise<boolean> {
+    const shell = this.page
+      .getByRole('button', { name: /בית פרטי/ })
+      .or(this.page.getByRole('list', { name: 'התקדמות השלבים' }))
+      .first();
+    return shell.isVisible({ timeout: 15_000 }).catch(() => false);
+  }
+
+  /**
+   * True when the app is authenticated (the public login entry point is gone). Public so
+   * callers can gate on a restored storageState session without the page object making
+   * test-lifecycle decisions itself.
+   */
+  async isAuthenticated(): Promise<boolean> {
+    await this.page.waitForLoadState('domcontentloaded');
+    return this.isLoggedIn();
+  }
+
   /** True when the app is already authenticated (login entry point is gone). */
   private async isLoggedIn(): Promise<boolean> {
     const loginEntry = this.page
@@ -382,6 +547,22 @@ export class ProductAppPage {
   private async markMinimumQuotableRoof(panelCount: number): Promise<void> {
     await this.fillIfVisible(this.page.getByTestId('panel-count'), String(panelCount));
     await this.fillIfVisible(this.page.getByLabel(/panel|פאנל/i), String(panelCount));
+  }
+
+  private async expectRoofCalculationDestination(data: PropertyCharacterizationData): Promise<void> {
+    if (data.panelMode === 'below-minimum') {
+      await this.expectInsufficientPanelsModal();
+      return;
+    }
+
+    await expect(
+      this.page
+        .getByTestId('financing-yes')
+        .or(this.page.getByTestId('financing-no'))
+        .or(this.page.getByRole('radio', { name: /yes|interested|no|not now|כן|מעוניין|לא/i }))
+        .or(this.page.getByRole('button', { name: /yes|interested|no|not now|כן|מעוניין|לא/i }))
+        .first(),
+    ).toBeVisible({ timeout: 45_000 });
   }
 
   private async fillIfVisible(locator: Locator, value: string): Promise<boolean> {

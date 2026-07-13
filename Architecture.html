@@ -369,6 +369,7 @@
     <a href="#diagram">Diagram</a>
     <a href="#flow">Flow</a>
     <a href="#services">Services</a>
+    <a href="#tests">Tests</a>
     <a href="#mock">Backend API</a>
     <a href="#ci">CI/CD</a>
     <a href="#structure">Structure</a>
@@ -379,7 +380,7 @@
       <span class="eyebrow">Pastel architecture map</span>
       <h1>Playwright automation with Product E2E Matrix, QA orchestration, FastAPI, Scalar, Grafana, Prometheus, Organuz Supabase API tests, and Allure 3</h1>
       <p class="subtitle">
-        A single-file architecture view for the OrGanuz AI site automation stack. Local runs start the runtime services, execute the Playwright projects, generate Allure 3, and print the main service links. The product project tracks the calculator/property-characterization E2E matrix across personas, roof and polygon types, panel thresholds, quotations, and company access rules. The QA agent can invoke the real Playwright CLI through an orchestrator case mapping, while GitHub Actions runs the core projects in parallel, exercises the Organuz Supabase/PostgREST backend, and publishes Allure to GitHub Pages.
+        A single-file architecture view for the OrGanuz AI site automation stack. Local runs start the runtime services, execute the Playwright projects, generate Allure 3, and print the main service links. The product projects track the calculator/property-characterization E2E matrix, registration, smoke coverage, authenticated role sessions, quotations, and company access rules. The QA agent can invoke the real Playwright CLI through an orchestrator case mapping, while GitHub Actions runs the core projects in parallel, exercises the Organuz Supabase/PostgREST backend, and publishes Allure to GitHub Pages.
       </p>
 
       <div class="services" id="services" aria-label="Local service links">
@@ -410,11 +411,11 @@
     <div class="cards">
       <div class="card" style="--accent: var(--blue)">
         <div class="card-title"><span class="badge">TS</span> Playwright Tests</div>
-        <p class="card-desc">Runs marketing UI tests in <code>chromium</code>, product E2E matrix tests in <code>product</code>, Organuz Supabase/PostgREST backend tests in <code>organuz-api</code>, and dev product-app RPC gateway tests in <code>dev-api</code> (plus the internal <code>agent</code> orchestrator regression specs).</p>
+        <p class="card-desc">Runs marketing UI tests in <code>chromium</code>, product smoke/registration/matrix tests in <code>product</code>, authenticated role tests in <code>product-authenticated</code>, Organuz Supabase/PostgREST backend tests in <code>organuz-api</code>, and dev product-app RPC gateway tests in <code>dev-api</code> (plus the internal <code>agent</code> orchestrator regression specs). Non-product projects are default-filtered to five <code>@other-smoke</code> checks total.</p>
       </div>
       <div class="card" style="--accent: var(--green)">
-        <div class="card-title"><span class="badge">E2E</span> Product Matrix</div>
-        <p class="card-desc"><code>tests/product</code> covers 12 main <code>CALC-ROOF</code> scenarios across 4 personas, plus panel-threshold, Ramot, and UI-only no-panel coverage.</p>
+        <div class="card-title"><span class="badge">E2E</span> Product Coverage</div>
+        <p class="card-desc"><code>tests/product</code> covers public shell smoke checks, registration, 12 main <code>CALC-ROOF</code> scenarios across 4 personas, panel-threshold, Ramot, and UI-only no-panel coverage.</p>
       </div>
       <div class="card" style="--accent: var(--mint)">
         <div class="card-title"><span class="badge">PY</span> FastAPI</div>
@@ -537,7 +538,7 @@
         </div>
         <div class="step" style="--accent: var(--rose)">
           <strong>Current Test Mapping</strong>
-          <p><code>npm run agent:current-tests</code> maps <code>PW-ORGANUZ-API</code>, <code>PW-CHROMIUM</code>, <code>PW-PRODUCT</code>, and <code>PW-AGENT</code> to the real Playwright <code>organuz-api</code>, <code>chromium</code>, <code>product</code>, and <code>agent</code> projects.</p>
+          <p><code>npm run agent:current-tests</code> maps <code>PW-ORGANUZ-API</code>, <code>PW-CHROMIUM</code>, <code>PW-PRODUCT</code>, and <code>PW-AGENT</code> to the real Playwright <code>organuz-api</code>, <code>chromium</code>, the 50-test product E2E matrix, and <code>agent</code> projects.</p>
         </div>
       </div>
     </div>
@@ -557,7 +558,7 @@
       <div class="step" style="--accent: var(--blue)">
         <div class="step-num">3</div>
         <h3>Run projects</h3>
-        <p><code>CliPlaywrightRunner</code> executes <code>--project=organuz-api</code>, <code>--project=chromium</code>, <code>--project=product</code>, and <code>--project=agent</code> as orchestrator cases.</p>
+        <p><code>CliPlaywrightRunner</code> executes <code>--project=organuz-api</code>, <code>--project=chromium</code>, <code>--project=product --grep "Product calculator and quotation E2E matrix"</code>, and <code>--project=agent</code> as orchestrator cases.</p>
       </div>
       <div class="step" style="--accent: var(--pink)">
         <div class="step-num">4</div>
@@ -648,6 +649,76 @@
       </ul>
     </div>
 
+    <h2 id="tests">Test Suites &amp; Role Sessions</h2>
+    <div class="cards">
+      <div class="card" style="--accent: var(--blue)">
+        <div class="card-title"><span class="badge">UI</span> chromium</div>
+        <p class="card-desc"><code>tests/ui/**</code> against the marketing site <code>www.organuz.ai</code> (prod): default run keeps two <code>@other-smoke</code> checks; broader homepage/content/flow specs remain in the repo.</p>
+      </div>
+      <div class="card" style="--accent: var(--green)">
+        <div class="card-title"><span class="badge">E2E</span> product</div>
+        <p class="card-desc">Plain product specs against the calculator app (<code>QA_TARGET_ENV</code>, default dev): registration, smoke, matrix, full-flow, and sign-out without shared role setup.</p>
+      </div>
+      <div class="card" style="--accent: var(--mint)">
+        <div class="card-title"><span class="badge">AUTH</span> product-authenticated</div>
+        <p class="card-desc">Per-role product specs that resume saved <code>storageState</code>: role identity, personal areas, sessions, sanity checks, and backend API observation.</p>
+      </div>
+      <div class="card" style="--accent: var(--rose)">
+        <div class="card-title"><span class="badge">API</span> organuz-api</div>
+        <p class="card-desc"><code>tests/organuz-api/**</code> — default run keeps one <code>@other-smoke</code> projects contract check; broader Supabase/PostgREST coverage remains in the repo.</p>
+      </div>
+      <div class="card" style="--accent: var(--yellow)">
+        <div class="card-title"><span class="badge">RPC</span> dev-api</div>
+        <p class="card-desc"><code>tests/dev-api/**</code> — default run keeps one <code>@other-smoke</code> RPC envelope check; broader contracts/security coverage remains in the repo.</p>
+      </div>
+      <div class="card" style="--accent: var(--lavender)">
+        <div class="card-title"><span class="badge">SET</span> product-setup</div>
+        <p class="card-desc">A setup project that authenticates each product role once and saves its session; only <code>product-authenticated</code> depends on it.</p>
+      </div>
+      <div class="card" style="--accent: var(--aqua)">
+        <div class="card-title"><span class="badge">QA</span> agent</div>
+        <p class="card-desc"><code>tests/agent/**</code> — default run keeps one <code>@other-smoke</code> orchestrator regression; broader agent coverage remains in the repo.</p>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <h2>Per-Role Session Architecture</h2>
+        <p>The dev app rate-limits OTP sends per phone, so each authenticated role logs in <strong>once per run</strong> and every spec reuses that session.</p>
+        <ul>
+          <li><code>product-setup</code> (<code>tests/product/support/auth.setup.ts</code>) logs each role in via phone + fixed dev OTP <code>7777</code> and saves <code>storageState</code> to <code>playwright/.auth/product-&lt;role&gt;.json</code> (gitignored).</li>
+          <li>Per-role specs run in <code>product-authenticated</code> and set <code>test.use({ authRole })</code>; the product fixture maps it to the saved <code>storageState</code>, and <code>product.resumeSession()</code> resumes without a new login.</li>
+          <li>If a saved session is missing (setup skipped on cooldown), the spec <em>skips with a reason</em> rather than failing.</li>
+          <li><code>ProductAppPage.login()</code> throws <code>OtpUnavailableError</code> on an OTP rate-limit; <code>ProductFlows</code> translates it into a graceful <code>test.skip</code> — the page object stays free of test-lifecycle logic.</li>
+          <li>Three roles authenticate: <code>customer</code> (בעל נכס), <code>consultant</code> (יועץ), <code>company</code> (קבלן / חברת EPC). <code>company-employee</code> has no phone and cannot sign in.</li>
+        </ul>
+      </div>
+
+      <div class="panel">
+        <h2>Product Flow Specs</h2>
+        <ul>
+          <li><code>flows/roles.spec.ts</code> — identity (header role label) + role-appropriate personal area.</li>
+          <li><code>flows/role-areas.spec.ts</code> — user menu, sidebar nav, role-specific pricing/management pages.</li>
+          <li><code>flows/role-session.spec.ts</code> — calculator shell, reload persistence, and deep-linking.</li>
+          <li><code>flows/role-sanity.spec.ts</code> — a 10-point sanity battery per role (identity, auth, calculator, personal area, deep-link).</li>
+          <li><code>flows/role-logout.spec.ts</code> — sign-out, with its <em>own</em> login so it cannot invalidate the shared sessions.</li>
+          <li><code>flows/registration.spec.ts</code> — property-owner registration validation, required/optional consent behavior, full signup, and company/consultant lead-form redirects.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Tags &amp; Gating</h2>
+      <ul>
+        <li><code>@smoke</code> — credential-free product checks that always run (used by the CI prod smoke job).</li>
+        <li><code>@other-smoke</code> — the five default non-product checks (2 UI, 1 Organuz API, 1 dev RPC, 1 agent).</li>
+        <li><code>@product @e2e @roles @sanity @session</code> — live product coverage, gated by <code>PRODUCT_E2E_ENABLED=true</code> plus persona OTP credentials in the gitignored <code>.env</code>.</li>
+        <li><code>@critical</code> — the highest-severity per-role journeys.</li>
+        <li><code>@intentionally-failing</code> — the expected-failure demo (uses <code>test.fail()</code>); skip with <code>--grep-invert</code>.</li>
+        <li>Specs run <strong>fully parallel</strong> (<code>fullyParallel: true</code>, 4 workers); reused sessions are read-only, so parallelism is safe.</li>
+      </ul>
+    </div>
+
     <h2>QA Dashboard Metrics</h2>
     <div class="panel">
       <p>FastAPI parses <code>test-results/results.json</code> and exposes dashboard-friendly Prometheus metrics. Grafana provisions the <code>OrGanuz QA Dashboard</code> automatically.</p>
@@ -678,7 +749,7 @@
         <ul>
           <li><code>tests/ui/diagnostics/intentionally-failing.spec.ts</code> is tagged <code>@intentionally-failing</code>.</li>
           <li>The test uses <code>test.fail()</code>, so CI stays green when the assertion fails as expected.</li>
-          <li><code>src/fixtures/index.ts</code> attaches Playwright artifacts to Allure after unexpected failures.</li>
+          <li><code>src/fixtures/index.ts</code> attaches Playwright artifacts to Allure after unexpected failures; UI-specific flow fixtures live under <code>tests/ui/support</code>.</li>
           <li>Skip the demo with <code>npx playwright test --grep-invert "@intentionally-failing"</code>.</li>
         </ul>
       </div>
@@ -691,7 +762,7 @@
           <li><code>typecheck</code> validates TypeScript.</li>
           <li><code>tests</code> runs <code>chromium</code>, <code>organuz-api</code>, and <code>dev-api</code> in a matrix, plus a credential-free <code>product</code> smoke job (<code>--grep @smoke</code>) against prod.</li>
           <li>The repository also has the full local <code>product</code> persona matrix and <code>agent</code> Playwright projects. Run them directly or through <code>agent:current-tests</code>.</li>
-          <li>Test files are grouped by subject: UI homepage/content/flows/diagnostics, Organuz backend API contracts/resources/security/functions, dev product-app RPC contracts/security/support, product matrix/flows/api/smoke/support, and agent orchestrator coverage.</li>
+          <li>Test files are grouped by subject: UI homepage/content/flows/support/diagnostics, Organuz backend API contracts/resources/security/functions, dev product-app RPC contracts/security/support, product smoke/registration/matrix/role flows/API/support, and agent orchestrator coverage.</li>
           <li><code>services-smoke</code> starts FastAPI, Scalar, Prometheus, and Grafana.</li>
           <li><code>publish-allure</code> merges Allure artifacts and generates Allure 3.</li>
           <li><code>deploy-allure</code> publishes the report to GitHub Pages on <code>main</code> or <code>master</code>.</li>
@@ -708,6 +779,7 @@
           <li><code>docker compose run --rm tests</code></li>
           <li><code>npm run typecheck</code></li>
           <li><code>npm run test:product</code></li>
+          <li><code>npm run test:product:all</code></li>
           <li><code>npx playwright test --project=agent</code></li>
           <li><code>npm run agent:current-tests</code></li>
           <li><code>npm run report</code></li>
@@ -757,6 +829,7 @@
           |-- <span class="dir">ui/content/</span><br>
           |-- <span class="dir">ui/diagnostics/</span><br>
           |-- <span class="dir">ui/flows/</span><br>
+          |-- <span class="dir">ui/support/</span><br>
           `-- <span class="dir">ui/homepage/</span>
     </div>
 

@@ -1,5 +1,10 @@
 import { Page } from '@playwright/test';
-import { ProductAppPage, ProductRuntimeIds } from './ProductAppPage';
+import {
+  ProductAppPage,
+  ProductRuntimeIds,
+  AppUnavailableError,
+  APP_UNAVAILABLE_REASON,
+} from './ProductAppPage';
 import { unlockProductEnvironment } from './env-gate';
 import { PropertyCharacterizationData, ProductPersonaId } from '../matrix/e2e-matrix.data';
 
@@ -19,6 +24,24 @@ export class ProductFlows {
   async openCalculator(): Promise<void> {
     await this.page.goto('/');
     await unlockProductEnvironment(this.page);
+    // No gate (already unlocked / prod): if only the header renders, the backend is down.
+    if (!(await this.app.isAppShellLoaded())) {
+      throw new AppUnavailableError(APP_UNAVAILABLE_REASON);
+    }
+  }
+
+  /**
+   * Resume a role's authenticated session from its saved storageState (written once
+   * by the product-setup project). Opens the calculator, unlocks the dev gate, and
+   * verifies the session was restored — if it wasn't (no saved session because setup
+   * skipped on OTP cooldown), the test skips with a clear reason. Use this in per-role
+   * specs instead of loginAs() so each role logs in only once per run.
+   */
+  async resumeSession(personaId: ProductPersonaId): Promise<void> {
+    await this.openCalculator();
+    if (!(await this.app.isAuthenticated())) {
+      throw new Error(`No saved session for "${personaId}".`);
+    }
   }
 
   /** Log in as a persona using its env credentials (phone + fixed dev OTP 7777). */
