@@ -31,3 +31,6 @@ blob-report/
 
 # Per-role authenticated sessions saved by the product-setup project
 playwright/.auth/
+
+# Grafana Cloud remote_write API token (mounted into the prometheus container)
+server/grafana-cloud-token

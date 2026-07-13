@@ -314,6 +314,22 @@ docker compose up -d --build api prometheus grafana
 
 Then browse to `http://localhost:3001/d/organuz-qa-dashboard/organuz-qa-dashboard`.
 
+### Hosting Grafana externally (clickable dashboard links)
+
+GitHub Pages **cannot** host Grafana — Pages is static hosting, and Grafana is a live server that queries Prometheus as a backend. To get an interactive dashboard with browser-clickable links (in Slack alerts and the CI report summary), host Grafana somewhere with a backend and point the links at it. The repo is already wired for this — you only supply the host.
+
+**Recommended: Grafana Cloud (free tier, fully managed).**
+
+1. Create a free Grafana Cloud stack. From its Prometheus data source, note the **remote_write URL** and **instance ID** (username), and create a **MetricsPublisher** API token.
+2. Save the token to the gitignored file `server/grafana-cloud-token` (one line, no trailing newline). It is mounted into the `prometheus` container and never committed.
+3. In `server/prometheus.yml`, uncomment the `remote_write:` block and set the `url` + `username`. In `docker-compose.yml`, uncomment the `grafana-cloud-token` volume on the `prometheus` service. Restart: `docker compose up -d --force-recreate prometheus`. Your local Prometheus now ships all metrics (incl. `qa_playwright_*`) up to Grafana Cloud.
+4. In Grafana Cloud, import the dashboards from `server/grafana/provisioning/dashboards/*.json` (keep the same UIDs, e.g. `organuz-system-tests`, so the dashboard URL path matches).
+5. Point the links at it:
+   - **Local:** set `GRAFANA_URL=https://<your-stack>.grafana.net` in your gitignored `.env`. `run-all-tests.sh` derives `GRAFANA_DASHBOARD_URL` from it, so the Slack "Local test run" message links to the hosted dashboard.
+   - **CI:** set the `GRAFANA_URL` repository **variable** (Settings → Secrets and variables → Actions → Variables). The report-summary + Slack notification link to it automatically.
+
+**Self-host instead (Fly.io, a small VM, etc.):** run this same `docker-compose.yml` stack on the host, expose Grafana over HTTPS, and set `GRAFANA_URL` to that origin — no `remote_write` needed since Prometheus and Grafana live together.
+
 ## Reports
 
 Docker test runs write reports back to the host through bind mounts:
