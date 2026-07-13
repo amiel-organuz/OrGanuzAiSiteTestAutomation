@@ -8,7 +8,7 @@ Playwright + TypeScript test suite for Organuz, plus a local FastAPI/Prometheus/
 - **`organuz-api`** → `tests/organuz-api/**` → Organuz Supabase backend (`/rest/v1/projects`, edge functions) with a public anon key, default-filtered to `@other-smoke`.
 - **`agent`** → `tests/agent/**` → QA-agent orchestrator unit spec (stubs, no network/browser), default-filtered to `@other-smoke`.
 
-The default `npx playwright test` runs 20 all-passing tests (chromium 2, product 16, organuz-api 1, agent 1). GitHub Actions runs the identical set — keep the two in sync per the **`test-suite-parity`** skill.
+The default `npx playwright test` runs 30 all-passing tests (chromium 12, product 16, organuz-api 1, agent 1). GitHub Actions runs the identical set — keep the two in sync per the **`test-suite-parity`** skill.
 
 Page objects: `src/pages` (marketing site), `tests/product/support/ProductAppPage.ts` (product app). Shared fixtures: `src/fixtures` (+ the token-extractor fixtures in `src/fixtures/token-fixtures.ts`). API client: `src/api` (+ `OrganuzApi`). Shared config: `src/utils/config.ts` reads `config.json` with env-var overrides.
 
@@ -20,10 +20,10 @@ Page objects: `src/pages` (marketing site), `tests/product/support/ProductAppPag
 ## Conventions
 - Specs import `test`/`expect` from `src/fixtures` unless a domain-specific support fixture extends it (for example `tests/ui/support/fixtures` or `tests/product/support/fixtures`). Use the `allureEpic/Feature/Story/Severity/Step` helpers with `@tag`s.
 - Run `npx tsc --noEmit` before running tests.
-- Non-product projects intentionally run only their `@other-smoke` test by default (chromium 2, organuz-api 1, agent 1); the `product` project has no grep filter and carries the rest.
+- Non-product projects intentionally run only their `@other-smoke`-tagged tests by default (chromium 12, organuz-api 1, agent 1); the `product` project has no grep filter and carries the rest.
 - Never use `waitForLoadState('networkidle')` in product tests — the map iframe keeps the network busy; use `domcontentloaded` or `expect` auto-waiting.
 - Environmental outages are typed errors in `tests/product/support/errors.ts` (`OtpUnavailableError`, `AppUnavailableError`) — `instanceof`-safe (they set the prototype/name, since Playwright's transpiler otherwise severs `extends Error`). `ProductAppPage`/`env-gate`/`ProductFlows` **throw** them; the test edge (spec or fixture) decides whether to skip or fail. Keep skip/lifecycle logic out of the page object and the flows.
-- The suite must stay all-green with no skips: a test that would `test.skip()` on an environmental condition should instead run or be removed (see the `test-suite-parity` skill).
+- The suite stays all-green with no failures. The one sanctioned skip is the `token-sanity` spec (3 tests): when the live dev gateway/gate is genuinely down, no UI token can be extracted, so `beforeEach` calls `test.skip()` rather than failing the product job on an environmental outage. Every other test must run (no env-conditional skips) — a test that would otherwise `test.skip()` should run or be removed (see the `test-suite-parity` skill). A token that IS observed but malformed/drifted still fails `token-sanity` as a real regression.
 
 ## Skills
 Project skills live in `.claude/skills/`. Invoke with `/<name>`:
