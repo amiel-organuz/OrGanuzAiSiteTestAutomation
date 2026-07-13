@@ -11,6 +11,17 @@ export type { PlaywrightRunner } from './PlaywrightRunner';
 export { CliPlaywrightRunner, StubPlaywrightRunner } from './PlaywrightRunner';
 
 export type {
+  PageExplorer,
+  PageExploration,
+  PageSnapshot,
+  PlaywrightMcpClient,
+  DiscoveredLink,
+  DiscoveredForm,
+  DiscoveredControl,
+} from './PageExplorer';
+export { McpPageExplorer, StubPageExplorer, parseSnapshot } from './PageExplorer';
+
+export type {
   GitHubActionsConnector,
   GitHubActionsConfig,
   WorkflowDispatchInput,

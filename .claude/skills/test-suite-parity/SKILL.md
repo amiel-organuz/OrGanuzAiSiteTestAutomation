@@ -12,7 +12,7 @@ description: Keep the Playwright suite identical locally and on GitHub Actions �
 
 The matrix `project:` list MUST equal the *invokable* project names in `playwright.config.ts`. CI shards by project; locally they all run in one invocation. Same projects ⇒ same tests. (`product-setup` is the exception: it is a setup dependency of `product-authenticated`, not a standalone shard — running `--project=product-authenticated` pulls it in, so the matrix names `product-authenticated` and not `product-setup`.)
 
-## Current suite (58 tests: 45 green + 13 credential-gated skips)
+## Current suite (59 tests: 46 green + 13 credential-gated skips)
 
 | Project | testMatch | Default filter | Tests | Needs |
 |---|---|---|---|---|
@@ -21,11 +21,11 @@ The matrix `project:` list MUST equal the *invokable* project names in `playwrig
 | `product-setup` | `tests/product/support/auth.setup.ts` | — | 3 | per-role `<ROLE>_PHONE`/`_OTP_CODE`; **skips** each role without them (dependency of product-authenticated) |
 | `product-authenticated` | `tests/product/flows/**` | — | 10 | a saved session per role from product-setup; **skips** the role otherwise |
 | `organuz-api` | `tests/organuz-api/**` | `@other-smoke` | 1 | none (Supabase anon key baked in `config.json`) |
-| `agent` | `tests/agent/**` | `@other-smoke` | 1 | none (pure stubs, no network/browser) |
+| `agent` | `tests/agent/**` | `@other-smoke` | 2 | none (pure stubs, no network/browser): orchestrator run-loop + `TestPlanAgent` (URL → MCP exploration → plan) |
 
 Non-`product` projects intentionally run only their `@other-smoke`-tagged tests by default (see CLAUDE.md). The plain `product` project runs everything under `tests/product/**` except `flows/**` (those need saved sessions and run in `product-authenticated`).
 
-**Sanctioned skips** (never failures): (1) `token-sanity` (3) skips when the live dev gateway is down and no UI token can be extracted — a token that IS observed but malformed still fails; (2) the live per-role specs (`product-setup` 3 + `product-authenticated` 10 = 13) skip when a role has no credential/saved session, so they are dormant until per-role secrets are added. Everything else must pass. Baseline with the dev gate but no role secrets: **45 passed, 13 skipped**.
+**Sanctioned skips** (never failures): (1) `token-sanity` (3) skips when the live dev gateway is down and no UI token can be extracted — a token that IS observed but malformed still fails; (2) the live per-role specs (`product-setup` 3 + `product-authenticated` 10 = 13) skip when a role has no credential/saved session, so they are dormant until per-role secrets are added. Everything else must pass. Baseline with the dev gate but no role secrets: **46 passed, 13 skipped**.
 
 ## The rule when you change the suite
 

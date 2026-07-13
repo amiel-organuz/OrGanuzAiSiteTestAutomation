@@ -82,6 +82,35 @@ a JSON run summary. The seed (`demo/seed.ts`) exercises all paths: a pass, a
 failure that files a bug, a flaky case that recovers on re-run, and a blocked
 case with no data row.
 
+## Generate a test plan from a URL (`TestPlanAgent`)
+
+Where the `Orchestrator` *reads* a plan from Azure DevOps and runs it, the
+`TestPlanAgent` *drafts* one from a live page. Give it a **URL** and it explores
+the page through a `PageExplorer`, then synthesises a `TestSuite` — a page-load
+case, a headings case, one reachability case per navigation link, and one case
+per form — in the exact shape the `Orchestrator` consumes, so a generated plan
+can flow straight into the run loop.
+
+```bash
+npm run agent:plan -- https://www.organuz.ai
+```
+
+The demo uses `StubPageExplorer` (offline, deterministic — no browser/network).
+For real exploration, construct `McpPageExplorer` with a `PlaywrightMcpClient`
+whose `navigate`/`snapshot` forward to the **Playwright MCP** tools
+(`browser_navigate` / `browser_snapshot`); `parseSnapshot` turns that
+accessibility snapshot into the `PageExploration` the agent plans from.
+
+```ts
+import { McpPageExplorer, TestPlanAgent } from './src/agent';
+
+const explorer = new McpPageExplorer({
+  navigate: (url) => browserNavigate({ url }),          // MCP: browser_navigate
+  snapshot: async () => ({ ...(await browserSnapshot()) }), // MCP: browser_snapshot
+});
+const suite = await new TestPlanAgent(explorer).generatePlan('https://www.organuz.ai');
+```
+
 ## Run the current repository tests through the agent
 
 ```bash
