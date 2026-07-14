@@ -1,6 +1,7 @@
 import { Page, Locator, expect } from '@playwright/test';
 import { selfHeal } from '../../utils/selfHeal';
 import { marketingText as T } from '../../i18n/marketing';
+import { allureStep } from '../../utils/allure';
 
 /** Sub-page-object for the contact form: the five fields + submit. */
 export class ContactForm {
@@ -24,10 +25,10 @@ export class ContactForm {
   }
 
   async fill(name: string, email: string, phone: string, message: string): Promise<void> {
-    await this.nameInput.fill(name);
-    await this.emailInput.fill(email);
-    await this.phoneInput.fill(phone);
-    await this.messageInput.fill(message);
+    await allureStep('Fill contact name', () => this.nameInput.fill(name));
+    await allureStep('Fill contact email', () => this.emailInput.fill(email));
+    await allureStep('Fill contact phone', () => this.phoneInput.fill(phone));
+    await allureStep('Fill contact message', () => this.messageInput.fill(message));
   }
 
   /** Visibility only — never submit (keeps automation data out of the real CRM). */
@@ -60,7 +61,7 @@ export class NewsletterForm {
   }
 
   async subscribe(email: string): Promise<void> {
-    await this.emailInput.fill(email);
-    await this.submitButton.click();
+    await allureStep('Fill newsletter email', () => this.emailInput.fill(email));
+    await allureStep('Submit newsletter form', () => this.submitButton.click());
   }
 }

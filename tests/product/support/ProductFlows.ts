@@ -6,7 +6,9 @@ import {
   APP_UNAVAILABLE_REASON,
 } from './ProductAppPage';
 import { unlockProductEnvironment } from './env-gate';
+import { rolePhone, roleOtpCode, phoneKeyHint } from './roleCredentials';
 import { PropertyCharacterizationData, ProductPersonaId } from '../matrix/e2e-matrix.data';
+import { allureStep } from '../../../src/utils/allure';
 
 /**
  * High-level, reusable product-app flows so specs stay short and readable.
@@ -22,7 +24,7 @@ export class ProductFlows {
 
   /** Open the calculator shell, unlocking the dev/test password gate (no-op on prod). */
   async openCalculator(): Promise<void> {
-    await this.page.goto('/');
+    await allureStep('Open calculator root', () => this.page.goto('/'));
     await unlockProductEnvironment(this.page);
     // No gate (already unlocked / prod): if only the header renders, the backend is down.
     if (!(await this.app.isAppShellLoaded())) {
@@ -46,11 +48,10 @@ export class ProductFlows {
 
   /** Log in as a persona using its env credentials (phone + fixed dev OTP 7777). */
   async loginAs(personaId: ProductPersonaId): Promise<ProductRuntimeIds> {
-    const key = personaId.toUpperCase().replace(/-/g, '_');
-    const phone = process.env[`${key}_PHONE`];
-    const otpCode = process.env[`${key}_OTP_CODE`];
+    const phone = rolePhone(personaId);
+    const otpCode = roleOtpCode(personaId);
     if (!phone) {
-      throw new Error(`Missing ${key}_PHONE for product persona "${personaId}".`);
+      throw new Error(`Missing ${phoneKeyHint(personaId)} for product persona "${personaId}".`);
     }
     return this.app.login({ phone, otpCode });
   }

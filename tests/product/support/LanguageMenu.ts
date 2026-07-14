@@ -1,5 +1,6 @@
 import { Page } from '@playwright/test';
 import { productLangLabel, ProductLocale } from '../../../src/i18n/product';
+import { allureStep } from '../../../src/utils/allure';
 
 /**
  * Sub-page-object for the product app's header language menu. The trigger button's
@@ -20,13 +21,15 @@ export class LanguageMenu {
     if ((await this.current()) === locale) return;
     // Trigger shows the *current* language; the other locale is the menu option to pick.
     const other: ProductLocale = locale === 'en' ? 'he' : 'en';
-    await this.page.getByRole('button', { name: productLangLabel[other] }).first().click();
-    await this.page
-      .getByRole('menuitem', { name: productLangLabel[locale] })
-      .or(this.page.getByRole('option', { name: productLangLabel[locale] }))
-      .or(this.page.getByText(new RegExp(`^${productLangLabel[locale]}$`)))
-      .first()
-      .click();
+    await allureStep(`Open language menu (${productLangLabel[other]})`, () =>
+      this.page.getByRole('button', { name: productLangLabel[other] }).first().click());
+    await allureStep(`Select language ${productLangLabel[locale]}`, () =>
+      this.page
+        .getByRole('menuitem', { name: productLangLabel[locale] })
+        .or(this.page.getByRole('option', { name: productLangLabel[locale] }))
+        .or(this.page.getByText(new RegExp(`^${productLangLabel[locale]}$`)))
+        .first()
+        .click());
     await this.page.locator(`html[lang="${locale}"]`).waitFor({ state: 'attached', timeout: 15_000 });
   }
 }

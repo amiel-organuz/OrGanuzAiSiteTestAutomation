@@ -1,6 +1,7 @@
 import { TestType, Fixtures, PlaywrightTestArgs } from '@playwright/test';
 import { TokenInterceptor } from '../../tests/product/support/TokenInterceptor';
 import { config } from '../utils/config';
+import { allureStep } from '../utils/allure';
 import type { TokenFixtureDeps, TokenFixtures } from '../types/token.types';
 
 export type {
@@ -57,7 +58,8 @@ const tokenFixtureImpl: Fixtures<TokenFixtures, object, TokenFixtureDeps & Playw
     await product.resumeSession(authRole);
     // Navigate to the personal area so the authenticated UI makes a backend call carrying
     // the session token (by URL, not the header menu, so the profile need not have loaded).
-    await page.goto('/pricing/my-offers').catch(() => undefined);
+    await allureStep('Navigate to personal area (/pricing/my-offers)', () =>
+      page.goto('/pricing/my-offers').catch(() => undefined));
     await page.waitForURL(/\/pricing\//i, { timeout: 30_000 }).catch(() => undefined);
     const sessionToken = await interceptor
       .waitForToken({ sessionOnly: true, timeoutMs: 15_000 })

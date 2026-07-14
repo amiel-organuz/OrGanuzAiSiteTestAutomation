@@ -29,6 +29,7 @@ import {
   allureFeature,
   allureStory,
   allureSeverity,
+  allureStep,
 } from '../../../src/utils/allure';
 
 const BACKEND_HOST = new URL(config.devApi.baseUrl).host; // organuz.flamiingo.com
@@ -46,7 +47,7 @@ test.describe('Product API sanity via the extracted UI token (dev)', { tag: ['@p
     const page = await context.newPage();
     const tokens = new TokenInterceptor(page).start();
     try {
-      await page.goto('/');
+      await allureStep('Open dev calculator root', () => page.goto('/'));
       // Open the dev/test password gate so the calculator (and its server calls) load.
       await unlockProductEnvironment(page).catch((err) => {
         extractionReason = `The dev app gate/shell is unavailable: ${(err as Error).message}`;

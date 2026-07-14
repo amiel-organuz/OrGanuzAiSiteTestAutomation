@@ -1,6 +1,7 @@
 import { Page, Locator, expect } from '@playwright/test';
 import { selfHeal } from '../../utils/selfHeal';
 import { marketingText as T } from '../../i18n/marketing';
+import { allureStep } from '../../utils/allure';
 
 /** Sub-page-object for the "Why Organuz" section: heading + audience tabs. */
 export class WhySection {
@@ -128,7 +129,8 @@ export class FaqSection {
   }
 
   async clickQuestion(questionText: string): Promise<void> {
-    await this.question(questionText).or(this.page.getByText(questionText).first()).first().click();
+    await allureStep(`Open FAQ question "${questionText}"`, () =>
+      this.question(questionText).or(this.page.getByText(questionText).first()).first().click());
   }
 
   answerRegion(questionText: string): Locator {

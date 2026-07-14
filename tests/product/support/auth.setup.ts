@@ -3,6 +3,7 @@ import * as path from 'path';
 import { test as setup } from './fixtures';
 import { AUTH_ROLES, authFile } from './auth';
 import { OtpUnavailableError, AppUnavailableError } from './ProductAppPage';
+import { hasRoleCredential, phoneKeyHint } from './roleCredentials';
 
 /**
  * `product-setup` project — authenticates each sign-in role once and saves its
@@ -21,8 +22,7 @@ for (const role of AUTH_ROLES) {
     // OtpUnavailableError and this role skips cleanly — the default 30s would time out
     // (a hard failure) mid-retry instead.
     setup.setTimeout(120_000);
-    const key = role.toUpperCase().replace(/-/g, '_');
-    setup.skip(!process.env[`${key}_PHONE`], `no ${key}_PHONE credential — ${role} session not created`);
+    setup.skip(!hasRoleCredential(role), `no ${phoneKeyHint(role)} credential — ${role} session not created`);
 
     try {
       await product.openCalculator();
