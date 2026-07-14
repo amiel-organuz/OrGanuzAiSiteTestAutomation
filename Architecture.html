@@ -602,66 +602,110 @@
 
     <h2 id="diagram">Architecture Diagram</h2>
     <div class="panel arch-wrap">
-      <svg viewBox="0 0 1120 560" role="img" aria-label="OrGanuz test automation architecture diagram" xmlns="http://www.w3.org/2000/svg">
+      <svg viewBox="0 0 1200 660" role="img" aria-label="OrGanuz test automation architecture: Playwright pushes QA metrics to a Pushgateway scraped by Prometheus and visualised in Grafana, and allure-results into an Allure report; FastAPI serves docs and process metrics; GitHub Actions runs the suite and deploys to Pages against external targets" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-            <path d="M 0 0 L 10 5 L 0 10 z" fill="#8391aa"/>
+          <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748f"/>
           </marker>
-          <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#7c8aa6" flood-opacity="0.18"/>
+          <filter id="softShadow" x="-25%" y="-25%" width="150%" height="150%">
+            <feDropShadow dx="0" dy="7" stdDeviation="8" flood-color="#6b7a97" flood-opacity="0.20"/>
           </filter>
+          <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#ffffff" stop-opacity="0.5"/>
+            <stop offset="0.55" stop-color="#ffffff" stop-opacity="0"/>
+          </linearGradient>
         </defs>
 
-        <rect x="20" y="20" width="1080" height="520" rx="28" fill="#ffffff" opacity="0.68" stroke="#dfe7f3"/>
+        <rect x="30" y="30" width="1140" height="600" rx="30" fill="#ffffff" opacity="0.55" stroke="#dfe7f3"/>
 
-        <!-- top row -->
-        <rect x="45" y="70" width="330" height="104" rx="20" fill="#c7dcff" filter="url(#softShadow)"/>
-        <text x="210" y="110" text-anchor="middle" font-size="19" font-weight="800" fill="#27324a">Playwright</text>
-        <text x="210" y="136" text-anchor="middle" font-size="13" fill="#40506b">chromium · product(+auth) · organuz-api · agent</text>
-        <text x="210" y="157" text-anchor="middle" font-size="12" fill="#40506b">reports: html, junit, json, allure, blob</text>
+        <!-- ===== edges (drawn first, under the cards) ===== -->
+        <g stroke="#7d8aa3" stroke-width="2.2" fill="none">
+          <path d="M 245 184 L 245 281" marker-end="url(#arrow)"/>
+          <path d="M 95 150 C 40 260, 40 400, 95 503" marker-end="url(#arrow)"/>
+          <path d="M 395 337 L 466 337" marker-end="url(#arrow)"/>
+          <path d="M 620 184 L 620 281" marker-end="url(#arrow)"/>
+          <path d="M 770 132 L 841 132" marker-end="url(#arrow)"/>
+          <path d="M 770 337 L 841 337" marker-end="url(#arrow)"/>
+          <path d="M 470 512 L 399 512" marker-end="url(#arrow)"/>
+          <path d="M 770 522 L 841 522" marker-end="url(#arrow)"/>
+        </g>
+        <!-- edge labels -->
+        <g font-family="ui-monospace, Menlo, monospace" font-size="11.5" fill="#4b5a70"
+           text-anchor="middle" paint-order="stroke" stroke="#f4f7fb" stroke-width="3.5" stroke-linejoin="round">
+          <text x="316" y="238">push QA metrics</text>
+          <text x="431" y="330">scrape</text>
+          <text x="700" y="238">process metrics</text>
+          <text x="805" y="122">OpenAPI</text>
+          <text x="805" y="330">datasource</text>
+          <text x="434" y="502">deploy</text>
+          <text x="807" y="512">tests</text>
+          <text x="55" y="330" transform="rotate(-90 55 330)">allure-results</text>
+        </g>
 
-        <rect x="415" y="70" width="330" height="104" rx="20" fill="#bff4dc" filter="url(#softShadow)"/>
-        <text x="580" y="110" text-anchor="middle" font-size="19" font-weight="800" fill="#27324a">FastAPI</text>
-        <text x="580" y="136" text-anchor="middle" font-size="13" fill="#40506b">health, OpenAPI, metrics</text>
-        <text x="580" y="157" text-anchor="middle" font-size="12" fill="#40506b">localhost:8000</text>
+        <!-- ===== nodes ===== -->
+        <!-- row 1: run & serve -->
+        <rect x="95" y="80" width="300" height="104" rx="20" fill="#c3d8ff" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
+        <rect x="95" y="80" width="300" height="104" rx="20" fill="url(#gloss)"/>
+        <text x="245" y="118" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">Playwright</text>
+        <text x="245" y="143" text-anchor="middle" font-size="12.5" fill="#46566e">chromium · product · organuz-api · agent</text>
+        <text x="245" y="165" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">6 projects · +monitoring</text>
 
-        <rect x="785" y="70" width="290" height="104" rx="20" fill="#d9c7ff" filter="url(#softShadow)"/>
-        <text x="930" y="110" text-anchor="middle" font-size="19" font-weight="800" fill="#27324a">Scalar</text>
-        <text x="930" y="136" text-anchor="middle" font-size="13" fill="#40506b">external API docs</text>
-        <text x="930" y="157" text-anchor="middle" font-size="12" fill="#40506b">localhost:8080</text>
+        <rect x="470" y="80" width="300" height="104" rx="20" fill="#b6f1d6" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
+        <rect x="470" y="80" width="300" height="104" rx="20" fill="url(#gloss)"/>
+        <text x="620" y="118" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">FastAPI</text>
+        <text x="620" y="143" text-anchor="middle" font-size="12.5" fill="#46566e">docs · OpenAPI · process metrics</text>
+        <text x="620" y="165" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">localhost:8000</text>
 
-        <!-- mid row -->
-        <rect x="200" y="250" width="330" height="104" rx="20" fill="#ffeaa7" filter="url(#softShadow)"/>
-        <text x="365" y="290" text-anchor="middle" font-size="19" font-weight="800" fill="#27324a">Prometheus</text>
-        <text x="365" y="316" text-anchor="middle" font-size="13" fill="#40506b">scrapes /metrics</text>
-        <text x="365" y="337" text-anchor="middle" font-size="12" fill="#40506b">localhost:9092</text>
+        <rect x="845" y="80" width="300" height="104" rx="20" fill="#d6c2ff" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
+        <rect x="845" y="80" width="300" height="104" rx="20" fill="url(#gloss)"/>
+        <text x="995" y="118" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">Scalar</text>
+        <text x="995" y="143" text-anchor="middle" font-size="12.5" fill="#46566e">external API reference</text>
+        <text x="995" y="165" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">localhost:8080</text>
 
-        <rect x="610" y="250" width="330" height="104" rx="20" fill="#b9edf7" filter="url(#softShadow)"/>
-        <text x="775" y="290" text-anchor="middle" font-size="19" font-weight="800" fill="#27324a">Grafana</text>
-        <text x="775" y="316" text-anchor="middle" font-size="13" fill="#40506b">QA dashboard + datasource</text>
-        <text x="775" y="337" text-anchor="middle" font-size="12" fill="#40506b">localhost:3001</text>
+        <!-- row 2: metrics & dashboards -->
+        <rect x="95" y="285" width="300" height="104" rx="20" fill="#ffe1a0" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
+        <rect x="95" y="285" width="300" height="104" rx="20" fill="url(#gloss)"/>
+        <text x="245" y="323" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">Pushgateway</text>
+        <text x="245" y="348" text-anchor="middle" font-size="12.5" fill="#46566e">QA metrics ingress</text>
+        <text x="245" y="370" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">localhost:9091</text>
 
-        <!-- bottom row -->
-        <rect x="200" y="420" width="290" height="80" rx="18" fill="#f8b4d9" filter="url(#softShadow)"/>
-        <text x="345" y="454" text-anchor="middle" font-size="17" font-weight="800" fill="#27324a">Allure Server</text>
-        <text x="345" y="478" text-anchor="middle" font-size="12" fill="#40506b">localhost:5050</text>
+        <rect x="470" y="285" width="300" height="104" rx="20" fill="#ffcb9a" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
+        <rect x="470" y="285" width="300" height="104" rx="20" fill="url(#gloss)"/>
+        <text x="620" y="323" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">Prometheus</text>
+        <text x="620" y="348" text-anchor="middle" font-size="12.5" fill="#46566e">scrapes pushgateway + fastapi</text>
+        <text x="620" y="370" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">localhost:9092</text>
 
-        <rect x="545" y="420" width="300" height="80" rx="18" fill="#ffd9b8" filter="url(#softShadow)"/>
-        <text x="695" y="454" text-anchor="middle" font-size="17" font-weight="800" fill="#27324a">GitHub Actions</text>
-        <text x="695" y="478" text-anchor="middle" font-size="12" fill="#40506b">matrix + Pages deploy</text>
+        <rect x="845" y="285" width="300" height="104" rx="20" fill="#bfe9f6" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
+        <rect x="845" y="285" width="300" height="104" rx="20" fill="url(#gloss)"/>
+        <text x="995" y="323" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">Grafana</text>
+        <text x="995" y="348" text-anchor="middle" font-size="12.5" fill="#46566e">QA dashboard</text>
+        <text x="995" y="370" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">localhost:3001</text>
 
-        <rect x="880" y="420" width="200" height="80" rx="18" fill="#ffd6d6" filter="url(#softShadow)"/>
-        <text x="980" y="454" text-anchor="middle" font-size="17" font-weight="800" fill="#27324a">Supabase API</text>
-        <text x="980" y="478" text-anchor="middle" font-size="12" fill="#40506b">organuz-api tests</text>
+        <!-- row 3: report & deliver -->
+        <rect x="95" y="470" width="300" height="104" rx="20" fill="#f7b0d6" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
+        <rect x="95" y="470" width="300" height="104" rx="20" fill="url(#gloss)"/>
+        <text x="245" y="508" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">Allure</text>
+        <text x="245" y="533" text-anchor="middle" font-size="12.5" fill="#46566e">aggregated 3.0 report</text>
+        <text x="245" y="555" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">localhost:5050 · Pages</text>
 
-        <path d="M 375 122 L 415 122" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
-        <path d="M 745 122 L 785 122" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
-        <path d="M 575 174 L 405 250" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
-        <path d="M 530 302 L 610 302" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
-        <path d="M 195 174 L 300 420" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
-        <path d="M 365 354 L 355 420" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
-        <path d="M 600 174 L 690 420" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
-        <path d="M 880 460 L 845 460" stroke="#8391aa" stroke-width="2.2" marker-end="url(#arrow)"/>
+        <rect x="470" y="470" width="300" height="104" rx="20" fill="#d6dbe3" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
+        <rect x="470" y="470" width="300" height="104" rx="20" fill="url(#gloss)"/>
+        <text x="620" y="508" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">GitHub Actions</text>
+        <text x="620" y="533" text-anchor="middle" font-size="12.5" fill="#46566e">matrix + monitoring job</text>
+        <text x="620" y="555" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">Pages deploy · 30-min cron</text>
+
+        <rect x="845" y="470" width="300" height="104" rx="20" fill="#ffcecb" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
+        <rect x="845" y="470" width="300" height="104" rx="20" fill="url(#gloss)"/>
+        <text x="995" y="508" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">External targets</text>
+        <text x="995" y="533" text-anchor="middle" font-size="12.5" fill="#46566e">Supabase · Govmap · Ofek</text>
+        <text x="995" y="555" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">live API + monitoring</text>
+
+        <!-- legend -->
+        <g font-family="ui-monospace, Menlo, monospace" font-size="12" fill="#7b8aa1">
+          <path d="M 100 608 L 134 608" stroke="#7d8aa3" stroke-width="2.2" fill="none" marker-end="url(#arrow)"/>
+          <text x="144" y="612">data &amp; build flow</text>
+          <text x="1140" y="612" text-anchor="end">ports shown are local defaults</text>
+        </g>
       </svg>
     </div>
 
