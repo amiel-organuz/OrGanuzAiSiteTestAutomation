@@ -39,7 +39,7 @@ export const OFEK = {
   /** Current label/line overlay layer. */
   labelsLayer: process.env.OFEK_LABELS_LAYER ?? m.ofek.labelsLayer,
   /** The tile server only serves requests refered from the Govmap origin. */
-  referer: m.ofek.referer,
+  referer: process.env.OFEK_REFERER ?? m.ofek.referer,
   /** A known-good tile coordinate (Tel Aviv). */
   sampleTile: m.ofek.sampleTile as { z: number; x: number; y: number },
 };
