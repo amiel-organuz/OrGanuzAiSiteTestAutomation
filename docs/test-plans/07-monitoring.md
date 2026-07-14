@@ -8,34 +8,59 @@
 | **Target** | Live third-party map dependencies: **Govmap** (`www.govmap.gov.il`) and **Ofek** (`basemaps.govmap.gov.il`) |
 | **Client** | `APIRequestContext` only (no browser); endpoints from `tests/monitoring/support/endpoints.ts` (`config.json → monitoring`, env-overridable) |
 | **Cases** | 50 (Govmap 25 + Ofek 25) |
-| **Skips** | None — not in the default suite; runs only when opted in. A failure IS the alert. |
+| **Skips** | Block page → skip: a spec skips when the govmap.gov.il edge serves an HTML block/challenge page to the runner (a geo/bot block). Otherwise none — not in the default suite; runs only when opted in, and a real break IS the alert. |
 | **Skill** | `organuz-monitoring` |
 
 ## Scope
 
-Dedicated availability + contract monitoring for the two external Survey-of-Israel
-/ national GIS services the product characterizes a property on: **Govmap** (the
-map API and address search/geocoding) and **Ofek** (the national orthophoto
-"אופק" aerial tiles the roof scan runs on, plus the label/line overlay tiles).
-Both have caused product incidents when they broke, so this group is the
-early-warning signal.
+Dedicated availability and contract monitoring for the two external map services
+the product relies on when it characterizes a property. Both are
+Survey-of-Israel / national GIS (geographic information system) services:
 
-These are **health checks**: when the dependency breaks they fail, and that
-failure is the alert. Because they hit live third-party APIs — and would go red
-on someone else's outage — the group is **opt-in** (`MONITORING_ENABLED=true`)
-and runs on a schedule, **never** in the PR green gate. The default
-`npx playwright test` never registers the `monitoring` project, so a Govmap/Ofek
-outage can't break the PR suite.
+- **Govmap** (`www.govmap.gov.il`) — the map API and the address
+  search/geocoding ("geocoding" means turning an address into map coordinates).
+- **Ofek** (`basemaps.govmap.gov.il`) — the national orthophoto "אופק" aerial
+  tiles that the roof scan runs on, plus the label/line overlay tiles.
+  ("Orthophoto" tiles are aerial photos corrected so they can be used like a
+  map.)
+
+Both services have caused product incidents when they broke, so this group acts
+as the early-warning signal.
+
+These tests are **health checks**: when a dependency breaks, they fail, and that
+failure is itself the alert. Because they hit live third-party APIs — and would
+go red on someone else's outage — the group is **opt-in**
+(`MONITORING_ENABLED=true`) and runs on a schedule. It is **never** part of the
+PR green gate. The default `npx playwright test` never registers the
+`monitoring` project, so a Govmap or Ofek outage can't break the PR suite.
+
+## Gating (sanctioned skip — block page)
+
+The one sanctioned skip is a **block/challenge page**. The `govmap.gov.il` edge
+sometimes serves an HTML block or challenge page to the runner — a geo/bot block,
+for example when a CI runner sits outside Israel. That is not a Govmap outage and
+must not read as one, so a blocked run **skips** instead of failing.
+
+- A per-worker canary in `tests/monitoring/support/availability.ts`
+  (`govmapBlockReason` / `ofekBlockReason`) runs from each spec's `beforeEach`.
+  When it detects an HTML block/challenge page, the spec calls `test.skip` with a
+  clear reason.
+- A **real break still FAILS**: a 5xx, a connection error, or a real-but-wrong
+  payload (a JSON/tile response with the wrong shape — *not* an HTML page) all go
+  red. So a red monitoring run now means a genuine Govmap/Ofek break, not a
+  blocked runner.
 
 ## Preconditions
 
-- `MONITORING_ENABLED=true` in the environment (otherwise the project is not
-  registered — see `playwright.config.ts`).
+- `MONITORING_ENABLED=true` in the environment. Otherwise the project is not
+  registered at all (see `playwright.config.ts`).
 - Public internet access to `www.govmap.gov.il` and `basemaps.govmap.gov.il`.
-- No credentials, no browser, no password gate — the specs use
-  `APIRequestContext` directly. Endpoint hosts, the public embed token, the known
-  address, the tile layer names, the sample tile coordinate, and the latency
-  budget all come from `config.json → monitoring` (each env-overridable).
+- No credentials, no browser, and no password gate — the specs use
+  `APIRequestContext` (Playwright's plain HTTP client) directly. The endpoint
+  hosts, the public embed token, the known address, the tile layer names, the
+  sample tile coordinate, and the latency budget all come from
+  `config.json → monitoring`, and each can be overridden by an environment
+  variable.
 
 ## Cases
 
@@ -75,8 +100,9 @@ Epic: External API monitoring · Feature: Govmap (`www.govmap.gov.il`)
 
 Epic: External API monitoring · Feature: Ofek / Survey-of-Israel orthophoto (`basemaps.govmap.gov.il`)
 
-The Ofek tile server only serves requests refered from the Govmap origin, so
-every tile request carries that `Referer` (`TILE_HEADERS`).
+The Ofek tile server only serves requests that come from the Govmap origin, so
+every tile request carries that origin in its `Referer` header (set via
+`TILE_HEADERS`).
 
 | ID | Case | Asserts |
 |----|------|---------|
@@ -117,38 +143,43 @@ MONITORING_ENABLED=true npx playwright test --project=monitoring
 
 ## Scheduling & alerting
 
-Runs on its own GitHub Actions workflow, **`External API Monitoring`**
-(`.github/workflows/monitoring.yml`), separate from the PR suite
-(`parallel-tests.yml`) so an outage alerts here without ever failing the green
-PR gate:
+This group runs on its own GitHub Actions workflow, **`External API
+Monitoring`** (`.github/workflows/monitoring.yml`). It is kept separate from the
+PR suite (`parallel-tests.yml`) so that an outage alerts here without ever
+failing the green PR gate:
 
-- **Schedule:** cron `*/30 * * * *` (every 30 minutes). `concurrency` cancels an
-  in-flight run so a newer pass supersedes it.
-- **Runner:** `ubuntu-latest`, Node 22, `npm ci`, no browser install (the specs
-  use `APIRequestContext` only). Runs `npx playwright test --project=monitoring`
-  with `MONITORING_ENABLED=true`.
-- **Alert issue:** on failure the workflow opens a single auto-managed issue
-  (label `monitoring-alert`) — or comments "still failing" on the open one — so a
-  sustained outage doesn't spam a new issue per run. The next green run comments
-  and closes it (auto-recovery).
-- **Slack:** on failure it posts to every configured webhook — `SLACK_WEBHOOK_URL`
-  and `SLACK_WEBHOOK_BOT_URL` (GitHub repo secrets). Each is independent and
-  optional: an unset webhook is skipped and a failed post is non-fatal, so one bad
-  webhook never masks the alert.
-- **Alert-path test:** a `workflow_dispatch` with `force_fail=true` fails on
-  purpose to exercise the issue + Slack path without hitting the live APIs; the
-  next green run auto-closes the resulting issue.
+- **Schedule:** cron `*/30 * * * *` (every 30 minutes). The `concurrency`
+  setting cancels an in-flight run so a newer pass supersedes it.
+- **Runner:** `ubuntu-latest`, Node 22, `npm ci`, and no browser install (the
+  specs use `APIRequestContext` only). It runs
+  `npx playwright test --project=monitoring` with `MONITORING_ENABLED=true`.
+- **Alert issue:** on failure, the workflow opens a single auto-managed GitHub
+  issue (label `monitoring-alert`) — or, if one is already open, comments "still
+  failing" on it. That way a sustained outage doesn't spam a new issue on every
+  run. The next green run comments on the issue and closes it (auto-recovery).
+- **Slack:** on failure, it posts to every configured webhook —
+  `SLACK_WEBHOOK_URL` and `SLACK_WEBHOOK_BOT_URL` (GitHub repo secrets). Each is
+  independent and optional: an unset webhook is skipped, and a failed post is
+  non-fatal, so one bad webhook never masks the alert.
+- **Alert-path test:** a `workflow_dispatch` run with `force_fail=true` fails on
+  purpose. This exercises the issue + Slack path without hitting the live APIs;
+  the next green run auto-closes the resulting issue.
 
 ## Notes
 
-- This group is **never** in the default suite and has **no** sanctioned-skip
-  semantics — it either runs (opted in) or is unregistered. A failure is a real
-  signal that a critical map dependency is degraded, not a flake to skip.
-- Endpoint hosts, the public embed token, tile layer names, the sample tile, the
-  known address, and the latency budget all live in `config.json → monitoring`
-  (each env-overridable via `GOVMAP_API_URL`, `OFEK_TILES_URL`,
-  `OFEK_ORTHO_LAYER`, `OFEK_LABELS_LAYER`, `MONITORING_LATENCY_MS`, etc.). The
-  layer-drift guards (OFK-23/24) exist because the national orthophoto layer is
-  renamed yearly — a rename is a real signal, fixed with a one-line config update.
-- Adding/removing a monitoring spec changes the documented count (50); update
-  `CLAUDE.md`, this plan, and the `test-suite-parity` skill.
+- This group is **never** in the default suite. It either runs (when opted in)
+  or is unregistered. Its one sanctioned skip is a **block/challenge page** from
+  the govmap.gov.il edge (a geo/bot block — see "Gating" above): the per-worker
+  canary in `tests/monitoring/support/availability.ts` skips the spec via each
+  `beforeEach`. Every other red is a real signal that a critical map dependency
+  is degraded — a 5xx, a connection error, or a real-but-wrong (non-HTML) payload
+  is a break, not a flake to skip.
+- The endpoint hosts, the public embed token, the tile layer names, the sample
+  tile, the known address, and the latency budget all live in
+  `config.json → monitoring`. Each can be overridden by an environment variable
+  (`GOVMAP_API_URL`, `OFEK_TILES_URL`, `OFEK_ORTHO_LAYER`, `OFEK_LABELS_LAYER`,
+  `MONITORING_LATENCY_MS`, and so on). The layer-drift guards (OFK-23/24) exist
+  because the national orthophoto layer is renamed every year; a rename is a real
+  signal, and it is fixed with a one-line config update.
+- Adding or removing a monitoring spec changes the documented count (50);
+  update `CLAUDE.md`, this plan, and the `test-suite-parity` skill.

@@ -1,0 +1,243 @@
+name: Prod Test Automation
+
+# A SEPARATE pipeline that runs the suite against the PRODUCTION Organuz environment
+# (QA_TARGET_ENV=prod → marketing www.organuz.ai + app energy.organuz.com, which has no
+# password gate). Kept distinct from parallel-tests.yml (which targets dev) so prod is
+# never hit on ordinary pushes/PRs.
+#
+# Configuration is driven by the same contract as the local gitignored `.env`: a single
+# `DOTENV_PROD` repository secret holding the whole prod .env (QA_TARGET_ENV, APP_BASE_URL,
+# per-role phone/OTP creds, Slack webhooks, …) is materialized into `.env`, which
+# playwright.config.ts already loads via dotenv. Individual secrets are honored as a
+# fallback. `QA_TARGET_ENV` is pinned to the dispatch input (default prod) so the target is
+# explicit regardless of what `.env` carried.
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_env:
+        description: Target environment
+        type: choice
+        default: prod
+        options:
+          - prod
+          - test
+          - dev
+  schedule:
+    # Daily at 05:30 Israel time. GitHub cron is UTC-only and can't track Israel DST
+    # (IST = UTC+2 in winter, IDT = UTC+3 in summer), so BOTH candidate UTC slots are
+    # scheduled and the `gate` job below lets exactly one through — the one that is 05:xx
+    # in Asia/Jerusalem right now:
+    #   02:30 UTC = 05:30 IDT (summer)   03:30 UTC = 05:30 IST (winter)
+    - cron: '30 2 * * *'
+    - cron: '30 3 * * *'
+
+concurrency:
+  group: prod-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Prod by default; a manual dispatch can retarget to test/dev. Set at the job level so it
+  # wins over any QA_TARGET_ENV carried by the materialized .env (dotenv never overrides an
+  # already-set process env var).
+  QA_TARGET_ENV: ${{ github.event.inputs.target_env || 'prod' }}
+
+jobs:
+  # DST-aware schedule gate: with two UTC crons (02:30 / 03:30), let through only the run
+  # that is currently the 05:xx hour in Asia/Jerusalem — i.e. 05:30 Israel time year-round.
+  # A manual dispatch always proceeds. Checking the hour (not the exact minute) tolerates
+  # GitHub's usual few-minutes cron delay.
+  gate:
+    name: Schedule gate (05:30 Asia/Jerusalem)
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+    steps:
+      - id: check
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "Non-scheduled (${{ github.event_name }}) run — proceeding."
+            exit 0
+          fi
+          HOUR=$(TZ='Asia/Jerusalem' date +%H)
+          echo "Current Asia/Jerusalem time: $(TZ='Asia/Jerusalem' date '+%Y-%m-%d %H:%M %Z')"
+          if [ "$HOUR" = "05" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "It is the 05:xx hour in Israel — this is the correct DST-adjusted slot; proceeding."
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "Not the 05:xx hour in Israel — the other cron slot covers the current DST offset; skipping."
+          fi
+
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript typecheck
+        run: npm run typecheck
+
+  tests:
+    name: Playwright ${{ matrix.project }} (prod)
+    runs-on: ubuntu-latest
+    needs: typecheck
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          # chromium (prod marketing site) and the product projects are commented out
+          # because those projects are currently DISABLED in playwright.config.ts. Re-enable
+          # here in the same change that uncomments the config blocks. Running the product
+          # projects against PROD would drive energy.organuz.com with real credentials — only
+          # enable them here with that intent (prod has no password gate, so no
+          # PRODUCT_PLATFORM_PASSWORD is needed).
+          # - chromium
+          - organuz-api
+          - agent
+          # - product
+          # - product-authenticated
+
+    env:
+      CI: true
+      PLAYWRIGHT_MERGE_REPORTS: false
+      # Individual-secret fallback (used only when DOTENV_PROD is not set). Unset => empty
+      # => the credential-gated roles skip (green). Prod has no password gate.
+      PRODUCT_PLATFORM_PASSWORD: ${{ secrets.PRODUCT_PLATFORM_PASSWORD }}
+      CUSTOMER_PHONE: ${{ secrets.CUSTOMER_PHONE }}
+      CUSTOMER_OTP_CODE: ${{ secrets.CUSTOMER_OTP_CODE }}
+      CONSULTANT_PHONE: ${{ secrets.CONSULTANT_PHONE }}
+      CONSULTANT_OTP_CODE: ${{ secrets.CONSULTANT_OTP_CODE }}
+      COMPANY_PHONE: ${{ secrets.COMPANY_PHONE }}
+      COMPANY_OTP_CODE: ${{ secrets.COMPANY_OTP_CODE }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Materialize .env for prod (from the DOTENV_PROD secret)
+        env:
+          DOTENV_PROD: ${{ secrets.DOTENV_PROD }}
+        run: |
+          if [ -n "$DOTENV_PROD" ]; then
+            printf '%s\n' "$DOTENV_PROD" > .env
+            echo "Wrote .env from the DOTENV_PROD secret ($(grep -c '=' .env) key(s)); values are masked in logs."
+          else
+            echo "DOTENV_PROD secret not set — falling back to the individual env vars above."
+          fi
+          echo "Effective QA_TARGET_ENV=${QA_TARGET_ENV}"
+
+      - name: Install Chromium
+        # chromium drives the marketing site; the product projects open a chromium context.
+        if: matrix.project == 'chromium' || matrix.project == 'product' || matrix.project == 'product-authenticated'
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright project (prod)
+        run: npx playwright test --project=${{ matrix.project }}
+
+      - name: Upload Playwright report
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-playwright-report-${{ matrix.project }}
+          path: playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload Allure results
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-allure-results-${{ matrix.project }}
+          path: allure-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload blob report
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-blob-report-${{ matrix.project }}
+          path: blob-report/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  report-summary:
+    name: Prod Report Summary
+    runs-on: ubuntu-latest
+    needs: [gate, tests]
+    if: always() && needs.gate.outputs.run == 'true'
+    env:
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      TARGET_ENV: ${{ github.event.inputs.target_env || 'prod' }}
+      TESTS_RESULT: ${{ needs.tests.result }}
+    steps:
+      - name: Add prod summary
+        run: |
+          {
+            echo "## Prod Test Automation"
+            echo
+            echo "| Field | Value |"
+            echo "| --- | --- |"
+            echo "| Target env | \`${TARGET_ENV}\` |"
+            echo "| Tests result | \`${TESTS_RESULT}\` |"
+            echo "| Run | [$RUN_URL]($RUN_URL) |"
+            echo
+            echo "Per-project Allure results / Playwright reports are attached as \`prod-*\` artifacts."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Notify Slack (prod run)
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_BOT_URL: ${{ secrets.SLACK_WEBHOOK_BOT_URL }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ] && [ -z "$SLACK_WEBHOOK_BOT_URL" ]; then
+            echo "No Slack webhook secrets set — skipping prod notification."
+            exit 0
+          fi
+          if [ "$TESTS_RESULT" = "success" ]; then STATUS=":white_check_mark: passed"; else STATUS=":x: ${TESTS_RESULT}"; fi
+          TEXT=":rocket: *Organuz — PROD test run* (\`${TARGET_ENV}\`) finished — ${STATUS}\n• <${RUN_URL}|View run>"
+          PAYLOAD=$(printf '{"text":"%s"}' "$TEXT")
+          post() { # $1 = label, $2 = url
+            if [ -z "$2" ]; then echo "$1 not set — skipping."; return; fi
+            if curl -fsS -X POST "$2" -H 'content-type: application/json' --data "$PAYLOAD" >/dev/null; then
+              echo "$1: posted."
+            else
+              echo "$1: post failed (non-fatal)."
+            fi
+          }
+          post SLACK_WEBHOOK_URL "$SLACK_WEBHOOK_URL"
+          post SLACK_WEBHOOK_BOT_URL "$SLACK_WEBHOOK_BOT_URL"

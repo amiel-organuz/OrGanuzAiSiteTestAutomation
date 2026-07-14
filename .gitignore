@@ -23,6 +23,7 @@ test-results/
 playwright-report/
 allure-results/
 allure-report/
+allure-history/
 blob-report/
 .cache/
 

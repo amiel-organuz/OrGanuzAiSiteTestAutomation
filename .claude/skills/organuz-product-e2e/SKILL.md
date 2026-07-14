@@ -5,6 +5,12 @@ description: Drive or debug the Organuz product calculator (energy/dev app) end-
 
 # Organuz product app E2E
 
+> **⚠️ The `product` project is CURRENTLY DISABLED** — it is commented out in
+> `playwright.config.ts` (along with `product-setup` / `product-authenticated`), so these
+> tests **do not run in the default suite** right now. The spec files under `tests/product/**`
+> are kept; re-enable by uncommenting the `product` block (and re-adding `devices` to the
+> config import). All the how-to-drive/debug content below stays valid once re-enabled.
+
 The product app is a Hebrew (RTL) Vite SPA. Tests live in `tests/product/**` (Playwright project `product`, baseURL = `config.app.baseUrl`, selected by `QA_TARGET_ENV`, default **dev** = `https://dev1.app.organize.organuz.com`). Page object: `tests/product/support/ProductAppPage.ts`. Env gate helper: `tests/product/support/env-gate.ts`.
 
 This skill covers app access, the login UI, the calculator wizard, and MCP driving. **Per-role authentication, session reuse (`product-setup`/`storageState`), the role roster, personal areas, and the role specs are in the organuz-product-roles skill.**

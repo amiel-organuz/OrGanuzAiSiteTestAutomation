@@ -1,4 +1,4 @@
-import { test, expect } from '../../../src/fixtures';
+import { test, expect } from '../support/fixtures';
 import {
   allureEpic,
   allureFeature,
@@ -7,65 +7,65 @@ import {
   allureStep,
 } from '../../../src/utils/allure';
 
-test.describe('Homepage sections', { tag: '@ui' }, () => {
-  test.beforeEach(async ({ homePage }) => {
-    await homePage.navigate();
+test.describe('Home page sections', { tag: '@ui' }, () => {
+  test.beforeEach(async ({ home }) => {
+    await home.open();
   });
 
-  test('primary navigation links are visible', { tag: '@other-smoke' }, async ({ homePage }) => {
-    await allureEpic('Homepage');
+  test('Main navigation links are visible', { tag: '@other-smoke' }, async ({ home }) => {
+    await allureEpic('Home page');
     await allureFeature('Header');
-    await allureStory('Primary navigation');
+    await allureStory('Main navigation');
     await allureSeverity('critical');
 
-    await allureStep('Verify the six primary nav links are visible', async () => {
-      await homePage.expectNavLinksVisible();
+    await allureStep('Verify the six main navigation links are visible', async () => {
+      await home.header.expectNavLinksVisible();
     });
   });
 
-  test('hero subtitle is visible', { tag: '@other-smoke' }, async ({ homePage }) => {
-    await allureEpic('Homepage');
-    await allureFeature('Hero Section');
+  test('Hero subtitle is visible', { tag: '@other-smoke' }, async ({ home }) => {
+    await allureEpic('Home page');
+    await allureFeature('Hero section');
     await allureStory('Subtitle');
     await allureSeverity('normal');
 
     await allureStep('Verify the hero subtitle is visible', async () => {
-      await expect(homePage.heroSubtitle).toBeVisible();
+      await expect(home.hero.subtitle).toBeVisible();
     });
   });
 
-  test('hero user-type selector buttons are visible', { tag: '@other-smoke' }, async ({ homePage }) => {
-    await allureEpic('Homepage');
-    await allureFeature('Hero Section');
+  test('User-type selector buttons are visible', { tag: '@other-smoke' }, async ({ home }) => {
+    await allureEpic('Home page');
+    await allureFeature('Hero section');
     await allureStory('User-type selector');
     await allureSeverity('normal');
 
     await allureStep('Verify all six audience buttons are visible', async () => {
-      await homePage.expectAllUserTypeButtonsVisible();
+      await home.hero.expectAllUserTypeButtonsVisible();
     });
   });
 
-  test('"Why Organuz" section is visible', { tag: '@other-smoke' }, async ({ homePage }) => {
-    await allureEpic('Homepage');
+  test('"Why Organuz" section is visible', { tag: '@other-smoke' }, async ({ home }) => {
+    await allureEpic('Home page');
     await allureFeature('Why Organuz');
     await allureStory('Section heading');
     await allureSeverity('normal');
 
-    await allureStep('Verify the "Why Organuz" heading and first audience tab', async () => {
-      await expect(homePage.whySectionHeading).toBeVisible();
-      await expect(homePage.whyTabPropertyOwners).toBeVisible();
+    await allureStep('Verify the "Why Organuz" heading and the first tab are visible', async () => {
+      await expect(home.why.heading).toBeVisible();
+      await expect(home.why.tabPropertyOwners).toBeVisible();
     });
   });
 
-  test('"Meet Or" section and its CTA are visible', { tag: '@other-smoke' }, async ({ homePage }) => {
-    await allureEpic('Homepage');
-    await allureFeature('Or agent');
+  test('"Meet Or" section and its CTA are visible', { tag: '@other-smoke' }, async ({ home }) => {
+    await allureEpic('Home page');
+    await allureFeature('The Or agent');
     await allureStory('Section heading + CTA');
     await allureSeverity('normal');
 
-    await allureStep('Verify the "Meet Or" heading and "talk to Or" link', async () => {
-      await expect(homePage.orSectionHeading).toBeVisible();
-      await expect(homePage.talkToOrLink).toBeVisible();
+    await allureStep('Verify the "Meet Or" heading and the "Talk to Or" link are visible', async () => {
+      await expect(home.or.heading).toBeVisible();
+      await expect(home.or.talkToOrLink).toBeVisible();
     });
   });
 });

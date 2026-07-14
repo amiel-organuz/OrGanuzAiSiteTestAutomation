@@ -2,12 +2,11 @@ import { expect, test } from '@playwright/test';
 import { PRODUCT_PERSONAS, ProductPersona, ProductPersonaId } from './e2e-matrix.data';
 
 /**
- * Data-contract sanity checks for the three sign-in-capable product roles.
- * Network-free: they assert the modeled behavior of each role in
- * PRODUCT_PERSONAS (post-funding routing, quotation/pricing/management rights,
- * identity) so a role-capability regression is caught without driving the app.
- * `company-employee` is modeled too but cannot sign in, so it is only used here
- * as a contrast for the elevated-rights invariants.
+ * Sanity tests for the data contract of the three sign-in-capable product roles.
+ * Network-free: they verify the modeled behavior of each role in PRODUCT_PERSONAS (post-funding
+ * routing, quotation/pricing/management privileges, identity) so a regression in a role capability is
+ * caught without running the app. `company-employee` is modeled too but cannot sign in, so
+ * it serves here only as a contrast for the elevated-privilege invariants.
  */
 const SIGN_IN_ROLES: readonly ProductPersonaId[] = ['customer', 'consultant', 'company'];
 
@@ -17,14 +16,14 @@ function persona(id: ProductPersonaId): ProductPersona {
   return found;
 }
 
-test.describe('Product role contract', { tag: '@product' }, () => {
+test.describe('Product roles contract', { tag: '@product' }, () => {
   test('models all three sign-in roles as distinct personas', () => {
     const ids = SIGN_IN_ROLES.map((id) => persona(id).id);
     expect(ids).toEqual(['customer', 'consultant', 'company']);
     expect(new Set(ids).size).toBe(SIGN_IN_ROLES.length);
   });
 
-  test('every sign-in role has a human-readable name and role description', () => {
+  test('every sign-in role has a readable name and a role description', () => {
     for (const id of SIGN_IN_ROLES) {
       const p = persona(id);
       expect(p.name.trim().length, `${id} has a name`).toBeGreaterThan(0);
@@ -32,7 +31,7 @@ test.describe('Product role contract', { tag: '@product' }, () => {
     }
   });
 
-  test('post-funding destination is a known value for every sign-in role', () => {
+  test('the post-funding destination is a known value for every sign-in role', () => {
     for (const id of SIGN_IN_ROLES) {
       expect(['quotations', 'results']).toContain(persona(id).expectedPostFundingDestination);
     }
@@ -54,7 +53,7 @@ test.describe('Product role contract', { tag: '@product' }, () => {
     expect(consultant.canOpenQuotationsFromResults).toBe(true);
   });
 
-  test('company downloads its own quotation from results, not the quotations list', () => {
+  test('company gets its quote from results, not from the quotations list', () => {
     const company = persona('company');
     expect(company.expectedPostFundingDestination).toBe('results');
     expect(company.canOpenQuotationsFromResults).toBe(false);
@@ -72,10 +71,10 @@ test.describe('Product role contract', { tag: '@product' }, () => {
     expect(persona('consultant').canOpenCompanyManagement).toBe(false);
   });
 
-  test('company is the only role with any elevated company rights', () => {
+  test('company is the only role with any elevated company privileges', () => {
     const elevated = (p: ProductPersona) => p.canOpenCompanyPricing || p.canOpenCompanyManagement;
-    // Among every modeled persona (including the sign-in-less company-employee),
-    // only the company contractor carries pricing/management rights.
+    // Of every modeled persona (including company-employee, which cannot sign in),
+    // only the company contractor carries pricing/management privileges.
     const withRights = PRODUCT_PERSONAS.filter(elevated).map((p) => p.id);
     expect(withRights).toEqual(['company']);
   });

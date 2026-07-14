@@ -1,4 +1,4 @@
-import { test, expect } from '../../../src/fixtures';
+import { test, expect } from '../support/fixtures';
 import {
   allureEpic,
   allureFeature,
@@ -9,22 +9,22 @@ import {
 import { SiteUrl } from '../../constants';
 
 test.describe('Navigation', { tag: '@ui' }, () => {
-  test.beforeEach(async ({ homePage }) => {
-    await homePage.navigate();
+  test.beforeEach(async ({ home }) => {
+    await home.open();
   });
 
-  test('header CTA link is visible and points to the app', { tag: '@other-smoke' }, async ({ homePage }) => {
-    await allureEpic('Site Navigation');
+  test('Header CTA button is visible and links to the app', { tag: '@other-smoke' }, async ({ home }) => {
+    await allureEpic('Site navigation');
     await allureFeature('Header');
-    await allureStory('Header CTA');
+    await allureStory('Header CTA button');
     await allureSeverity('critical');
 
-    await allureStep('Verify "להתחלה" CTA button is visible', async () => {
-      await expect(homePage.headerCtaLink).toBeVisible();
+    await allureStep('Verify the "להתחלה" CTA button is visible', async () => {
+      await expect(home.header.ctaLink).toBeVisible();
     });
 
-    await allureStep('Verify CTA links to energy.organuz.com', async () => {
-      await expect(homePage.headerCtaLink).toHaveAttribute('href', SiteUrl.app);
+    await allureStep('Verify the button links to energy.organuz.com', async () => {
+      await expect(home.header.ctaLink).toHaveAttribute('href', SiteUrl.app);
     });
   });
 });

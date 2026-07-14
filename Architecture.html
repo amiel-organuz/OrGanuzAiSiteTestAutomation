@@ -13,14 +13,14 @@
 
     :root {
       color-scheme: light;
-      --bg: #fff7fb;
+      --bg: #f2fbf5;
       --bg-2: #f4fbff;
-      --ink: #243047;
-      --muted: #68758d;
-      --line: #dfe7f3;
+      --ink: #1c2942;
+      --muted: #48566c;
+      --line: #cbd9e6;
       --panel: rgba(255, 255, 255, 0.82);
       --panel-strong: #ffffff;
-      --pink: #f8b4d9;
+      --pink: #79dcae;
       --rose: #ffd6d6;
       --peach: #ffd9b8;
       --yellow: #ffeaa7;
@@ -461,6 +461,30 @@
       }
     }
   </style>
+  <style id="inline-style-replacements">
+    /* Utility rules replacing former inline-style attributes
+       (webhint no-inline-styles). Keyed off data-* attributes. */
+    [data-accent="mint"]{--accent:var(--mint)}
+    [data-accent="blue"]{--accent:var(--blue)}
+    [data-accent="rose"]{--accent:var(--rose)}
+    [data-accent="peach"]{--accent:var(--peach)}
+    [data-accent="violet"]{--accent:var(--violet)}
+    [data-accent="pink"]{--accent:var(--pink)}
+    [data-accent="lavender"]{--accent:var(--lavender)}
+    [data-accent="green"]{--accent:var(--green)}
+    [data-accent="aqua"]{--accent:var(--aqua)}
+    [data-accent="yellow"]{--accent:var(--yellow)}
+    [data-top="yellow"]{border-top:6px solid var(--yellow)}
+    [data-top="pink"]{border-top:6px solid var(--pink)}
+    [data-top="peach"]{border-top:6px solid var(--peach)}
+    [data-top="mint"]{border-top:6px solid var(--mint)}
+    [data-top="lavender"]{border-top:6px solid var(--lavender)}
+    [data-top="aqua"]{border-top:6px solid var(--aqua)}
+    [data-lead]{max-width:74ch;color:var(--muted);margin-bottom:6px}
+    [data-mb="24"]{margin-bottom:24px}
+    [data-mb="14"]{margin-bottom:14px}
+    [data-grid="autofit"]{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+  </style>
 </head>
 <body>
   <nav>
@@ -517,31 +541,31 @@
       <span class="eyebrow">Pastel architecture map</span>
       <h1>Playwright automation with Product E2E Matrix, QA orchestration, FastAPI, Scalar, Grafana, Prometheus, Organuz Supabase API tests, and Allure 3</h1>
       <p class="subtitle">
-        A single-file architecture view for the OrGanuz AI site automation stack. Local runs start the runtime services, execute the six Playwright projects, generate Allure 3, and print the main service links. The <code>product</code> project carries the property-characterization matrix and role data-contracts plus the dev UI-token sanity spec; <code>product-setup</code> → <code>product-authenticated</code> add live per-role browser sessions; <code>chromium</code> covers the marketing site, <code>organuz-api</code> the Supabase/PostgREST backend, and <code>agent</code> the QA-orchestrator regression plus the <code>TestPlanAgent</code> (URL → Playwright-MCP exploration → generated test plan). GitHub Actions runs the same projects in parallel and publishes Allure to GitHub Pages.
+        A single-file architecture view for the OrGanuz AI site automation stack. Local runs start the runtime services, execute the active Playwright projects, generate Allure 3, and print the main service links. Two projects run green by default — <code>organuz-api</code> (the Supabase/PostgREST backend) and <code>agent</code> (the QA-orchestrator regression plus the <code>TestPlanAgent</code>: URL → Playwright-MCP exploration → generated test plan); an opt-in <code>monitoring</code> project adds live Govmap/Ofek availability checks. The <code>chromium</code> (marketing site), <code>product</code> (property-characterization matrix, role data-contracts, dev UI-token sanity), <code>product-setup</code>, and <code>product-authenticated</code> (live per-role browser sessions) projects are currently disabled in <code>playwright.config.ts</code> (commented out; spec files kept) — re-enable by uncommenting. GitHub Actions runs the same active projects in parallel and publishes Allure to GitHub Pages.
       </p>
 
       <div class="services" id="services" aria-label="Local service links">
-        <div class="tile" style="border-top: 6px solid var(--mint)">
+        <div class="tile" data-top="mint">
           <strong>FastAPI</strong>
           <code>http://localhost:8000</code>
         </div>
-        <div class="tile" style="border-top: 6px solid var(--lavender)">
+        <div class="tile" data-top="lavender">
           <strong>Scalar</strong>
           <code>http://localhost:8080</code>
         </div>
-        <div class="tile" style="border-top: 6px solid var(--peach)">
+        <div class="tile" data-top="peach">
           <strong>Pushgateway</strong>
           <code>http://localhost:9091</code>
         </div>
-        <div class="tile" style="border-top: 6px solid var(--yellow)">
+        <div class="tile" data-top="yellow">
           <strong>Prometheus</strong>
           <code>http://localhost:9092</code>
         </div>
-        <div class="tile" style="border-top: 6px solid var(--aqua)">
+        <div class="tile" data-top="aqua">
           <strong>Grafana</strong>
           <code>http://localhost:3001</code>
         </div>
-        <div class="tile" style="border-top: 6px solid var(--pink)">
+        <div class="tile" data-top="pink">
           <strong>Allure</strong>
           <code>http://localhost:5050</code>
         </div>
@@ -550,51 +574,51 @@
 
     <h2 id="stack">Stack Overview</h2>
     <div class="cards">
-      <div class="card" style="--accent: var(--blue)">
+      <div class="card" data-accent="blue">
         <div class="card-title"><span class="badge">TS</span> Playwright Tests</div>
-        <p class="card-desc">Six projects: <code>chromium</code> (marketing UI), <code>product</code> (token-sanity + matrix &amp; role data-contracts), <code>product-setup</code> → <code>product-authenticated</code> (live per-role sessions), <code>organuz-api</code> (Supabase/PostgREST), and <code>agent</code> (orchestrator regression + <code>TestPlanAgent</code> URL→plan generator). 59 tests: 46 green (chromium 12, product 31, organuz-api 1, agent 2) + 13 credential-gated role specs that skip until per-role secrets exist.</p>
+        <p class="card-desc">Active by default: <code>organuz-api</code> (Supabase/PostgREST) and <code>agent</code> (orchestrator regression + <code>TestPlanAgent</code> URL→plan generator) — <strong>3 tests, all green</strong>. An opt-in <code>monitoring</code> project (<code>MONITORING_ENABLED=true</code>) adds 50 live third-party checks (<strong>53 total</strong>). <code>chromium</code> (marketing UI, 12 when enabled), <code>product</code> (token-sanity + matrix &amp; role data-contracts, 31 when enabled), and <code>product-setup</code> → <code>product-authenticated</code> (live per-role sessions, 3 + 10 when enabled) are currently disabled in <code>playwright.config.ts</code> (commented out; spec files kept) — re-enable by uncommenting.</p>
       </div>
-      <div class="card" style="--accent: var(--green)">
+      <div class="card" data-accent="green">
         <div class="card-title"><span class="badge">E2E</span> Product Coverage</div>
         <p class="card-desc"><code>tests/product</code> runs the dev UI-token sanity spec (3 checks, skipped only on a dev-gateway outage) and the matrix data-contract (13 checks over 12 <code>CALC-ROOF</code> scenarios × 4 personas, property/polygon/roof coverage, panel thresholds, Ramot, and the UI-only no-panel case).</p>
       </div>
-      <div class="card" style="--accent: var(--mint)">
+      <div class="card" data-accent="mint">
         <div class="card-title"><span class="badge">PY</span> FastAPI</div>
         <p class="card-desc">Provides <code>/health</code>, <code>/metrics</code>, <code>/openapi.json</code>, built-in docs at <code>/docs</code>, and automation metadata under <code>/automation</code>.</p>
       </div>
-      <div class="card" style="--accent: var(--rose)">
+      <div class="card" data-accent="rose">
         <div class="card-title"><span class="badge">API</span> Organuz Backend</div>
         <p class="card-desc">The <code>organuz-api</code> project tests the Organuz Supabase/PostgREST backend — the <code>/rest/v1/projects</code> resource and edge-function CORS preflights — using the public anon key.</p>
       </div>
-      <div class="card" style="--accent: var(--rose)">
+      <div class="card" data-accent="rose">
         <div class="card-title"><span class="badge">RPC</span> Dev RPC token</div>
         <p class="card-desc">The <code>product</code> token-sanity spec opens the dev calculator, captures the UI token off the wire, and calls the dev RPC gateway at <code>organuz.flamiingo.com</code> (<code>POST /?call=&lt;method&gt;</code>) — proving the bundled public token authorizes the gateway and is sent in the request body over HTTPS, never in the URL.</p>
       </div>
-      <div class="card" style="--accent: var(--lavender)">
+      <div class="card" data-accent="lavender">
         <div class="card-title"><span class="badge">DOC</span> Scalar API Reference</div>
         <p class="card-desc">External Scalar docs read the FastAPI OpenAPI schema from <code>localhost:8000/openapi.json</code>.</p>
       </div>
-      <div class="card" style="--accent: var(--peach)">
+      <div class="card" data-accent="peach">
         <div class="card-title"><span class="badge">MON</span> Pushgateway</div>
         <p class="card-desc">The Prometheus Pushgateway (<code>prom/pushgateway</code>, host <code>9091</code>) receives the <code>qa_playwright_*</code> test metrics that <code>scripts/push-qa-metrics.mjs</code> pushes after each run; Prometheus then scrapes it with <code>honor_labels: true</code>.</p>
       </div>
-      <div class="card" style="--accent: var(--yellow)">
+      <div class="card" data-accent="yellow">
         <div class="card-title"><span class="badge">MON</span> Prometheus</div>
         <p class="card-desc">Scrapes FastAPI process metrics from <code>api:8000/metrics</code> and the QA test metrics from the <code>pushgateway</code>, both through <code>server/prometheus.yml</code>.</p>
       </div>
-      <div class="card" style="--accent: var(--aqua)">
+      <div class="card" data-accent="aqua">
         <div class="card-title"><span class="badge">MON</span> Grafana</div>
         <p class="card-desc">Runs on host port <code>3001</code> with a provisioned Prometheus datasource and the <code>OrGanuz QA Dashboard</code>.</p>
       </div>
-      <div class="card" style="--accent: var(--pink)">
+      <div class="card" data-accent="pink">
         <div class="card-title"><span class="badge">REP</span> Allure 3</div>
         <p class="card-desc">Generated by the CLI and CI workflow, served locally by Nginx, and published by GitHub Pages on main branches.</p>
       </div>
-      <div class="card" style="--accent: var(--peach)">
+      <div class="card" data-accent="peach">
         <div class="card-title"><span class="badge">FAIL</span> Failure Capture</div>
         <p class="card-desc"><code>src/fixtures/index.ts</code> attaches screenshots, videos, and traces to Allure after unexpected failures; Playwright is configured with <code>screenshot: only-on-failure</code>, <code>video: retain-on-failure</code>, and <code>trace: on-first-retry</code>.</p>
       </div>
-      <div class="card" style="--accent: var(--violet)">
+      <div class="card" data-accent="violet">
         <div class="card-title"><span class="badge">AGENT</span> QA Orchestrator</div>
         <p class="card-desc">Coordinates Azure DevOps, Google Sheets, Playwright, and OneDrive. The CLI-backed runner maps orchestrator cases to real Playwright projects and reports pass/fail evidence back through the agent loop. Its sibling <code>TestPlanAgent</code> goes the other way — given a <strong>URL</strong>, it drives the <strong>Playwright MCP CLI server</strong> (<code>npx @playwright/mcp</code>) to explore the live page and <em>generate</em> a <code>TestSuite</code> (<code>npm run agent:plan -- &lt;url&gt; --live</code>).</p>
       </div>
@@ -647,8 +671,8 @@
         <rect x="95" y="80" width="300" height="104" rx="20" fill="#c3d8ff" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
         <rect x="95" y="80" width="300" height="104" rx="20" fill="url(#gloss)"/>
         <text x="245" y="118" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">Playwright</text>
-        <text x="245" y="143" text-anchor="middle" font-size="12.5" fill="#46566e">chromium · product · organuz-api · agent</text>
-        <text x="245" y="165" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">6 projects · +monitoring</text>
+        <text x="245" y="143" text-anchor="middle" font-size="12.5" fill="#46566e">organuz-api · agent · +monitoring (opt-in)</text>
+        <text x="245" y="165" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">2 active · 4 disabled in config</text>
 
         <rect x="470" y="80" width="300" height="104" rx="20" fill="#b6f1d6" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
         <rect x="470" y="80" width="300" height="104" rx="20" fill="url(#gloss)"/>
@@ -682,7 +706,7 @@
         <text x="995" y="370" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">localhost:3001</text>
 
         <!-- row 3: report & deliver -->
-        <rect x="95" y="470" width="300" height="104" rx="20" fill="#f7b0d6" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
+        <rect x="95" y="470" width="300" height="104" rx="20" fill="#79dcae" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
         <rect x="95" y="470" width="300" height="104" rx="20" fill="url(#gloss)"/>
         <text x="245" y="508" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">Allure</text>
         <text x="245" y="533" text-anchor="middle" font-size="12.5" fill="#46566e">aggregated 3.0 report</text>
@@ -692,7 +716,7 @@
         <rect x="470" y="470" width="300" height="104" rx="20" fill="url(#gloss)"/>
         <text x="620" y="508" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">GitHub Actions</text>
         <text x="620" y="533" text-anchor="middle" font-size="12.5" fill="#46566e">matrix + monitoring job</text>
-        <text x="620" y="555" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">Pages deploy · 30-min cron</text>
+        <text x="620" y="555" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">Pages · daily 05:00 + 30-min cron</text>
 
         <rect x="845" y="470" width="300" height="104" rx="20" fill="#ffcecb" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
         <rect x="845" y="470" width="300" height="104" rx="20" fill="url(#gloss)"/>
@@ -710,26 +734,26 @@
     </div>
 
     <h2 id="agent-stack">QA Agent Orchestrator Stack</h2>
-    <div class="panel" style="margin-bottom: 24px;">
-      <p style="margin-bottom: 14px;"><strong>The QA Agent Orchestrator</strong> coordinates multiple testing tools and integrations to automate the verification pipeline:</p>
-      <div class="cards" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
-        <div class="step" style="--accent: var(--violet)">
+    <div class="panel" data-mb="24">
+      <p data-mb="14"><strong>The QA Agent Orchestrator</strong> coordinates multiple testing tools and integrations to automate the verification pipeline:</p>
+      <div class="cards" data-grid="autofit">
+        <div class="step" data-accent="violet">
           <strong>Azure DevOps</strong>
           <p>System of record. The orchestrator reads test plans, writes back outcomes, and files bugs idempotently (guards against duplicates).</p>
         </div>
-        <div class="step" style="--accent: var(--mint)">
+        <div class="step" data-accent="mint">
           <strong>Google Sheets</strong>
           <p>Provides parameterized input/expected values and environment configurations, and logs live results.</p>
         </div>
-        <div class="step" style="--accent: var(--blue)">
+        <div class="step" data-accent="blue">
           <strong>Playwright Runner</strong>
           <p><code>CliPlaywrightRunner</code> invokes <code>npx playwright test</code> for mapped projects, reads <code>test-results/results.json</code>, and returns normalized execution results to the orchestrator.</p>
         </div>
-        <div class="step" style="--accent: var(--peach)">
+        <div class="step" data-accent="peach">
           <strong>OneDrive Store</strong>
           <p>Durable evidence storage. Returns shareable links that are linked in reported DevOps bugs.</p>
         </div>
-        <div class="step" style="--accent: var(--rose)">
+        <div class="step" data-accent="rose">
           <strong>Current Test Mapping</strong>
           <p><code>npm run agent:current-tests</code> maps <code>PW-API</code>, <code>PW-CHROMIUM</code>, <code>PW-PRODUCT</code>, and <code>PW-AGENT</code> to the real Playwright <code>organuz-api</code>, <code>chromium</code>, <code>product</code>, and <code>agent</code> projects (each case runs a whole project).</p>
         </div>
@@ -738,22 +762,22 @@
 
     <h2 id="agent-flow">Agent Current-Test Flow</h2>
     <div class="flow">
-      <div class="step" style="--accent: var(--violet)">
+      <div class="step" data-accent="violet">
         <div class="step-num">1</div>
         <h3>Build agent</h3>
         <p><code>npm run agent:current-tests</code> first compiles TypeScript with <code>tsc -p tsconfig.json</code>.</p>
       </div>
-      <div class="step" style="--accent: var(--mint)">
+      <div class="step" data-accent="mint">
         <div class="step-num">2</div>
         <h3>Create suite</h3>
         <p><code>run-current-tests.ts</code> creates stubbed ADO/Sheets/OneDrive connectors and a generated suite for the repository's Playwright projects.</p>
       </div>
-      <div class="step" style="--accent: var(--blue)">
+      <div class="step" data-accent="blue">
         <div class="step-num">3</div>
         <h3>Run projects</h3>
         <p><code>CliPlaywrightRunner</code> executes <code>--project=organuz-api</code>, <code>--project=chromium</code>, <code>--project=product</code>, and <code>--project=agent</code> as orchestrator cases.</p>
       </div>
-      <div class="step" style="--accent: var(--pink)">
+      <div class="step" data-accent="pink">
         <div class="step-num">4</div>
         <h3>Report outcome</h3>
         <p>The orchestrator uploads report artifacts, writes case results, files bugs for failures, logs Sheets rows, and returns a JSON run summary.</p>
@@ -762,22 +786,22 @@
 
     <h2 id="flow">CLI Flow</h2>
     <div class="flow">
-      <div class="step" style="--accent: var(--blue)">
+      <div class="step" data-accent="blue">
         <div class="step-num">1</div>
         <h3>Typecheck</h3>
         <p><code>npx tsc --noEmit</code> validates the TypeScript framework before tests run.</p>
       </div>
-      <div class="step" style="--accent: var(--mint)">
+      <div class="step" data-accent="mint">
         <div class="step-num">2</div>
         <h3>Start stack</h3>
         <p>The script starts FastAPI, Scalar, Prometheus, the Pushgateway, and Grafana when local endpoints are not ready.</p>
       </div>
-      <div class="step" style="--accent: var(--lavender)">
+      <div class="step" data-accent="lavender">
         <div class="step-num">3</div>
         <h3>Run tests</h3>
-        <p><code>npm test</code> executes all four green projects — <code>chromium</code>, <code>product</code>, <code>organuz-api</code>, and <code>agent</code> — in one run. The local shell flow runs them while the service containers are online, then <code>scripts/push-qa-metrics.mjs</code> pushes the run's <code>qa_playwright_*</code> metrics to the Pushgateway so Grafana shows fresh results.</p>
+        <p><code>npm test</code> executes the active green projects — <code>organuz-api</code> and <code>agent</code> — in one run (the disabled <code>chromium</code> / <code>product</code> / <code>product-authenticated</code> projects are commented out in <code>playwright.config.ts</code>). The local shell flow runs them while the service containers are online, then <code>scripts/push-qa-metrics.mjs</code> pushes the run's <code>qa_playwright_*</code> metrics to the Pushgateway so Grafana shows fresh results.</p>
       </div>
-      <div class="step" style="--accent: var(--pink)">
+      <div class="step" data-accent="pink">
         <div class="step-num">4</div>
         <h3>Serve reports</h3>
         <p>Allure 3 is generated and served through the local Nginx <code>allure</code> service.</p>
@@ -849,10 +873,10 @@
     </div>
 
     <h2 id="tests">Test Suites &mdash; Every Group in Detail</h2>
-    <p style="max-width: 74ch; color: var(--muted); margin-bottom: 6px;">Six Playwright projects, run identically locally and on GitHub Actions. <strong>59 tests total: 46 green + 13 credential-gated role specs that skip until per-role secrets are added</strong> (see the <code>test-suite-parity</code> skill). A seventh <code>monitoring</code> project is <strong>opt-in</strong> (registered only when <code>MONITORING_ENABLED=true</code>) and adds 50 live third-party availability checks (<strong>109 total</strong>); it runs under the External API Monitoring workflow, never in the default green gate. Counts below are per spec file.</p>
+    <p data-lead>Two active Playwright projects, run identically locally and on GitHub Actions. <strong>3 tests total, all green</strong> (see the <code>test-suite-parity</code> skill). An opt-in <code>monitoring</code> project (registered only when <code>MONITORING_ENABLED=true</code>) adds 50 live third-party availability checks (<strong>53 total</strong>); it runs under the External API Monitoring workflow, never in the default green gate. Four more projects — <code>chromium</code>, <code>product</code>, <code>product-setup</code>, <code>product-authenticated</code> — are <strong>currently disabled in <code>playwright.config.ts</code></strong> (commented out; spec files kept) — re-enable by uncommenting; the per-file counts shown for them below are the baseline when re-enabled. Counts below are per spec file.</p>
 
-    <div class="panel" style="--accent: var(--blue)">
-      <h3><span class="badge">UI · 12</span> chromium &nbsp;<code>tests/ui/**</code> · <code>@other-smoke</code> · prod <code>www.organuz.ai</code></h3>
+    <div class="panel" data-accent="blue">
+      <h3><span class="badge">UI · 12</span> chromium &nbsp;<code>tests/ui/**</code> · <code>@other-smoke</code> · prod <code>www.organuz.ai</code> &nbsp;<em>· currently disabled in playwright.config.ts (commented out; specs kept) — 12 when re-enabled</em></h3>
       <p>Visibility-only sanity checks against the live marketing site. No form submissions, so nothing reaches the real CRM; each spec calls <code>homePage.navigate()</code> which waits for the hero to render before asserting.</p>
       <ul>
         <li><strong><code>homepage/hero.spec.ts</code> (1)</strong> — the H1 hero heading is visible and contains &ldquo;אור&rdquo;.</li>
@@ -864,8 +888,8 @@
       </ul>
     </div>
 
-    <div class="panel" style="--accent: var(--green)">
-      <h3><span class="badge">E2E · 31</span> product &nbsp;<code>tests/product/**</code> (ignores <code>flows/**</code>) · no grep · dev (<code>QA_TARGET_ENV</code>)</h3>
+    <div class="panel" data-accent="green">
+      <h3><span class="badge">E2E · 31</span> product &nbsp;<code>tests/product/**</code> (ignores <code>flows/**</code>) · no grep · dev (<code>QA_TARGET_ENV</code>) &nbsp;<em>· currently disabled in playwright.config.ts (commented out; specs kept) — 31 when re-enabled</em></h3>
       <ul>
         <li><strong><code>api/token-sanity.spec.ts</code> (3, live)</strong> — opens the dev calculator, captures the UI token off the wire, and hits the dev RPC gateway. Checks: (1) the token is well-formed (<code>24-hex-id</code>-<code>32-hex-secret</code>); (2) it matches the bundled public token in <code>config.devApi.token</code> (bundle/config-drift guard); (3) every captured backend call is HTTPS, sends the token in the body (never the URL), and targets only the gateway host. <em>Skips</em> when the dev gateway is down (no token extractable).</li>
         <li><strong><code>api/public-app-sanity.spec.ts</code> (5, live)</strong> — public (no-login) checks after unlocking the password gate: the calculator shell renders; a fresh visitor is signed out; the header sign-in/register entry point is visible; the app is served over HTTPS on the configured dev host; and the app fires at least one token-bearing backend call on load. <em>Skips</em> on a genuine dev outage (AppUnavailable), fails only on a real product regression.</li>
@@ -874,13 +898,13 @@
       </ul>
     </div>
 
-    <div class="panel" style="--accent: var(--lavender)">
-      <h3><span class="badge">SET · 3</span> product-setup &nbsp;<code>support/auth.setup.ts</code> · dependency of product-authenticated</h3>
+    <div class="panel" data-accent="lavender">
+      <h3><span class="badge">SET · 3</span> product-setup &nbsp;<code>support/auth.setup.ts</code> · dependency of product-authenticated &nbsp;<em>· currently disabled in playwright.config.ts (commented out; specs kept) — 3 when re-enabled</em></h3>
       <p>Authenticates each sign-in role (<code>customer</code>, <code>consultant</code>, <code>company</code>) once via phone + fixed dev OTP and saves <code>storageState</code> to <code>playwright/.auth/product-&lt;role&gt;.json</code> (gitignored). One skip-safe test per role: a role with no <code>&lt;ROLE&gt;_PHONE</code> credential — or when the dev app/OTP is unavailable — is <em>skipped</em>, and no session file is written.</p>
     </div>
 
-    <div class="panel" style="--accent: var(--mint)">
-      <h3><span class="badge">AUTH · 10</span> product-authenticated &nbsp;<code>tests/product/flows/**</code> · depends on product-setup</h3>
+    <div class="panel" data-accent="mint">
+      <h3><span class="badge">AUTH · 10</span> product-authenticated &nbsp;<code>tests/product/flows/**</code> · depends on product-setup &nbsp;<em>· currently disabled in playwright.config.ts (commented out; specs kept) — 10 when re-enabled</em></h3>
       <p>Live per-role browser e2e that <code>resumeSession()</code> from the saved <code>storageState</code> and run read-only checks (no logout/writes, so a shared session is never invalidated). Each test skips when its role has no saved session — so the whole project is green without per-role credentials. Per role (customer, consultant, company):</p>
       <ul>
         <li>Resumes the saved session into an authenticated calculator shell.</li>
@@ -891,19 +915,19 @@
     </div>
 
     <div class="grid-2">
-      <div class="panel" style="--accent: var(--rose)">
+      <div class="panel" data-accent="rose">
         <h3><span class="badge">API · 1</span> organuz-api &nbsp;<code>contracts/</code> · <code>@other-smoke</code></h3>
         <p>One live contract test against the Supabase/PostgREST <code>/rest/v1/projects</code> resource (public anon key). Over every returned row it asserts: 200 + JSON non-empty array; all required fields present and non-null; numeric and string-array field types; and each bilingual (he/en) pair present and non-empty.</p>
       </div>
-      <div class="panel" style="--accent: var(--aqua)">
+      <div class="panel" data-accent="aqua">
         <h3><span class="badge">QA · 2</span> agent &nbsp;<code>orchestrator/</code> · <code>test-plan/</code> · <code>@other-smoke</code></h3>
         <p>Two unit specs (pure stubs, no network/browser): (1) an <strong>orchestrator</strong> regression — a runner crash is marked <em>blocked</em> and the suite keeps running, proving crash isolation through the real <code>Orchestrator</code> with stubbed Azure DevOps / Sheets / OneDrive / Playwright connectors; (2) a <strong><code>TestPlanAgent</code></strong> spec — a URL is explored through a fake Playwright-MCP client and a <code>TestSuite</code> (page-load, headings, per-link, form cases) is generated, incl. parsing the real MCP aria snapshot.</p>
       </div>
     </div>
 
-    <div class="panel" style="--accent: var(--peach)">
+    <div class="panel" data-accent="peach">
       <h3><span class="badge">MON · 50</span> monitoring &nbsp;<code>tests/monitoring/**</code> · opt-in (<code>MONITORING_ENABLED=true</code>) · live third-party</h3>
-      <p>Dedicated availability + contract monitoring for the two critical third-party map dependencies the product relies on, using <code>APIRequestContext</code> only (no browser). This project is registered <strong>only</strong> when <code>MONITORING_ENABLED=true</code>, so it never runs in the default 59-test suite (109 with it); it is driven separately by the <strong>External API Monitoring</strong> workflow (<code>monitoring.yml</code>, cron every 30 min) and is <em>meant to fail</em> when a dependency is down — that failure is the alert (auto-managed GitHub issue + Slack), so a Govmap/Ofek outage can never break the green PR gate.</p>
+      <p>Dedicated availability + contract monitoring for the two critical third-party map dependencies the product relies on, using <code>APIRequestContext</code> only (no browser). This project is registered <strong>only</strong> when <code>MONITORING_ENABLED=true</code>, so it never runs in the default 3-test suite (53 with it); it is driven separately by the <strong>External API Monitoring</strong> workflow (<code>monitoring.yml</code>, cron every 30 min) and is <em>meant to fail</em> when a dependency is down — that failure is the alert (auto-managed GitHub issue + Slack), so a Govmap/Ofek outage can never break the green PR gate. When the <code>govmap.gov.il</code> edge instead serves an HTML block/challenge page to the runner (a geo/bot block — e.g. a CI runner outside Israel), a per-worker canary in <code>tests/monitoring/support/availability.ts</code> (called from each spec's <code>beforeEach</code>) makes the specs <em>skip</em> rather than fail; a real break (5xx / connection error / real-but-wrong non-HTML payload) still fails.</p>
       <ul>
         <li><strong><code>govmap.spec.ts</code> (25, live)</strong> — <strong>Govmap</strong> (<code>www.govmap.gov.il</code>): the map API and address geocoding.</li>
         <li><strong><code>ofek.spec.ts</code> (25, live)</strong> — <strong>Ofek</strong> (<code>basemaps.govmap.gov.il</code>): the Survey-of-Israel national orthophoto tiles the roof scan runs on.</li>
@@ -954,10 +978,10 @@
     <div class="panel">
       <h2 id="tags">Tags &amp; Gating</h2>
       <ul>
-        <li><code>@other-smoke</code> — the default filter for the non-product projects; every <code>chromium</code> (12), <code>organuz-api</code> (1), and <code>agent</code> (2) test carries it.</li>
+        <li><code>@other-smoke</code> — the default filter for the non-product projects; every active <code>organuz-api</code> (1) and <code>agent</code> (2) test carries it (as do <code>chromium</code>'s 12 when that project is re-enabled).</li>
         <li><code>@ui</code> — marketing-site specs; <code>@organuz-api @contract</code> — the backend contract test.</li>
         <li><code>@product @api @sanity</code> — the dev token-sanity spec (<code>@critical</code>/<code>@security</code> on individual checks); <code>@product @roles @e2e</code> — the live per-role specs. The <code>product</code> project has no grep filter, so every matched spec runs.</li>
-        <li>Sanctioned env-conditional skips: <code>token-sanity</code> (dev-gateway outage) and the live role specs (<code>product-setup</code> + <code>product-authenticated</code>, no credential/session). Everything else must pass — baseline 40 passed, 13 skipped.</li>
+        <li>Sanctioned env-conditional skips: <code>token-sanity</code> (dev-gateway outage) and the live role specs (<code>product-setup</code> + <code>product-authenticated</code>, no credential/session) — both in the currently-disabled projects. Everything else must pass — the active baseline is 3 passed, 0 skipped (with the disabled projects re-enabled: 46 passed, 13 skipped).</li>
         <li>Specs run <strong>fully parallel</strong> (<code>fullyParallel: true</code>); data-contract and stubbed-agent tests share no state, and role specs reuse read-only saved sessions.</li>
       </ul>
     </div>
@@ -1002,9 +1026,10 @@
         <h2 id="ci">GitHub Actions</h2>
         <ul>
           <li><code>typecheck</code> validates TypeScript.</li>
-          <li><code>tests</code> runs <code>chromium</code>, <code>organuz-api</code>, <code>agent</code>, <code>product</code>, and <code>product-authenticated</code> as a <code>fail-fast: false</code> matrix, identical to the local default run (<code>product-setup</code> runs as product-authenticated's dependency). Keep in sync per the <code>test-suite-parity</code> skill.</li>
-          <li>The <code>product</code> shard sets <code>QA_TARGET_ENV: dev</code> and needs the <code>PRODUCT_PLATFORM_PASSWORD</code> secret (token-sanity opens the dev calculator); a missing secret shows as 3 skips, not a red job.</li>
-          <li>Chromium is installed only for the <code>chromium</code> and <code>product</code> shards; <code>organuz-api</code> and <code>agent</code> need no browser.</li>
+          <li><code>tests</code> runs <code>organuz-api</code> and <code>agent</code> as a <code>fail-fast: false</code> matrix (<code>strategy.matrix.project</code>), identical to the local default run; the <code>chromium</code> / <code>product</code> / <code>product-authenticated</code> shards are commented out to match the disabled config (re-enable by uncommenting). Keep in sync per the <code>test-suite-parity</code> skill.</li>
+          <li>Beyond push / PR / manual dispatch, the workflow also runs on a daily <strong>05:00 Asia/Jerusalem</strong> schedule via a DST-aware <code>gate</code> job (two UTC crons, 02:00 + 03:00; the gate lets through only the slot that is the 05:xx hour in Israel). The non-blocking <code>monitoring</code> job still runs on every push/PR.</li>
+          <li>When re-enabled, the <code>product</code> shard sets <code>QA_TARGET_ENV: dev</code> and needs the <code>PRODUCT_PLATFORM_PASSWORD</code> secret (token-sanity opens the dev calculator); a missing secret shows as 3 skips, not a red job.</li>
+          <li>The active <code>organuz-api</code> and <code>agent</code> shards need no browser; Chromium is installed only for the <code>chromium</code> and <code>product</code> shards when those are re-enabled.</li>
           <li><code>services-smoke</code> starts FastAPI, Scalar, Prometheus, and Grafana.</li>
           <li><code>publish-allure</code> merges Allure artifacts and generates Allure 3.</li>
           <li><code>deploy-allure</code> publishes the report to GitHub Pages on <code>main</code> or <code>master</code>.</li>

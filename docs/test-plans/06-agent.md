@@ -12,17 +12,20 @@
 
 ## Scope
 
-Unit-level regression of the QA agent, run entirely against in-memory stubs so
-it needs no network or browser. Two capabilities are covered:
+Unit-level regression tests for the QA agent. They run entirely against
+in-memory stubs, so no network or browser is needed. Two capabilities are
+covered:
 
-1. **Orchestrator** — the run loop that reads a plan, executes cases, isolates a
-   crashing runner, and writes results back idempotently.
-2. **TestPlanAgent** — the URL→plan generator that explores a page through the
-   Playwright MCP (`PageExplorer`) and synthesises a `TestSuite`.
+1. **Orchestrator** — the run loop that reads a plan, runs its cases, isolates a
+   crashing runner so one failure doesn't stop the rest, and writes results back
+   idempotently (re-running produces the same result, with no duplicates).
+2. **TestPlanAgent** — the URL-to-plan generator. It explores a page through the
+   Playwright MCP browser tool (via `PageExplorer`) and assembles a `TestSuite`
+   from what it finds.
 
 ## Preconditions
 
-- None beyond a typecheck. All connectors are stubs / fakes.
+- None beyond a typecheck. All connectors are stubs or fakes.
 
 ## Cases
 
@@ -48,8 +51,9 @@ npm run agent:plan -- https://www.organuz.ai
 
 ## Notes
 
-- Both cases are `@other-smoke` so both run in the default suite — the `agent`
-  project count is **2**. Adding/removing an `@other-smoke` agent test changes
-  that count; update `CLAUDE.md`, the parity skill, and `Readme.md`.
-- `TestPlanAgent` emits the same `TestSuite` shape the `Orchestrator` consumes,
-  so a generated plan can flow straight into the run loop (see `src/agent/README.md`).
+- Both cases carry the `@other-smoke` tag, so both run in the default suite —
+  the `agent` project count is **2**. Adding or removing an `@other-smoke` agent
+  test changes that count; update `CLAUDE.md`, the parity skill, and `Readme.md`.
+- `TestPlanAgent` emits the same `TestSuite` shape that the `Orchestrator`
+  consumes, so a generated plan can flow straight into the run loop (see
+  `src/agent/README.md`).

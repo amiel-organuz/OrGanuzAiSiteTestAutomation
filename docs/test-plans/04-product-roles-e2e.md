@@ -1,5 +1,12 @@
 # Test Plan 4 — Product Roles E2E (Live Per-Role Sessions)
 
+> **⚠️ CURRENTLY DISABLED.** The `product-setup` and `product-authenticated`
+> projects are commented out in `playwright.config.ts`, so this group does
+> **not** run in the default suite. The spec files under `tests/product/flows/**`
+> (and `tests/product/support/auth.setup.ts`) are retained — re-enable the group
+> by uncommenting both projects in `playwright.config.ts`. The cases below still
+> describe those specs.
+
 | | |
 |---|---|
 | **Projects** | `product-setup` → `product-authenticated` |
@@ -11,24 +18,27 @@
 
 ## Scope
 
-Live, per-role browser coverage. `product-setup` signs each role in once via
-phone+OTP and saves its `storageState`; `product-authenticated` resumes that
-session and runs read-only checks of each role's personal area. This is the
-live counterpart to Plan 3's offline role contract. Dormant on CI until per-role
-secrets exist — the suite stays green without them.
+Live, per-role coverage in a real browser. This group runs as two projects that
+work together. `product-setup` signs each role in once, using phone number plus
+a one-time passcode (OTP), and saves its login state to a `storageState` file.
+`product-authenticated` then resumes that saved session and runs read-only
+checks of each role's personal area. This is the live counterpart to Plan 3's
+offline role contract. It stays dormant on CI until the per-role secrets exist,
+so the suite stays green without them.
 
 ## Preconditions
 
-- Live dev app + gate (`PRODUCT_PLATFORM_PASSWORD`).
-- Per-role credentials in the gitignored `.env` / CI secrets:
-  `<ROLE>_PHONE` / `<ROLE>_OTP_CODE` for `CUSTOMER`, `CONSULTANT`, `COMPANY`.
+- The live dev app plus its password gate (`PRODUCT_PLATFORM_PASSWORD`).
+- Per-role credentials, stored in the gitignored `.env` file or as CI secrets:
+  `<ROLE>_PHONE` / `<ROLE>_OTP_CODE` for `CUSTOMER`, `CONSULTANT`, and `COMPANY`.
 
 ## Gating (sanctioned skip)
 
-- **`product-setup`:** a role with no `<ROLE>_PHONE` (or when the dev app/OTP is
-  down) is skipped — no session is written for it.
-- **`product-authenticated`:** each role's specs skip when it has no saved
-  session (`hasSavedSession(role)` false) or the session cannot resume.
+- **`product-setup`:** a role is skipped when it has no `<ROLE>_PHONE`
+  credential, or when the dev app or OTP is down. When a role is skipped, no
+  session is written for it.
+- **`product-authenticated`:** a role's specs skip when it has no saved session
+  (`hasSavedSession(role)` is false) or when the session cannot resume.
 
 ## Cases
 
@@ -64,7 +74,9 @@ QA_TARGET_ENV=dev npx playwright test --project=product-authenticated
 
 ## Notes
 
-- Keep skip/lifecycle logic at the test edge (spec/fixture), not in
-  `ProductAppPage` or `ProductFlows` — those **throw** typed errors.
-- `product-authenticated` depends on `product-setup`; run the dependent project
-  and Playwright pulls the setup in. Don't shard the setup separately (double login).
+- Keep skip and lifecycle logic at the test edge (the spec or fixture), not
+  inside `ProductAppPage` or `ProductFlows`. Those two **throw** typed errors
+  instead of deciding to skip.
+- `product-authenticated` depends on `product-setup`. Run the dependent project
+  and Playwright pulls the setup in automatically. Don't shard the setup
+  separately, or each role logs in twice.

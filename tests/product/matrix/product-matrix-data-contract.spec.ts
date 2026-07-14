@@ -16,7 +16,7 @@ import {
 } from './e2e-matrix.data';
 
 test.describe('Product matrix data contract', { tag: '@product' }, () => {
-  test('keeps runtime-only values out of checked-in matrix data', () => {
+  test('keeps runtime-only fields out of the git-committed matrix data', () => {
     const serializedData = JSON.stringify(ALL_MATRIX_SCENARIOS);
 
     for (const field of RUNTIME_ONLY_FIELDS) {
@@ -31,12 +31,12 @@ test.describe('Product matrix data contract', { tag: '@product' }, () => {
       'company',
       'company-employee',
     ]);
-    // Compared against a fixed literal (see EXPECTED_PERSONA_SCENARIO_COUNT), so
-    // dropping a scenario or persona trips this instead of silently rescaling.
+    // Compared against a fixed literal (see EXPECTED_PERSONA_SCENARIO_COUNT), so dropping a scenario
+    // or a persona fails this instead of silently changing the scale.
     expect(MAIN_E2E_SCENARIOS.length * PRODUCT_PERSONAS.length).toBe(EXPECTED_PERSONA_SCENARIO_COUNT);
   });
 
-  test('matches the required CALC-ROOF main scenario ids from the document', () => {
+  test('matches the required main CALC-ROOF scenario IDs from the document', () => {
     expect(MAIN_E2E_SCENARIOS.map((scenario) => scenario.id)).toEqual([...EXPECTED_MAIN_SCENARIO_IDS]);
   });
 
@@ -47,7 +47,7 @@ test.describe('Product matrix data contract', { tag: '@product' }, () => {
     }
   });
 
-  test('covers building, parking, and sports-court polygon behavior', () => {
+  test('covers building, parking, and sports-field polygon behavior', () => {
     const covered = new Set(ALL_MATRIX_SCENARIOS.flatMap((scenario) => scenario.polygons));
     for (const polygonType of POLYGON_TYPES) {
       expect(covered.has(polygonType), `${polygonType} is covered`).toBeTruthy();
@@ -61,17 +61,17 @@ test.describe('Product matrix data contract', { tag: '@product' }, () => {
     }
   });
 
-  test('keeps roof payload placeholders empty in checked-in data', () => {
-    // The placeholders exist for runtime marking data to fill; the checked-in
-    // fixtures must ship them empty so captured runtime state never leaks into git.
+  test('keeps the roof payload maps empty in the git-committed data', () => {
+    // The maps exist so runtime marking data can fill them; the git-committed data
+    // must ship empty so captured runtime state never leaks into git.
     for (const scenario of ALL_MATRIX_SCENARIOS) {
-      expect(scenario.roofState, `${scenario.id} roofState is an empty placeholder`).toEqual({});
-      expect(scenario.roofObjects, `${scenario.id} roofObjects is an empty placeholder`).toEqual({});
-      expect(scenario.roofLevels, `${scenario.id} roofLevels is an empty placeholder`).toEqual({});
+      expect(scenario.roofState, `${scenario.id} roofState is an empty map`).toEqual({});
+      expect(scenario.roofObjects, `${scenario.id} roofObjects is an empty map`).toEqual({});
+      expect(scenario.roofLevels, `${scenario.id} roofLevels is an empty map`).toEqual({});
     }
   });
 
-  test('marks no-panel scenario as UI-only and keeps it out of API/JSON E2E flows', () => {
+  test('marks a panel-less scenario as UI-only and keeps it out of the API/JSON E2E flows', () => {
     expect(UI_ONLY_SCENARIOS).toHaveLength(1);
     expect(UI_ONLY_SCENARIOS[0]).toMatchObject({
       id: 'CALC-ROOF-022',
@@ -80,17 +80,17 @@ test.describe('Product matrix data contract', { tag: '@product' }, () => {
     expect(MAIN_E2E_SCENARIOS.map((scenario) => scenario.id)).not.toContain('CALC-ROOF-022');
   });
 
-  test('assigns a unique id to every matrix scenario', () => {
+  test('assigns a unique ID to every scenario in the matrix', () => {
     const ids = ALL_MATRIX_SCENARIOS.map((scenario) => scenario.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  test('keeps arena type consistent with each scenario group', () => {
+  test('keeps the arena type consistent with each scenario group', () => {
     for (const scenario of MAIN_E2E_SCENARIOS) {
-      expect(scenario.arenaType, `${scenario.id} is on the main arena`).toBe('ARENA_TYPE_MAIN');
+      expect(scenario.arenaType, `${scenario.id} is in the main arena`).toBe('ARENA_TYPE_MAIN');
     }
     for (const scenario of RAMOT_SCENARIOS) {
-      expect(scenario.arenaType, `${scenario.id} is on the ramot arena`).toBe('ARENA_TYPE_RAMOT');
+      expect(scenario.arenaType, `${scenario.id} is in the Ramot arena`).toBe('ARENA_TYPE_RAMOT');
     }
   });
 
@@ -103,7 +103,7 @@ test.describe('Product matrix data contract', { tag: '@product' }, () => {
     );
     expect(quotableMinimum).toBe(QUOTABLE_MINIMUM_PANEL_COUNT);
 
-    // ...and the negative scenario must sit strictly under it (1..min-1).
+    // ...and the negative scenario must sit right below it (1..min-1).
     for (const scenario of NEGATIVE_PANEL_SCENARIOS) {
       expect(scenario.panelMode).toBe('below-minimum');
       expect(scenario.minimumPanelCount).toBeGreaterThan(0);
@@ -123,7 +123,7 @@ test.describe('Product matrix data contract', { tag: '@product' }, () => {
     expect(employee?.canOpenQuotationsFromResults).toBe(false);
   });
 
-  test('aligns panel counts with each scenario panel mode', () => {
+  test('aligns panel counts with each scenario\'s panel mode', () => {
     for (const scenario of ALL_MATRIX_SCENARIOS) {
       switch (scenario.panelMode) {
         case 'quotable':
@@ -133,10 +133,10 @@ test.describe('Product matrix data contract', { tag: '@product' }, () => {
           ).toBeGreaterThanOrEqual(QUOTABLE_MINIMUM_PANEL_COUNT);
           break;
         case 'below-minimum':
-          expect(scenario.minimumPanelCount, `${scenario.id} is a partial mark`).toBeGreaterThan(0);
+          expect(scenario.minimumPanelCount, `${scenario.id} is a partial marking`).toBeGreaterThan(0);
           expect(
             scenario.minimumPanelCount,
-            `${scenario.id} stays under the quotable minimum`,
+            `${scenario.id} stays below the quotable minimum`,
           ).toBeLessThan(QUOTABLE_MINIMUM_PANEL_COUNT);
           break;
         case 'none':

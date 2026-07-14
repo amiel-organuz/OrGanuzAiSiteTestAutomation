@@ -1,5 +1,11 @@
 # Test Plan 3 — Product Matrix & Role Data Contracts (Offline)
 
+> **⚠️ CURRENTLY DISABLED.** The `product` project is commented out in
+> `playwright.config.ts`, so this group does **not** run in the default suite.
+> The spec files under `tests/product/matrix/**` are retained — re-enable the
+> group by uncommenting the `product` project in `playwright.config.ts`. The
+> cases below still describe those specs.
+
 | | |
 |---|---|
 | **Project** | `product` |
@@ -11,15 +17,18 @@
 
 ## Scope
 
-Network-free data-contract guards over the checked-in property-characterization
-**matrix** (scenarios × personas) and the three sign-in **roles**. They encode
-the source document's rules so drift in the fixtures fails fast, and they keep
-runtime-only values (live tokens, computed prices) out of committed data. No
-browser, no dev app.
+Data-contract guards that run with no network access. "Data contract" means the
+tests assert the shape and rules of checked-in fixture data rather than any live
+behavior. They cover two things: the property-characterization **matrix** (a grid
+of scenarios × personas) and the three sign-in **roles**. The tests encode the
+rules from the source document, so any drift in the fixtures fails fast. They
+also keep runtime-only values — live tokens, computed prices — out of the
+committed data. No browser and no dev app are involved.
 
 ## Preconditions
 
-- None beyond a typecheck. Data lives in the `e2e-matrix.data` files; no secrets.
+- None beyond a typecheck. The data lives in the `e2e-matrix.data` files, and no
+  secrets are required.
 
 ## Cases
 
@@ -64,7 +73,8 @@ npx playwright test --project=product tests/product/matrix
 
 ## Notes
 
-- These are the offline counterpart to Plan 4 (live role e2e). The role contract
-  here asserts the *rules*; Plan 4 asserts a live session *behaves* by them.
-- Edit the data in the `e2e-matrix.data` files, not the specs, when the source
-  document changes; the contract then re-validates the new data.
+- This group is the offline counterpart to Plan 4 (live role e2e). The role
+  contract here asserts the *rules*; Plan 4 confirms that a live session actually
+  *behaves* by those rules.
+- When the source document changes, edit the data in the `e2e-matrix.data`
+  files, not the specs. The contract then re-validates the new data.

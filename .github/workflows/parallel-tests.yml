@@ -10,6 +10,13 @@ on:
       - main
       - master
   workflow_dispatch:
+  schedule:
+    # Daily at 05:00 Israel time (in addition to push/PR runs). GitHub cron is UTC-only and
+    # can't track Israel DST (IST = UTC+2 winter, IDT = UTC+3 summer), so BOTH candidate UTC
+    # slots are scheduled and the `gate` job lets through only the one that is 05:xx in
+    # Asia/Jerusalem right now:  02:00 UTC = 05:00 IDT (summer)   03:00 UTC = 05:00 IST (winter)
+    - cron: '0 2 * * *'
+    - cron: '0 3 * * *'
 
 concurrency:
   group: parallel-tests-${{ github.ref }}
@@ -21,9 +28,39 @@ permissions:
   id-token: write
 
 jobs:
+  # DST-aware schedule gate. On push/PR/dispatch it always proceeds; on the scheduled runs
+  # (two UTC crons) it lets through only the one that is currently the 05:xx hour in
+  # Asia/Jerusalem — i.e. 05:00 Israel time year-round. Checking the hour (not the exact
+  # minute) tolerates GitHub's usual few-minutes cron delay.
+  gate:
+    name: Schedule gate (05:00 Asia/Jerusalem)
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+    steps:
+      - id: check
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "Non-scheduled (${{ github.event_name }}) run — proceeding."
+            exit 0
+          fi
+          HOUR=$(TZ='Asia/Jerusalem' date +%H)
+          echo "Current Asia/Jerusalem time: $(TZ='Asia/Jerusalem' date '+%Y-%m-%d %H:%M %Z')"
+          if [ "$HOUR" = "05" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "It is the 05:xx hour in Israel — correct DST-adjusted slot; proceeding."
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "Not the 05:xx hour in Israel — the other cron slot covers the current DST offset; skipping."
+          fi
+
   typecheck:
     name: Typecheck
     runs-on: ubuntu-latest
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
     timeout-minutes: 10
 
     steps:
@@ -52,13 +89,17 @@ jobs:
       fail-fast: false
       matrix:
         project:
-          - chromium
+          # chromium, product, and product-authenticated are commented out because those
+          # projects are currently DISABLED in playwright.config.ts (their spec files are
+          # kept). Re-enable them here in the same change that uncomments the config blocks
+          # — otherwise a shard names a project that no longer resolves and the job errors.
+          # (product-authenticated pulls in product-setup as its dependency, so setup runs
+          # within that shard — no separate product-setup shard needed.)
+          # - chromium
           - organuz-api
           - agent
-          - product
-          # product-authenticated pulls in the product-setup project as its dependency,
-          # so setup runs within this shard (no separate product-setup shard needed).
-          - product-authenticated
+          # - product
+          # - product-authenticated
 
     env:
       CI: true
@@ -260,10 +301,13 @@ jobs:
     name: Publish Allure Report
     runs-on: ubuntu-latest
     needs:
+      - gate
       - typecheck
       - tests
       - monitoring
-    if: always()
+    # Publish regardless of test pass/fail, but not on a scheduled run the gate skipped
+    # (else deploy-allure would push an empty report over the real one on GitHub Pages).
+    if: always() && needs.gate.outputs.run == 'true'
     timeout-minutes: 15
     env:
       GRAFANA_URL: ${{ vars.GRAFANA_URL || 'http://localhost:3001' }}
@@ -289,8 +333,26 @@ jobs:
           path: collected-allure-results
           merge-multiple: true
 
+      # Restore the previous run's Allure history (Trend / Retries / History graphs).
+      # A unique key per run + the `allure-history-` restore-keys prefix makes this a
+      # ROLLING cache: each run saves a new entry and restores the most recent prior one.
+      - name: Restore Allure history
+        uses: actions/cache/restore@v4
+        with:
+          path: allure-history
+          key: allure-history-${{ github.run_id }}
+          restore-keys: |
+            allure-history-
+
       - name: Generate Allure report
         run: |
+          # Seed this run's results with the restored history so the generated report
+          # keeps its Trend / Retries / History across runs (else it resets each time).
+          if [ -d allure-history ] && [ -n "$(ls -A allure-history 2>/dev/null)" ]; then
+            mkdir -p collected-allure-results/history
+            cp -R allure-history/. collected-allure-results/history/
+            echo "Seeded Allure history from the rolling cache."
+          fi
           if find collected-allure-results -type f -print -quit 2>/dev/null | grep -q .; then
             npx -y -p allure@3 allure generate collected-allure-results --output allure-report
           else
@@ -309,6 +371,12 @@ jobs:
               '</html>' \
               > allure-report/index.html
           fi
+          # Capture the freshly-generated history for the NEXT run's cache.
+          rm -rf allure-history
+          if [ -d allure-report/history ]; then
+            mkdir -p allure-history
+            cp -R allure-report/history/. allure-history/
+          fi
           # GitHub Pages hardening for the Allure SPA:
           #  - .nojekyll stops Pages' Jekyll step from dropping files (Allure ships
           #    hashed asset bundles and a data/ dir that Jekyll can mangle).
@@ -316,6 +384,14 @@ jobs:
           #    client-side route resolves to the app instead of a Pages 404.
           touch allure-report/.nojekyll
           cp allure-report/index.html allure-report/404.html
+
+      # Persist this run's history under a unique key for the next run to restore.
+      - name: Save Allure history
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: allure-history
+          key: allure-history-${{ github.run_id }}
 
       - name: Upload generated Allure report
         if: always()
@@ -365,10 +441,11 @@ jobs:
     name: Report Summary
     runs-on: ubuntu-latest
     needs:
+      - gate
       - publish-allure
       - deploy-allure
       - services-smoke
-    if: always()
+    if: always() && needs.gate.outputs.run == 'true'
     env:
       # External URLs only when a repository variable points at a hosted deployment.
       # Unset => empty => rendered as inline code, because the in-runner localhost

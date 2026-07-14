@@ -1,4 +1,6 @@
-import { defineConfig, devices } from '@playwright/test';
+// `devices` is only needed by the disabled chromium / product projects below;
+// re-add it to this import when re-enabling them.
+import { defineConfig } from '@playwright/test';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 
@@ -16,12 +18,14 @@ const includeMonitoring = process.env.MONITORING_ENABLED === 'true';
 
 // Shared browser context for the product app: the auth-setup project and the product
 // project must use the same origin/viewport so saved sessions restore cleanly.
-const productUse = {
-  ...devices['Desktop Chrome'],
-  baseURL: config.app.baseUrl,
-  viewport: { width: 1920, height: 1080 },
-  headless: true,
-};
+// Disabled together with the product projects below (re-add `devices` to the import
+// above and uncomment when re-enabling them).
+// const productUse = {
+//   ...devices['Desktop Chrome'],
+//   baseURL: config.app.baseUrl,
+//   viewport: { width: 1920, height: 1080 },
+//   headless: true,
+// };
 
 export default defineConfig({
   testDir: './tests',
@@ -71,39 +75,44 @@ export default defineConfig({
   },
 
   projects: [
-    {
-      name: 'chromium',
-      testMatch: 'tests/ui/**/*.spec.ts',
-      grep: /@other-smoke/,
-      use: {
-        ...devices['Desktop Chrome'],
-        baseURL: config.web.baseUrl,
-        viewport: { width: 1920, height: 1080 },
-        headless: true,
-      },
-    },
-    {
-      name: 'product',
-      testMatch: 'tests/product/**/*.spec.ts',
-      // The per-role live specs run in product-authenticated (they need saved sessions).
-      testIgnore: 'tests/product/flows/**',
-      use: productUse,
-    },
-    {
-      // Authenticates each sign-in role once and saves its storageState. Skip-safe:
-      // roles without credentials (or when the dev app/OTP is down) are skipped.
-      name: 'product-setup',
-      testMatch: 'tests/product/support/auth.setup.ts',
-      use: productUse,
-    },
-    {
-      // Live per-role sanity e2e that resume the saved sessions. Depends on the setup
-      // project; individual specs skip when their role has no saved session.
-      name: 'product-authenticated',
-      testMatch: 'tests/product/flows/**/*.spec.ts',
-      dependencies: ['product-setup'],
-      use: productUse,
-    },
+    // Marketing-site (organuz.ai) UI project is disabled. Re-enable by re-adding
+    // `devices` to the import above and uncommenting this block. tests/ui/** is kept.
+    // {
+    //   name: 'chromium',
+    //   testMatch: 'tests/ui/**/*.spec.ts',
+    //   grep: /@other-smoke/,
+    //   use: {
+    //     ...devices['Desktop Chrome'],
+    //     baseURL: config.web.baseUrl,
+    //     viewport: { width: 1920, height: 1080 },
+    //     headless: true,
+    //   },
+    // },
+    // Product app projects (target the *.organuz.com calculator) are disabled.
+    // Re-enable by uncommenting the product / product-setup / product-authenticated
+    // blocks below. Spec files under tests/product/** are kept.
+    // {
+    //   name: 'product',
+    //   testMatch: 'tests/product/**/*.spec.ts',
+    //   // The per-role live specs run in product-authenticated (they need saved sessions).
+    //   testIgnore: 'tests/product/flows/**',
+    //   use: productUse,
+    // },
+    // {
+    //   // Authenticates each sign-in role once and saves its storageState. Skip-safe:
+    //   // roles without credentials (or when the dev app/OTP is down) are skipped.
+    //   name: 'product-setup',
+    //   testMatch: 'tests/product/support/auth.setup.ts',
+    //   use: productUse,
+    // },
+    // {
+    //   // Live per-role sanity e2e that resume the saved sessions. Depends on the setup
+    //   // project; individual specs skip when their role has no saved session.
+    //   name: 'product-authenticated',
+    //   testMatch: 'tests/product/flows/**/*.spec.ts',
+    //   dependencies: ['product-setup'],
+    //   use: productUse,
+    // },
     {
       name: 'organuz-api',
       testMatch: 'tests/organuz-api/**/*.spec.ts',

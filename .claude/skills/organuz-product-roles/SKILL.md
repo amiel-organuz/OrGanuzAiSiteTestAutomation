@@ -5,6 +5,12 @@ description: Per-role authentication, session reuse, and personal-area coverage 
 
 # Organuz product roles & sessions
 
+> **⚠️ The `product-setup` and `product-authenticated` projects are CURRENTLY DISABLED** —
+> both are commented out in `playwright.config.ts` (together with `product`), so the role
+> setup and the per-role specs **do not run in the default suite** right now. The spec files
+> under `tests/product/flows/**` and `tests/product/support/auth.setup.ts` are kept; re-enable
+> by uncommenting those two project blocks. Everything below stays valid once re-enabled.
+
 Three roles authenticate against the dev product app; each per-role spec reuses one saved
 session. For the login UI, the dev password gate, the calculator wizard, and driving with
 the Playwright MCP, see the **organuz-product-e2e** skill.

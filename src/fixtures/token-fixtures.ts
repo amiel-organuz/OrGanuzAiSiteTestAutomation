@@ -25,7 +25,7 @@ export type {
  * The token-extractor fixture implementations, typed against the concrete deps they
  * need from the base test (product + authRole, plus Playwright's built-in `page`).
  */
-const tokenFixtureImpl: Fixtures<TokenFixtures, {}, TokenFixtureDeps & PlaywrightTestArgs, {}> = {
+const tokenFixtureImpl: Fixtures<TokenFixtures, object, TokenFixtureDeps & PlaywrightTestArgs, object> = {
   /**
    * Token-extractor setup: attaches a TokenInterceptor, opens the calculator
    * (unlocking the dev gate), and captures the token the SPA sends to the backend on
@@ -75,9 +75,9 @@ const tokenFixtureImpl: Fixtures<TokenFixtures, {}, TokenFixtureDeps & Playwrigh
  */
 export function withTokenFixtures<
   TArgs extends TokenFixtureDeps & PlaywrightTestArgs,
-  TWorker extends {},
+  TWorker extends object,
 >(baseTest: TestType<TArgs, TWorker>): TestType<TArgs & TokenFixtures, TWorker> {
   return baseTest.extend<TokenFixtures>(
-    tokenFixtureImpl as Fixtures<TokenFixtures, {}, TArgs, TWorker>,
+    tokenFixtureImpl as Fixtures<TokenFixtures, object, TArgs, TWorker>,
   );
 }

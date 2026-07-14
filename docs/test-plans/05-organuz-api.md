@@ -13,14 +13,18 @@
 
 ## Scope
 
-Contract-level checks against the Organuz Supabase/PostgREST backend using the
-public anon key. The default suite asserts the `projects` REST resource honors
-its schema contract. No writes, no privileged access — RLS keeps the anon key
+Contract-level checks against the Organuz backend, which is built on Supabase
+and exposes its tables through PostgREST (a REST API generated from the
+database). The tests authenticate with the public anon key — the read-only
+anonymous key that ships in the client. In the default suite, one test asserts
+that the `projects` REST resource honors its schema contract. There are no
+writes and no privileged access: row-level security (RLS) keeps the anon key
 read-only.
 
 ## Preconditions
 
-- Public internet access to the Supabase host; anon key from `config.json`.
+- Public internet access to the Supabase host, plus the anon key from
+  `config.json`.
 
 ## Cases
 
@@ -36,8 +40,10 @@ npx playwright test --project=organuz-api
 
 ## Notes
 
-- Default-filtered to `@other-smoke`; additional `@organuz-api`/`@contract`
-  specs (edge-function preflights, RLS checks) only enter the default suite when
-  tagged `@other-smoke`. Adding one changes the documented count (1) — update
-  `CLAUDE.md` and the parity skill.
-- Keep the anon key public/read-only; never introduce writes or a service key here.
+- The group is filtered to the `@other-smoke` tag by default. Additional
+  `@organuz-api` or `@contract` specs (such as edge-function preflights or RLS
+  checks) only enter the default suite once they are tagged `@other-smoke`.
+  Adding one changes the documented count (1) — update `CLAUDE.md` and the
+  parity skill.
+- Keep the anon key public and read-only. Never introduce writes or a service
+  key here.

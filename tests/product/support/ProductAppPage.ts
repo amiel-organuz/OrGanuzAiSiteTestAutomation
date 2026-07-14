@@ -6,6 +6,8 @@ import {
 } from '../matrix/e2e-matrix.data';
 import { unlockProductEnvironment } from './env-gate';
 import { OtpUnavailableError, AppUnavailableError, APP_UNAVAILABLE_REASON } from './errors';
+import { LanguageMenu } from './LanguageMenu';
+import { anyLoginEntry, productChrome } from '../../../src/i18n/product';
 
 // Re-export so existing importers (the matrix spec) can keep importing from here.
 export { OtpUnavailableError, AppUnavailableError, APP_UNAVAILABLE_REASON } from './errors';
@@ -33,12 +35,24 @@ export interface ProductRuntimeIds {
 }
 
 export class ProductAppPage {
-  constructor(private readonly page: Page) {}
+  /** Header language-menu sub-page-object (switch he↔en + read current language). */
+  private readonly language: LanguageMenu;
+
+  constructor(private readonly page: Page) {
+    this.language = new LanguageMenu(page);
+  }
 
   async login(credentials: ProductCredentials): Promise<ProductRuntimeIds> {
-    await this.page.goto(process.env.PRODUCT_LOGIN_PATH ?? '/');
-    // DEV/TEST sit behind a shared password gate before the app loads (no-op on prod).
-    await unlockProductEnvironment(this.page);
+    // Skip the (re-)navigation when the calculator is already open — e.g. product-setup
+    // calls openCalculator() first. Once the dev gate has been unlocked, a fresh goto('/')
+    // lands on a bare '/' that no longer auto-routes to /calculator, so the shell guard
+    // below would wrongly report the backend as down. Only navigate + unlock when we are
+    // not already on a calculator route (standalone loginAs, fresh page).
+    if (!/\/calculator\//i.test(this.page.url())) {
+      await this.page.goto(process.env.PRODUCT_LOGIN_PATH ?? '/');
+      // DEV/TEST sit behind a shared password gate before the app loads (no-op on prod).
+      await unlockProductEnvironment(this.page);
+    }
 
     // The calculator shell must render; if only the header loads, the backend is down —
     // surface it so the caller skips instead of failing on a missing phone field etc.
@@ -418,7 +432,7 @@ export class ProductAppPage {
   /** Open the user menu and go to the personal area (…/pricing/my-offers). */
   async openPersonalArea(): Promise<void> {
     await this.openUserMenu();
-    await this.page.getByRole('menuitem', { name: 'איזור אישי' }).click();
+    await this.page.getByRole('menuitem', { name: productChrome.personalArea }).click();
     await this.page.waitForURL(/\/pricing\//i, { timeout: 20_000 });
   }
 
@@ -430,7 +444,7 @@ export class ProductAppPage {
   /** Open the user menu and log out. */
   async logout(): Promise<void> {
     await this.openUserMenu();
-    await this.page.getByRole('menuitem', { name: 'התנתק' }).click();
+    await this.page.getByRole('menuitem', { name: productChrome.logout }).click();
   }
 
   /**
@@ -463,6 +477,21 @@ export class ProductAppPage {
     return shell.isVisible({ timeout: 15_000 }).catch(() => false);
   }
 
+  /** The current UI language of the product app, read from `<html lang>` ('he' | 'en'). */
+  async currentLanguage(): Promise<string> {
+    return this.language.current();
+  }
+
+  /**
+   * Switch the product app UI to English through the header language menu (delegated to
+   * the LanguageMenu sub-page-object). Idempotent — a no-op when already English. The
+   * choice persists in `localStorage["organuz_selected_language"]`, so it survives reloads
+   * within the run. See the organuz-product-en skill.
+   */
+  async switchToEnglish(): Promise<void> {
+    await this.language.switchTo('en');
+  }
+
   /**
    * True when the app is authenticated (the public login entry point is gone). Public so
    * callers can gate on a restored storageState session without the page object making
@@ -475,9 +504,9 @@ export class ProductAppPage {
 
   /** True when the app is already authenticated (login entry point is gone). */
   private async isLoggedIn(): Promise<boolean> {
-    const loginEntry = this.page
-      .getByRole('button', { name: /הרשמה\s*\/\s*כניסה|הרשמה|התחברות|sign in|log in/i })
-      .first();
+    // Matches the signed-out entry point in either language: Hebrew "הרשמה / כניסה"
+    // and English "Login / Register" (centralized in the product i18n dictionary).
+    const loginEntry = this.page.getByRole('button', { name: anyLoginEntry }).first();
     // Give the header a moment to render, then treat "no login button" as logged in.
     const loginVisible = await loginEntry.isVisible({ timeout: 4_000 }).catch(() => false);
     return !loginVisible;
