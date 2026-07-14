@@ -1,4 +1,4 @@
-import { test } from '../../../src/fixtures';
+import { test } from '../support/fixtures';
 import {
   allureEpic,
   allureFeature,
@@ -8,19 +8,19 @@ import {
 } from '../../../src/utils/allure';
 
 test.describe('Contact form', { tag: '@ui' }, () => {
-  test.beforeEach(async ({ homePage }) => {
-    await homePage.navigate();
+  test.beforeEach(async ({ home }) => {
+    await home.open();
   });
 
-  test('contact form exposes all of its fields', { tag: '@other-smoke' }, async ({ homePage }) => {
-    await allureEpic('Homepage');
+  test('Contact form exposes all of its fields', { tag: '@other-smoke' }, async ({ home }) => {
+    await allureEpic('Home page');
     await allureFeature('Contact form');
     await allureStory('Field presence');
     await allureSeverity('critical');
 
-    // Visibility only — never submit, so we don't push automation data into the real CRM.
-    await allureStep('Verify name, email, phone, message, and submit are visible', async () => {
-      await homePage.expectContactFormVisible();
+    // Visibility only — never submit, so no automation data reaches the real CRM.
+    await allureStep('Verify the name, email, phone, message, and submit are visible', async () => {
+      await home.contact.expectAllVisible();
     });
   });
 });

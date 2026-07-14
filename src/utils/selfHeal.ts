@@ -1,4 +1,4 @@
-import { Locator } from '@playwright/test';
+import { Locator, Page } from '@playwright/test';
 import { logger } from './logger';
 
 /**
@@ -25,6 +25,17 @@ import { logger } from './logger';
  */
 export function selfHeal(primary: Locator, ...fallbacks: Locator[]): Locator {
   return fallbacks.reduce((loc, fallback) => loc.or(fallback), primary);
+}
+
+/**
+ * Test-id-first self-healing locator. Playwright's guidance is to prefer a stable
+ * `data-testid` over role/text selectors; this makes the test id the primary strategy
+ * and keeps the role/text locators as fallbacks for the (external) app until a test id
+ * is added. Once the app ships the id, the fallbacks stop being exercised without any
+ * spec change. Use for spots that are otherwise flaky (see the `@KNOWN_BUGS` EN control).
+ */
+export function byTestId(page: Page, testId: string, ...fallbacks: Locator[]): Locator {
+  return selfHeal(page.getByTestId(testId), ...fallbacks);
 }
 
 /**

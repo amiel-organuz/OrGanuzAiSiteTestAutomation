@@ -1,9 +1,10 @@
 # QA MCP Agent
 
-A TypeScript orchestrator that coordinates four systems to run the test suite
-end-to-end and report results, following the architecture designed for this
-project. It can optionally enrich test cases with acceptance criteria parsed
-from requirements documents (PDF / DOCX / XLSX) before the run.
+A TypeScript orchestrator (a coordinator that drives the whole run) that ties
+four systems together to run the test suite end-to-end and report results,
+following the architecture designed for this project. Before a run, it can
+optionally enrich test cases with acceptance criteria (the conditions a case
+must satisfy to pass) parsed from requirements documents (PDF / DOCX / XLSX).
 
 ```
         Azure DevOps                         Playwright
@@ -84,12 +85,13 @@ case with no data row.
 
 ## Generate a test plan from a URL (`TestPlanAgent`)
 
-Where the `Orchestrator` *reads* a plan from Azure DevOps and runs it, the
-`TestPlanAgent` *drafts* one from a live page. Give it a **URL** and it explores
-the page through a `PageExplorer`, then synthesises a `TestSuite` — a page-load
-case, a headings case, one reachability case per navigation link, and one case
-per form — in the exact shape the `Orchestrator` consumes, so a generated plan
-can flow straight into the run loop.
+The `Orchestrator` *reads* a plan from Azure DevOps and runs it. The
+`TestPlanAgent`, by contrast, *drafts* one from a live page. Give it a **URL**
+and it explores the page through a `PageExplorer`, then builds a `TestSuite`
+from what it finds: a page-load case, a headings case, one reachability case per
+navigation link, and one case per form. It produces this in the exact shape the
+`Orchestrator` consumes, so a generated plan can flow straight into the run
+loop.
 
 ```bash
 npm run agent:plan -- https://www.organuz.ai            # offline stub (default)
@@ -97,15 +99,18 @@ npm run agent:plan -- https://www.organuz.ai --live     # real browser via the P
 npm run agent:plan -- https://www.organuz.ai --live --headed
 ```
 
-Offline (default) uses `StubPageExplorer` — deterministic, no browser/network.
+The offline path (the default) uses `StubPageExplorer` — deterministic, with no
+browser or network.
 
-**Live** uses the real **Playwright MCP CLI server**: `McpCliPlaywrightClient`
+The **live** path uses the real **Playwright MCP CLI server** (MCP is the Model
+Context Protocol, the standard the browser tools speak over). `McpCliPlaywrightClient`
 launches `npx @playwright/mcp` over stdio (via `@modelcontextprotocol/sdk`) and
 forwards `navigate`/`snapshot` to the server's `browser_navigate` /
-`browser_snapshot` tools; `parseMcpSnapshotText` extracts the page URL/title and
-the fenced-yaml aria tree, and `parseSnapshot` turns that into the
-`PageExploration` the agent plans from. The SDK + server are **optional**
-`devDependencies`, loaded lazily so the offline path needs neither.
+`browser_snapshot` tools. `parseMcpSnapshotText` then extracts the page URL/title
+and the fenced-yaml aria tree (the page's accessibility structure), and
+`parseSnapshot` turns that into the `PageExploration` the agent plans from. The
+SDK and server are **optional** `devDependencies`, loaded lazily, so the offline
+path needs neither.
 
 ```ts
 import { McpCliPlaywrightClient, McpPageExplorer, TestPlanAgent } from './src/agent';
@@ -119,9 +124,9 @@ try {
 ```
 
 `McpCliPlaywrightClient` defaults to `--isolated` (a fresh browser profile per
-run) so it never hits the "Browser is already in use" lock. Any object matching
-the `PlaywrightMcpClient` interface also works — e.g. an in-session MCP tool
-binding, or a fake in tests.
+run), so it never hits the "Browser is already in use" lock. Any object that
+matches the `PlaywrightMcpClient` interface also works — for example, an
+in-session MCP tool binding, or a fake used in tests.
 
 ## Run the current repository tests through the agent
 
@@ -129,10 +134,10 @@ binding, or a fake in tests.
 npm run agent:current-tests
 ```
 
-This keeps Azure DevOps, Google Sheets, and OneDrive stubbed, but uses
-`CliPlaywrightRunner` to invoke the real Playwright CLI. The generated suite
-maps one orchestrator case to each logical Playwright slice; product maps to
-both product projects:
+This keeps Azure DevOps, Google Sheets, and OneDrive stubbed (replaced by
+in-memory fakes), but uses `CliPlaywrightRunner` to invoke the real Playwright
+CLI. The generated suite maps one orchestrator case to each logical Playwright
+slice; product maps to both product projects:
 
 - `PW-ORGANUZ-API` -> `npx playwright test --project=organuz-api`
 - `PW-CHROMIUM` -> `npx playwright test --project=chromium`
@@ -140,11 +145,11 @@ both product projects:
 - `PW-AGENT` -> `npx playwright test --project=agent`
 
 Set `WEB_BASE_URL`, `QA_TARGET_ENV`, or `APP_BASE_URL` before running if you want
-to point the UI or product projects at non-default targets. Product live browser
-flows stay gated unless `PRODUCT_E2E_ENABLED=true` and persona credentials are
-present. Non-product projects are filtered by their Playwright project config to the
-five `@other-smoke` checks. The command exits non-zero if any mapped project fails or
-becomes blocked.
+to point the UI or product projects at non-default targets. The product live
+browser flows stay gated (held back) unless `PRODUCT_E2E_ENABLED=true` and persona
+credentials are present. The non-product projects are filtered by their Playwright
+project config down to the five `@other-smoke` checks. The command exits non-zero
+(signals failure) if any mapped project fails or becomes blocked.
 
 The current-test runner keeps the external systems stubbed:
 
@@ -155,9 +160,10 @@ The current-test runner keeps the external systems stubbed:
 | OneDrive | Synthetic evidence URLs for Playwright HTML report and JSON result artifacts. |
 | Playwright | Real CLI execution of configured projects. |
 
-In restricted sandboxes, `organuz-api` can fail on DNS/network access and
-browser projects can fail on launch permissions. On a normal local run, those
-same projects should behave like direct Playwright commands.
+In restricted sandboxes (locked-down environments with limited access),
+`organuz-api` can fail on DNS/network access and the browser projects can fail on
+launch permissions. On a normal local run, those same projects should behave just
+like direct Playwright commands.
 
 ## Requirements-document enrichment
 
@@ -182,9 +188,9 @@ connector instead of reading the local filesystem.
 
 ## Going from stubs to real connectors
 
-Every connector is an interface with a `Stub*` implementation. Replace a stub
-with a real REST/MCP-backed class **behind the same interface** and the
-orchestrator is unchanged:
+Every connector (the code that talks to one external system) is an interface with
+a `Stub*` implementation. Replace a stub with a real REST/MCP-backed class **behind
+the same interface**, and the orchestrator stays unchanged:
 
 | Interface                | Real backing |
 | ------------------------ | ------------ |
@@ -193,8 +199,9 @@ orchestrator is unchanged:
 | `OneDriveConnector`      | Microsoft Graph (OneDrive) — both artifact upload and requirements `downloadFiles`. |
 | `PlaywrightRunner`       | `StubPlaywrightRunner` (offline demo) or `CliPlaywrightRunner` (real `npx playwright test`); Playwright MCP for authoring. |
 
-`RequirementsReader` (`utils/`) is not a swappable connector — it reads from the
-local filesystem, or from buffers the `OneDriveConnector` hands it.
+`RequirementsReader` (`utils/`) is not a swappable connector. It reads either from
+the local filesystem or from buffers (in-memory file contents) that the
+`OneDriveConnector` hands it.
 
 ## Mapping cases to Playwright CLI slices
 
@@ -207,8 +214,9 @@ local filesystem, or from buffers the `OneDriveConnector` hands it.
 | `grep` | `@smoke` | Adds Playwright `--grep`. |
 | `grepInvert` | `@intentionally-failing` | Adds Playwright `--grep-invert`. |
 
-The runner records a single step whose expected value is exit code `0`, and it
-uses Playwright's JSON report to populate totals and failure messages.
+The runner records a single step whose expected value is exit code `0` (the
+success code). It then uses Playwright's JSON report to populate totals and
+failure messages.
 
 ## Configuration
 

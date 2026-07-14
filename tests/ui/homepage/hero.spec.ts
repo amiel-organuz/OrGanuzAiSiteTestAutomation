@@ -1,4 +1,4 @@
-import { test, expect } from '../../../src/fixtures';
+import { test, expect } from '../support/fixtures';
 import {
   allureEpic,
   allureFeature,
@@ -7,23 +7,23 @@ import {
   allureStep,
 } from '../../../src/utils/allure';
 
-test.describe('Hero Section', { tag: '@ui' }, () => {
-  test.beforeEach(async ({ homePage }) => {
-    await homePage.navigate();
+test.describe('Hero section', { tag: '@ui' }, () => {
+  test.beforeEach(async ({ home }) => {
+    await home.open();
   });
 
-  test('hero heading is visible and mentions "אור"', { tag: '@other-smoke' }, async ({ homePage }) => {
-    await allureEpic('Homepage');
-    await allureFeature('Hero Section');
+  test('Hero heading is visible and contains the word "אור"', { tag: '@other-smoke' }, async ({ home }) => {
+    await allureEpic('Home page');
+    await allureFeature('Hero section');
     await allureStory('Heading');
     await allureSeverity('blocker');
 
-    await allureStep('Verify hero H1 heading is visible', async () => {
-      await expect(homePage.heroHeading).toBeVisible();
+    await allureStep('Verify the main H1 heading is visible', async () => {
+      await expect(home.hero.heading).toBeVisible();
     });
 
-    await allureStep('Verify heading text contains "אור"', async () => {
-      await expect(homePage.heroHeading).toContainText('אור');
+    await allureStep('Verify the heading text contains the word "אור"', async () => {
+      await expect(home.hero.heading).toContainText('אור');
     });
   });
 });

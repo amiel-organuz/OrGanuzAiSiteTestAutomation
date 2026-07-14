@@ -1,6 +1,7 @@
 import { expect, test, type APIResponse } from '@playwright/test';
 import { allureEpic, allureFeature, allureStory } from '../../src/utils/allure';
 import { GOVMAP, LATENCY_BUDGET_MS, autocompleteBody } from './support/endpoints';
+import { govmapBlockReason } from './support/availability';
 
 /**
  * Dedicated availability + contract monitoring for **Govmap** (`www.govmap.gov.il`),
@@ -28,9 +29,13 @@ async function timed(fn: () => Promise<APIResponse>): Promise<{ res: APIResponse
 }
 
 test.describe('Govmap API monitoring', { tag: '@monitoring' }, () => {
-  test.beforeEach(async () => {
+  test.beforeEach(async ({ request }) => {
     await allureEpic('External API monitoring');
     await allureFeature('Govmap (www.govmap.gov.il)');
+    // Skip (not fail) when this runner is served an HTML block/challenge page —
+    // an environmental geo/bot block, not a real Govmap outage or a product bug.
+    const reason = await govmapBlockReason(request);
+    test.skip(reason !== null, reason ?? '');
   });
 
   // ---- Map API script ----------------------------------------------------

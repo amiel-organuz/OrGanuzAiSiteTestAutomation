@@ -55,6 +55,11 @@ export class ProductFlows {
     return this.app.login({ phone, otpCode });
   }
 
+  /** Switch the app UI to English via the header language menu (idempotent). */
+  async switchToEnglish(): Promise<void> {
+    await this.app.switchToEnglish();
+  }
+
   /** Open the header user menu (exposes "איזור אישי" and "התנתק"). */
   async openUserMenu(): Promise<void> {
     await this.app.openUserMenu();

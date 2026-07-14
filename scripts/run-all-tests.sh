@@ -25,6 +25,10 @@ GRAFANA_URL="${GRAFANA_URL:-http://localhost:3001}"
 GRAFANA_DASHBOARD_URL="${GRAFANA_DASHBOARD_URL:-${GRAFANA_URL}/d/organuz-system-tests/organuz-system-and-test-monitor}"
 ALLURE_URL="${ALLURE_URL:-http://localhost:5050}"
 PUSHGATEWAY_URL="${PUSHGATEWAY_URL:-http://localhost:9091}"
+# Playwright's own default HTML report (written to playwright-report/ by the `html`
+# reporter). Served at the end alongside Allure via `playwright show-report`.
+PLAYWRIGHT_REPORT_PORT="${PLAYWRIGHT_REPORT_PORT:-9323}"
+PLAYWRIGHT_REPORT_URL="${PLAYWRIGHT_REPORT_URL:-http://localhost:${PLAYWRIGHT_REPORT_PORT}}"
 
 api_ready() {
   curl -fsS "${API_BASE_URL}/health" >/dev/null 2>&1
@@ -81,6 +85,15 @@ set -e
 
 if [ -d allure-results ] && [ "$(find allure-results -mindepth 1 -print -quit)" ]; then
   echo "Generating Allure 3 report..."
+  # Carry Allure history forward so the report keeps its Trend / Retries / History
+  # graphs across local runs: seed THIS run's results with the PREVIOUS report's
+  # history/ before (re)generating. allure-results is wiped each run (line above), so
+  # without this the trend would reset every time. First run has no prior report — fine.
+  if [ -d allure-report/history ]; then
+    mkdir -p allure-results/history
+    cp -R allure-report/history/. allure-results/history/
+    echo "Carried Allure history forward from the previous report."
+  fi
   mkdir -p allure-report
   find allure-report -mindepth 1 -delete
   npx -y -p allure@3 allure generate allure-results --output allure-report
@@ -121,12 +134,14 @@ fi
 
 echo
 echo "Local servers:"
-echo "  FastAPI:     ${FASTAPI_URL}"
-echo "  Scalar:      ${SWAGGER_URL}"
-echo "  Prometheus:  ${PROMETHEUS_URL}"
-echo "  Pushgateway: ${PUSHGATEWAY_URL}"
-echo "  Grafana:     ${GRAFANA_URL}"
-echo "  Allure:      ${ALLURE_URL}"
+echo "  FastAPI:      ${FASTAPI_URL}"
+echo "  Scalar:       ${SWAGGER_URL}"
+echo "  Prometheus:   ${PROMETHEUS_URL}"
+echo "  Pushgateway:  ${PUSHGATEWAY_URL}"
+echo "  Grafana:      ${GRAFANA_URL}"
+echo "Test reports:"
+echo "  Allure:       ${ALLURE_URL}"
+echo "  Playwright:   ${PLAYWRIGHT_REPORT_URL}  (default HTML report)"
 echo
 
 OPEN_BROWSER="${OPEN_BROWSER:-auto}"
@@ -147,8 +162,22 @@ if [ "$OPEN_BROWSER" = "true" ]; then
     OPENER=""
   fi
 
+  # Serve Playwright's default HTML report in the background so it shows up next to the
+  # Allure report. `show-report` binds the port and opens its own browser tab, then keeps
+  # serving (like the docker Allure server) so the report stays viewable after the script
+  # exits. Backgrounded + disowned so it never blocks the run.
+  if [ -d playwright-report ]; then
+    echo "Serving Playwright HTML report at ${PLAYWRIGHT_REPORT_URL} ..."
+    (npx playwright show-report playwright-report --host localhost --port "$PLAYWRIGHT_REPORT_PORT" >/dev/null 2>&1 &) \
+      || echo "Could not start the Playwright HTML report server on ${PLAYWRIGHT_REPORT_URL}."
+  else
+    echo "No playwright-report/ directory — skipping the Playwright HTML report."
+  fi
+
   if [ -n "$OPENER" ]; then
-    echo "Opening servers in browser..."
+    echo "Opening servers and the Allure report in browser..."
+    # The Allure report opens here; the Playwright HTML report opens itself via the
+    # backgrounded `show-report` above, so it is not repeated in this loop.
     for url in "${FASTAPI_URL}/docs" "${SWAGGER_URL}" "${PROMETHEUS_URL}" "${GRAFANA_DASHBOARD_URL}" "${ALLURE_URL}"; do
       "$OPENER" "$url" >/dev/null 2>&1 || true
     done

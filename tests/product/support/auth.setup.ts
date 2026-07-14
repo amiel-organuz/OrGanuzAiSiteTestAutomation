@@ -16,6 +16,11 @@ import { OtpUnavailableError, AppUnavailableError } from './ProductAppPage';
  */
 for (const role of AUTH_ROLES) {
   setup(`authenticate ${role}`, async ({ product, page }) => {
+    // The login flow resends the OTP once and waits for the code step (~27s worst case);
+    // on a dev OTP-cooldown that path must run to completion so it throws
+    // OtpUnavailableError and this role skips cleanly — the default 30s would time out
+    // (a hard failure) mid-retry instead.
+    setup.setTimeout(120_000);
     const key = role.toUpperCase().replace(/-/g, '_');
     setup.skip(!process.env[`${key}_PHONE`], `no ${key}_PHONE credential — ${role} session not created`);
 

@@ -1,6 +1,7 @@
 import { expect, test, type APIResponse } from '@playwright/test';
 import { allureEpic, allureFeature, allureStory } from '../../src/utils/allure';
 import { OFEK, LATENCY_BUDGET_MS, orthoTileUrl, labelTileUrl, TILE_HEADERS } from './support/endpoints';
+import { ofekBlockReason } from './support/availability';
 
 /**
  * Dedicated availability + contract monitoring for **Ofek** (`basemaps.govmap.gov.il`),
@@ -29,9 +30,13 @@ function startsWithMagic(buf: Buffer, magic: number[]): boolean {
 }
 
 test.describe('Ofek orthophoto tiles monitoring', { tag: '@monitoring' }, () => {
-  test.beforeEach(async () => {
+  test.beforeEach(async ({ request }) => {
     await allureEpic('External API monitoring');
     await allureFeature('Ofek / Survey-of-Israel orthophoto (basemaps.govmap.gov.il)');
+    // Skip (not fail) when this runner is served an HTML block/challenge page —
+    // an environmental geo/bot block, not a real Ofek outage or a product bug.
+    const reason = await ofekBlockReason(request);
+    test.skip(reason !== null, reason ?? '');
   });
 
   // ---- Orthophoto (aerial) tiles -----------------------------------------

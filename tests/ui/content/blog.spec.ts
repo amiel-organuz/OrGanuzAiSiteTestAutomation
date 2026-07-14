@@ -8,13 +8,13 @@ import {
 } from '../../../src/utils/allure';
 
 test.describe('Blog', { tag: '@ui' }, () => {
-  test('blog index loads with at least one article', { tag: '@other-smoke' }, async ({ blogPage }) => {
+  test('Blog index page loads with at least one article', { tag: '@other-smoke' }, async ({ blogPage }) => {
     await allureEpic('Blog');
     await allureFeature('Blog index');
-    await allureStory('Article listing');
+    await allureStory('Article list');
     await allureSeverity('normal');
 
-    await allureStep('Navigate to /blog and confirm the page renders', async () => {
+    await allureStep('Navigate to /blog and verify the page loads', async () => {
       await blogPage.navigate();
       await blogPage.expectOnBlogPage();
     });
