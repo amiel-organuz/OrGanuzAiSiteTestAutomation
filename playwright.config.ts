@@ -1,9 +1,13 @@
-// `devices` is only needed by the disabled chromium / product projects below;
-// re-add it to this import when re-enabling them.
-import { defineConfig } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 
+// Env credentials/overrides are split per target env under `env/`:
+// `env/.dev.env` (default) and `env/.prod.env`, selected by QA_TARGET_ENV.
+// The env-specific file is loaded first (wins); a root `.env`, if present, is a
+// fallback for any shared vars not in the env file (dotenv never overrides).
+const targetEnv = (process.env.QA_TARGET_ENV || 'dev').toLowerCase();
+dotenv.config({ path: path.resolve(__dirname, `env/.${targetEnv}.env`) });
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 import { config } from './src/utils/config';
@@ -16,16 +20,15 @@ const includeLowPriorityTests = process.env.INCLUDE_LOW_PRIORITY_TESTS === 'true
 // MONITORING_ENABLED=true (see `npm run test:monitoring`).
 const includeMonitoring = process.env.MONITORING_ENABLED === 'true';
 
-// Shared browser context for the product app: the auth-setup project and the product
-// project must use the same origin/viewport so saved sessions restore cleanly.
-// Disabled together with the product projects below (re-add `devices` to the import
-// above and uncomment when re-enabling them).
-// const productUse = {
-//   ...devices['Desktop Chrome'],
-//   baseURL: config.app.baseUrl,
-//   viewport: { width: 1920, height: 1080 },
-//   headless: true,
-// };
+// Shared browser context for the product app: the product project (and the auth-setup
+// project, when re-enabled) use the same origin/viewport so saved sessions restore
+// cleanly. baseURL is the calculator app for the selected env (dev / prod).
+const productUse = {
+  ...devices['Desktop Chrome'],
+  baseURL: config.app.baseUrl,
+  viewport: { width: 1920, height: 1080 },
+  headless: true,
+};
 
 export default defineConfig({
   testDir: './tests',
@@ -88,16 +91,16 @@ export default defineConfig({
     //     headless: true,
     //   },
     // },
-    // Product app projects (target the *.organuz.com calculator) are disabled.
-    // Re-enable by uncommenting the product / product-setup / product-authenticated
-    // blocks below. Spec files under tests/product/** are kept.
-    // {
-    //   name: 'product',
-    //   testMatch: 'tests/product/**/*.spec.ts',
-    //   // The per-role live specs run in product-authenticated (they need saved sessions).
-    //   testIgnore: 'tests/product/flows/**',
-    //   use: productUse,
-    // },
+    // Product app project (targets the *.organuz.com calculator for the selected env).
+    // The credential-gated role flows (product-setup / product-authenticated) below
+    // stay disabled — re-enable them together when per-role sessions are wired.
+    {
+      name: 'product',
+      testMatch: 'tests/product/**/*.spec.ts',
+      // The per-role live specs run in product-authenticated (they need saved sessions).
+      testIgnore: 'tests/product/flows/**',
+      use: productUse,
+    },
     // {
     //   // Authenticates each sign-in role once and saves its storageState. Skip-safe:
     //   // roles without credentials (or when the dev app/OTP is down) are skipped.
@@ -125,6 +128,31 @@ export default defineConfig({
       name: 'agent',
       testMatch: 'tests/agent/**/*.spec.ts',
       grep: /@other-smoke/,
+    },
+    {
+      // Authorized, NON-DESTRUCTIVE penetration testing of the Organuz Supabase
+      // backend with the public anon key only (browserless APIRequestContext).
+      // Asserts the backend's security posture; a failure is a real finding.
+      name: 'security',
+      testMatch: 'tests/security/**/*.spec.ts',
+      use: {
+        baseURL: config.organuzApi.baseUrl,
+      },
+    },
+    // Local-only marketing-site e2e (tests/local-web/**). Registered by default so it runs
+    // locally, but EVERY spec self-skips when process.env.CI is set (see tests/local-web/
+    // support.ts) and the parallel-tests.yml CI matrix does not list this project — so it
+    // never runs on CI. Intentional local/CI divergence (sanctioned skips), per the
+    // test-suite-parity skill. Uses a real chromium context against the prod marketing site.
+    {
+      name: 'local-web',
+      testMatch: 'tests/local-web/**/*.spec.ts',
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: config.web.baseUrl,
+        viewport: { width: 1920, height: 1080 },
+        headless: true,
+      },
     },
     // Opt-in external-dependency monitoring; only registered when MONITORING_ENABLED=true
     // so the default suite never runs live third-party checks.

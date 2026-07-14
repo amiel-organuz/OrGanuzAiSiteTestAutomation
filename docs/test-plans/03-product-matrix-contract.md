@@ -1,11 +1,5 @@
 # Test Plan 3 — Product Matrix & Role Data Contracts (Offline)
 
-> **⚠️ CURRENTLY DISABLED.** The `product` project is commented out in
-> `playwright.config.ts`, so this group does **not** run in the default suite.
-> The spec files under `tests/product/matrix/**` are retained — re-enable the
-> group by uncommenting the `product` project in `playwright.config.ts`. The
-> cases below still describe those specs.
-
 | | |
 |---|---|
 | **Project** | `product` |

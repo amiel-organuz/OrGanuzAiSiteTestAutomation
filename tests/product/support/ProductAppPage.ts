@@ -8,6 +8,7 @@ import { unlockProductEnvironment } from './env-gate';
 import { OtpUnavailableError, AppUnavailableError, APP_UNAVAILABLE_REASON } from './errors';
 import { LanguageMenu } from './LanguageMenu';
 import { anyLoginEntry, productChrome } from '../../../src/i18n/product';
+import { allureStep } from '../../../src/utils/allure';
 
 // Re-export so existing importers (the matrix spec) can keep importing from here.
 export { OtpUnavailableError, AppUnavailableError, APP_UNAVAILABLE_REASON } from './errors';
@@ -49,7 +50,8 @@ export class ProductAppPage {
     // below would wrongly report the backend as down. Only navigate + unlock when we are
     // not already on a calculator route (standalone loginAs, fresh page).
     if (!/\/calculator\//i.test(this.page.url())) {
-      await this.page.goto(process.env.PRODUCT_LOGIN_PATH ?? '/');
+      await allureStep('Navigate to product login', () =>
+        this.page.goto(process.env.PRODUCT_LOGIN_PATH ?? '/'));
       // DEV/TEST sit behind a shared password gate before the app loads (no-op on prod).
       await unlockProductEnvironment(this.page);
     }
@@ -73,7 +75,7 @@ export class ProductAppPage {
       ]);
       // fill() (not pressSequentially) — the phone input has a mask that mangles
       // char-by-char typing; a single fill sets a valid number and enables send.
-      await phoneField.fill(credentials.phone);
+      await allureStep('Fill phone number', () => phoneField.fill(credentials.phone!));
 
       const sendCode = this.page
         .getByRole('button', { name: /שלחו לי קוד|send.*code|verification|otp/i })
@@ -82,7 +84,7 @@ export class ProductAppPage {
         .getByRole('heading', { name: /הזנת קוד|verification|קוד אימות|enter.*code/i })
         .first();
       await expect(sendCode).toBeEnabled({ timeout: 10_000 });
-      await sendCode.click();
+      await allureStep('Click send verification code', () => sendCode.click());
 
       // The code step is occasionally slow/dropped — resend once if it doesn't render.
       try {
@@ -159,7 +161,8 @@ export class ProductAppPage {
       throw new AppUnavailableError(APP_UNAVAILABLE_REASON);
     }
     await this.openLoginDialogIfNeeded();
-    await this.page.getByRole('button', { name: 'הירשמו כאן' }).first().click();
+    await allureStep('Open property-owner registration', () =>
+      this.page.getByRole('button', { name: 'הירשמו כאן' }).first().click());
     await expect(this.page.getByRole('heading', { name: 'הרשמת בעלי נכסים' })).toBeVisible({ timeout: 15_000 });
   }
 
@@ -180,17 +183,21 @@ export class ProductAppPage {
 
   /** Fill the four registration text fields (name, phone, email) — not the consent boxes. */
   async fillCustomerRegistrationFields(account: NewCustomerAccount): Promise<void> {
-    await this.page.getByRole('textbox', { name: 'שם פרטי' }).fill(account.firstName);
-    await this.page.getByRole('textbox', { name: 'שם משפחה' }).fill(account.lastName);
-    await this.page.getByRole('textbox', { name: 'טלפון נייד' }).fill(account.phone);
-    await this.page.getByRole('textbox', { name: 'דואר אלקטרוני' }).fill(account.email);
+    await allureStep('Fill registration first name', () =>
+      this.page.getByRole('textbox', { name: 'שם פרטי' }).fill(account.firstName));
+    await allureStep('Fill registration last name', () =>
+      this.page.getByRole('textbox', { name: 'שם משפחה' }).fill(account.lastName));
+    await allureStep('Fill registration phone', () =>
+      this.page.getByRole('textbox', { name: 'טלפון נייד' }).fill(account.phone));
+    await allureStep('Fill registration email', () =>
+      this.page.getByRole('textbox', { name: 'דואר אלקטרוני' }).fill(account.email));
   }
 
   /** Tick the required terms consent ("תקנון האתר"); the first checkbox in the form. */
   async acceptRegistrationTerms(): Promise<void> {
     const terms = this.registrationTermsCheckbox();
     if (!(await terms.isChecked())) {
-      await terms.check();
+      await allureStep('Accept registration terms', () => terms.check());
     }
   }
 
@@ -202,7 +209,7 @@ export class ProductAppPage {
    */
   async submitCustomerRegistration(otpCode: string): Promise<void> {
     await expect(this.registrationSubmitButton()).toBeEnabled({ timeout: 10_000 });
-    await this.registrationSubmitButton().click();
+    await allureStep('Submit registration', () => this.registrationSubmitButton().click());
 
     const otpHeading = this.page
       .getByRole('heading', { name: /הזנת קוד|verification|קוד אימות|enter.*code/i })
@@ -240,7 +247,8 @@ export class ProductAppPage {
     }
     await this.openLoginDialogIfNeeded();
     const popupPromise = this.page.waitForEvent('popup');
-    await this.page.getByRole('button', { name: 'הירשמו כאן' }).nth(1).click();
+    await allureStep('Open solar-company registration', () =>
+      this.page.getByRole('button', { name: 'הירשמו כאן' }).nth(1).click());
     const popup = await popupPromise;
     await popup.waitForLoadState('domcontentloaded');
     return popup;
@@ -268,7 +276,7 @@ export class ProductAppPage {
     if (count > 1) {
       const digits = code.split('');
       for (let i = 0; i < Math.min(count, digits.length); i++) {
-        await boxes.nth(i).fill(digits[i]);
+        await allureStep(`Fill OTP digit ${i + 1}`, () => boxes.nth(i).fill(digits[i]));
       }
       return;
     }
@@ -285,11 +293,13 @@ export class ProductAppPage {
     // Property type (Hebrew label button) then address autocomplete.
     await this.selectPropertyType(data.propertyType);
     const address = this.page.getByRole('combobox').first();
-    await address.click();
+    await allureStep('Focus address field', () => address.click());
     // Type character-by-character so the address autocomplete fires its key handlers.
-    await address.pressSequentially(data.address, { delay: 60 });
+    await allureStep(`Type address "${data.address}"`, () =>
+      address.pressSequentially(data.address, { delay: 60 }));
     await this.page.getByRole('option').first().waitFor({ state: 'visible', timeout: 20_000 });
-    await this.page.getByRole('option').first().click();
+    await allureStep('Select first address suggestion', () =>
+      this.page.getByRole('option').first().click());
 
     await this.clickPrimaryContinue(); // בוא נמשיך → /address/get-address
     await this.clickFirstVisible([
@@ -307,7 +317,7 @@ export class ProductAppPage {
   private async clickPrimaryContinue(): Promise<void> {
     const cont = this.page.getByRole('button', { name: 'בוא נמשיך' }).last();
     await expect(cont).toBeEnabled({ timeout: 20_000 });
-    await cont.click();
+    await allureStep('Click primary continue', () => cont.click());
   }
 
   /**
@@ -394,7 +404,7 @@ export class ProductAppPage {
   }
 
   async expectAccessBlocked(path: string): Promise<void> {
-    await this.page.goto(path);
+    await allureStep(`Navigate to ${path}`, () => this.page.goto(path));
     await expect(this.page.getByText(/forbidden|unauthorized|access denied|403|אין הרשאה|גישה נדחתה/i).first()).toBeVisible();
   }
 
@@ -416,7 +426,10 @@ export class ProductAppPage {
       this.page.locator(`input[name="${testId}"]`),
     ]);
 
-    await (await this.firstVisible(locators)).fill(value);
+    await allureStep('Fill first visible field', async () => {
+      const target = await this.firstVisible(locators);
+      await target.fill(value);
+    });
   }
 
   /** The header user-menu button, whose accessible name is "<name>, <role>". */
@@ -426,25 +439,28 @@ export class ProductAppPage {
 
   /** Open the header user menu (exposes "איזור אישי" and "התנתק"). */
   async openUserMenu(): Promise<void> {
-    await this.userMenuButton().click();
+    await allureStep('Open user menu', () => this.userMenuButton().click());
   }
 
   /** Open the user menu and go to the personal area (…/pricing/my-offers). */
   async openPersonalArea(): Promise<void> {
     await this.openUserMenu();
-    await this.page.getByRole('menuitem', { name: productChrome.personalArea }).click();
+    await allureStep('Open personal area', () =>
+      this.page.getByRole('menuitem', { name: productChrome.personalArea }).click());
     await this.page.waitForURL(/\/pricing\//i, { timeout: 20_000 });
   }
 
   /** Click a personal-area sidebar entry by its Hebrew label (e.g. "מחירון קבלני"). */
   async openSidebarEntry(name: string | RegExp): Promise<void> {
-    await this.page.getByRole('button', { name }).first().click();
+    await allureStep(`Open sidebar entry "${name}"`, () =>
+      this.page.getByRole('button', { name }).first().click());
   }
 
   /** Open the user menu and log out. */
   async logout(): Promise<void> {
     await this.openUserMenu();
-    await this.page.getByRole('menuitem', { name: productChrome.logout }).click();
+    await allureStep('Log out', () =>
+      this.page.getByRole('menuitem', { name: productChrome.logout }).click());
   }
 
   /**
@@ -530,7 +546,7 @@ export class ProductAppPage {
     // Wait for the property-type buttons to render after login before clicking.
     const button = this.page.getByRole('button', { name: new RegExp(label, 'i') }).first();
     await button.waitFor({ state: 'visible', timeout: 20_000 });
-    await button.click();
+    await allureStep(`Select property type "${label}"`, () => button.click());
   }
 
   private async selectArena(data: PropertyCharacterizationData): Promise<void> {
@@ -599,19 +615,22 @@ export class ProductAppPage {
       return false;
     }
 
-    await locator.first().fill(value);
+    await allureStep('Fill field', () => locator.first().fill(value));
     return true;
   }
 
   private async clickFirstVisible(locators: readonly Locator[]): Promise<void> {
-    await (await this.firstVisible(locators)).click();
+    await allureStep('Click first visible element', async () => {
+      const target = await this.firstVisible(locators);
+      await target.click();
+    });
   }
 
   private async clickIfVisible(locators: readonly Locator[]): Promise<boolean> {
     for (const locator of locators) {
       const first = locator.first();
       if (await first.isVisible().catch(() => false)) {
-        await first.click();
+        await allureStep('Click element', () => first.click());
         return true;
       }
     }

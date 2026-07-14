@@ -5,12 +5,12 @@ name: Prod Test Automation
 # password gate). Kept distinct from parallel-tests.yml (which targets dev) so prod is
 # never hit on ordinary pushes/PRs.
 #
-# Configuration is driven by the same contract as the local gitignored `.env`: a single
-# `DOTENV_PROD` repository secret holding the whole prod .env (QA_TARGET_ENV, APP_BASE_URL,
-# per-role phone/OTP creds, Slack webhooks, …) is materialized into `.env`, which
-# playwright.config.ts already loads via dotenv. Individual secrets are honored as a
-# fallback. `QA_TARGET_ENV` is pinned to the dispatch input (default prod) so the target is
-# explicit regardless of what `.env` carried.
+# Configuration is driven by the same contract as the local gitignored `env/.prod.env`: a
+# single `DOTENV_PROD` repository secret holding the whole prod env file (QA_TARGET_ENV,
+# APP_BASE_URL, per-role phone/OTP creds, Slack webhooks, …) is materialized into
+# `env/.prod.env`, which playwright.config.ts loads via dotenv when QA_TARGET_ENV=prod.
+# Individual secrets are honored as a fallback. `QA_TARGET_ENV` is pinned to the dispatch
+# input (default prod) so the target is explicit and selects the prod env file.
 
 on:
   workflow_dispatch:
@@ -144,13 +144,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Materialize .env for prod (from the DOTENV_PROD secret)
+      - name: Materialize env/.prod.env for prod (from the DOTENV_PROD secret)
         env:
           DOTENV_PROD: ${{ secrets.DOTENV_PROD }}
         run: |
+          # QA_TARGET_ENV=prod (set at job level) makes the loaders pick env/.prod.env.
+          mkdir -p env
           if [ -n "$DOTENV_PROD" ]; then
-            printf '%s\n' "$DOTENV_PROD" > .env
-            echo "Wrote .env from the DOTENV_PROD secret ($(grep -c '=' .env) key(s)); values are masked in logs."
+            printf '%s\n' "$DOTENV_PROD" > env/.prod.env
+            echo "Wrote env/.prod.env from the DOTENV_PROD secret ($(grep -c '=' env/.prod.env) key(s)); values are masked in logs."
           else
             echo "DOTENV_PROD secret not set — falling back to the individual env vars above."
           fi

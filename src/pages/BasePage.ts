@@ -1,11 +1,12 @@
 import { Page, Locator } from '@playwright/test';
 import { resolveFirst } from '../utils/selfHeal';
+import { allureStep } from '../utils/allure';
 
 export abstract class BasePage {
   constructor(readonly page: Page) {}
 
   async goto(path: string = '/'): Promise<void> {
-    await this.page.goto(path);
+    await allureStep(`Navigate to ${path}`, () => this.page.goto(path));
   }
 
   async waitForVisible(locator: Locator): Promise<void> {

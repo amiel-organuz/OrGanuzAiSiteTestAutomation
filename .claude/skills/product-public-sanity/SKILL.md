@@ -5,9 +5,7 @@ description: Public (no-login) dev-calculator sanity tests under tests/product/a
 
 # Product public sanity — `tests/product/api/**`
 
-> **⚠️ CURRENTLY DISABLED.** The `product` project is commented out in `playwright.config.ts`, so these specs do **not** run in the default suite right now. The spec files under `tests/product/api/**` are retained — re-enable by uncommenting the `product` project. While disabled, `npx playwright test tests/product/api --project=product` reports "no tests". The how-to/debug content below stays valid once re-enabled.
-
-Live checks of the dev calculator that need **no role login** — only the dev password-gate (`PRODUCT_PLATFORM_PASSWORD`). Part of the `product` project (no grep). 8 tests when enabled.
+Live checks of the dev calculator that need **no role login** — only the dev password-gate (`PRODUCT_PLATFORM_PASSWORD`). Part of the active `product` project (no grep). 8 tests.
 
 ## Files
 - `tests/product/api/token-sanity.spec.ts` (3) — extracts the UI token off the wire with `TokenInterceptor`, then checks token shape, config-bundle parity, and body-only-over-HTTPS transport.

@@ -1,5 +1,6 @@
 import { Page } from '@playwright/test';
 import { AppUnavailableError, APP_UNAVAILABLE_REASON } from './errors';
+import { allureStep } from '../../../src/utils/allure';
 
 /**
  * Non-prod Organuz environments (DEV / TEST) sit behind a shared password gate
@@ -18,8 +19,9 @@ export async function unlockProductEnvironment(page: Page): Promise<void> {
   // Short probe: the gate renders immediately on dev/test; absent on prod.
   if (!(await gate.first().isVisible({ timeout: 5_000 }).catch(() => false))) return;
 
-  await gate.first().fill(password);
-  await page.getByRole('button', { name: 'כנס' }).first().click();
+  await allureStep('Fill dev password gate', () => gate.first().fill(password));
+  await allureStep('Submit dev password gate', () =>
+    page.getByRole('button', { name: 'כנס' }).first().click());
 
   // Gate success redirects into the calculator (…/calculator/address). If it never gets
   // there, the app's backend (organuz.flamiingo.com) is down so the SPA can't route —

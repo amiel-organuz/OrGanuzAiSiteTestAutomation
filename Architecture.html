@@ -541,7 +541,7 @@
       <span class="eyebrow">Pastel architecture map</span>
       <h1>Playwright automation with Product E2E Matrix, QA orchestration, FastAPI, Scalar, Grafana, Prometheus, Organuz Supabase API tests, and Allure 3</h1>
       <p class="subtitle">
-        A single-file architecture view for the OrGanuz AI site automation stack. Local runs start the runtime services, execute the active Playwright projects, generate Allure 3, and print the main service links. Two projects run green by default — <code>organuz-api</code> (the Supabase/PostgREST backend) and <code>agent</code> (the QA-orchestrator regression plus the <code>TestPlanAgent</code>: URL → Playwright-MCP exploration → generated test plan); an opt-in <code>monitoring</code> project adds live Govmap/Ofek availability checks. The <code>chromium</code> (marketing site), <code>product</code> (property-characterization matrix, role data-contracts, dev UI-token sanity), <code>product-setup</code>, and <code>product-authenticated</code> (live per-role browser sessions) projects are currently disabled in <code>playwright.config.ts</code> (commented out; spec files kept) — re-enable by uncommenting. GitHub Actions runs the same active projects in parallel and publishes Allure to GitHub Pages.
+        A single-file architecture view for the OrGanuz AI site automation stack. Local runs start the runtime services, execute the active Playwright projects, generate Allure 3, and print the main service links. Five projects run green by default — <code>product</code> (property-characterization matrix, role data-contracts, dev UI-token &amp; public-app sanity), <code>organuz-api</code> (the Supabase/PostgREST backend), <code>agent</code> (the QA-orchestrator regression plus the <code>TestPlanAgent</code>: URL → Playwright-MCP exploration → generated test plan), <code>security</code> (authorized non-destructive backend penetration checks), and <code>local-web</code> (local-only marketing-site e2e) — <strong>110 tests total</strong>. An opt-in <code>monitoring</code> project adds live Govmap/Ofek availability checks (<strong>160 total</strong>). The <code>chromium</code> (marketing site), <code>product-setup</code>, and <code>product-authenticated</code> (live per-role browser sessions) projects remain disabled in <code>playwright.config.ts</code> (commented out; spec files kept) — re-enable by uncommenting. GitHub Actions runs the CI matrix (<code>product</code>, <code>organuz-api</code>, <code>agent</code>, <code>security</code>) in parallel and publishes Allure to GitHub Pages; <code>local-web</code> is local-only (every spec self-skips on CI).
       </p>
 
       <div class="services" id="services" aria-label="Local service links">
@@ -576,7 +576,7 @@
     <div class="cards">
       <div class="card" data-accent="blue">
         <div class="card-title"><span class="badge">TS</span> Playwright Tests</div>
-        <p class="card-desc">Active by default: <code>organuz-api</code> (Supabase/PostgREST) and <code>agent</code> (orchestrator regression + <code>TestPlanAgent</code> URL→plan generator) — <strong>3 tests, all green</strong>. An opt-in <code>monitoring</code> project (<code>MONITORING_ENABLED=true</code>) adds 50 live third-party checks (<strong>53 total</strong>). <code>chromium</code> (marketing UI, 12 when enabled), <code>product</code> (token-sanity + matrix &amp; role data-contracts, 31 when enabled), and <code>product-setup</code> → <code>product-authenticated</code> (live per-role sessions, 3 + 10 when enabled) are currently disabled in <code>playwright.config.ts</code> (commented out; spec files kept) — re-enable by uncommenting.</p>
+        <p class="card-desc">Active by default: <code>product</code> (token/public-app sanity + matrix &amp; role data-contracts, 37), <code>organuz-api</code> (Supabase/PostgREST, 1), <code>agent</code> (orchestrator regression + <code>TestPlanAgent</code> URL→plan generator, 2), <code>security</code> (non-destructive backend pentest, 20), and <code>local-web</code> (local-only marketing-site e2e, 50) — <strong>110 tests, all green</strong>. An opt-in <code>monitoring</code> project (<code>MONITORING_ENABLED=true</code>) adds 50 live third-party checks (<strong>160 total</strong>). <code>chromium</code> (marketing UI, 12 when enabled) and <code>product-setup</code> → <code>product-authenticated</code> (live per-role sessions, 3 + 10 when enabled) remain disabled in <code>playwright.config.ts</code> (commented out; spec files kept) — re-enable by uncommenting.</p>
       </div>
       <div class="card" data-accent="green">
         <div class="card-title"><span class="badge">E2E</span> Product Coverage</div>
@@ -671,8 +671,8 @@
         <rect x="95" y="80" width="300" height="104" rx="20" fill="#c3d8ff" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
         <rect x="95" y="80" width="300" height="104" rx="20" fill="url(#gloss)"/>
         <text x="245" y="118" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">Playwright</text>
-        <text x="245" y="143" text-anchor="middle" font-size="12.5" fill="#46566e">organuz-api · agent · +monitoring (opt-in)</text>
-        <text x="245" y="165" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">2 active · 4 disabled in config</text>
+        <text x="245" y="143" text-anchor="middle" font-size="12.5" fill="#46566e">product · api · agent · security · local-web</text>
+        <text x="245" y="165" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">5 active · 3 disabled · +monitoring opt-in</text>
 
         <rect x="470" y="80" width="300" height="104" rx="20" fill="#b6f1d6" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
         <rect x="470" y="80" width="300" height="104" rx="20" fill="url(#gloss)"/>
@@ -799,7 +799,7 @@
       <div class="step" data-accent="lavender">
         <div class="step-num">3</div>
         <h3>Run tests</h3>
-        <p><code>npm test</code> executes the active green projects — <code>organuz-api</code> and <code>agent</code> — in one run (the disabled <code>chromium</code> / <code>product</code> / <code>product-authenticated</code> projects are commented out in <code>playwright.config.ts</code>). The local shell flow runs them while the service containers are online, then <code>scripts/push-qa-metrics.mjs</code> pushes the run's <code>qa_playwright_*</code> metrics to the Pushgateway so Grafana shows fresh results.</p>
+        <p><code>npm test</code> executes the active green projects — <code>product</code>, <code>organuz-api</code>, <code>agent</code>, <code>security</code>, and <code>local-web</code> — in one run (the disabled <code>chromium</code> / <code>product-setup</code> / <code>product-authenticated</code> projects are commented out in <code>playwright.config.ts</code>). The local shell flow runs them while the service containers are online, then <code>scripts/push-qa-metrics.mjs</code> pushes the run's <code>qa_playwright_*</code> metrics to the Pushgateway so Grafana shows fresh results.</p>
       </div>
       <div class="step" data-accent="pink">
         <div class="step-num">4</div>
@@ -873,7 +873,7 @@
     </div>
 
     <h2 id="tests">Test Suites &mdash; Every Group in Detail</h2>
-    <p data-lead>Two active Playwright projects, run identically locally and on GitHub Actions. <strong>3 tests total, all green</strong> (see the <code>test-suite-parity</code> skill). An opt-in <code>monitoring</code> project (registered only when <code>MONITORING_ENABLED=true</code>) adds 50 live third-party availability checks (<strong>53 total</strong>); it runs under the External API Monitoring workflow, never in the default green gate. Four more projects — <code>chromium</code>, <code>product</code>, <code>product-setup</code>, <code>product-authenticated</code> — are <strong>currently disabled in <code>playwright.config.ts</code></strong> (commented out; spec files kept) — re-enable by uncommenting; the per-file counts shown for them below are the baseline when re-enabled. Counts below are per spec file.</p>
+    <p data-lead>Five active Playwright projects (<code>product</code> 37, <code>local-web</code> 50, <code>security</code> 20, <code>agent</code> 2, <code>organuz-api</code> 1), run green by default. <strong>110 tests total</strong> (see the <code>test-suite-parity</code> skill) — the CI matrix runs <code>product</code>, <code>organuz-api</code>, <code>agent</code>, and <code>security</code>, while <code>local-web</code> is local-only (every spec self-skips when <code>CI</code> is set). An opt-in <code>monitoring</code> project (registered only when <code>MONITORING_ENABLED=true</code>) adds 50 live third-party availability checks (<strong>160 total</strong>); it runs under the External API Monitoring workflow, never in the default green gate. Three more projects — <code>chromium</code>, <code>product-setup</code>, <code>product-authenticated</code> — remain <strong>disabled in <code>playwright.config.ts</code></strong> (commented out; spec files kept) — re-enable by uncommenting; the per-file counts shown for them below are the baseline when re-enabled. Counts below are per spec file.</p>
 
     <div class="panel" data-accent="blue">
       <h3><span class="badge">UI · 12</span> chromium &nbsp;<code>tests/ui/**</code> · <code>@other-smoke</code> · prod <code>www.organuz.ai</code> &nbsp;<em>· currently disabled in playwright.config.ts (commented out; specs kept) — 12 when re-enabled</em></h3>
@@ -889,10 +889,11 @@
     </div>
 
     <div class="panel" data-accent="green">
-      <h3><span class="badge">E2E · 31</span> product &nbsp;<code>tests/product/**</code> (ignores <code>flows/**</code>) · no grep · dev (<code>QA_TARGET_ENV</code>) &nbsp;<em>· currently disabled in playwright.config.ts (commented out; specs kept) — 31 when re-enabled</em></h3>
+      <h3><span class="badge">E2E · 37</span> product &nbsp;<code>tests/product/**</code> (ignores <code>flows/**</code>) · no grep · dev (<code>QA_TARGET_ENV</code>) &nbsp;<em>· active by default</em></h3>
       <ul>
         <li><strong><code>api/token-sanity.spec.ts</code> (3, live)</strong> — opens the dev calculator, captures the UI token off the wire, and hits the dev RPC gateway. Checks: (1) the token is well-formed (<code>24-hex-id</code>-<code>32-hex-secret</code>); (2) it matches the bundled public token in <code>config.devApi.token</code> (bundle/config-drift guard); (3) every captured backend call is HTTPS, sends the token in the body (never the URL), and targets only the gateway host. <em>Skips</em> when the dev gateway is down (no token extractable).</li>
         <li><strong><code>api/public-app-sanity.spec.ts</code> (5, live)</strong> — public (no-login) checks after unlocking the password gate: the calculator shell renders; a fresh visitor is signed out; the header sign-in/register entry point is visible; the app is served over HTTPS on the configured dev host; and the app fires at least one token-bearing backend call on load. <em>Skips</em> on a genuine dev outage (AppUnavailable), fails only on a real product regression.</li>
+        <li><strong><code>en/public-app-en-sanity.spec.ts</code> (6, live)</strong> — the English-language variant of the public no-login checks: switches the dev calculator to EN and re-asserts the shell renders, the signed-out state, the sign-in/register entry point, HTTPS on the configured host, and a token-bearing backend call on load. <em>Skips</em> on a genuine dev outage.</li>
         <li><strong><code>matrix/product-matrix-data-contract.spec.ts</code> (13, offline)</strong> — asserts the shape of the checked-in matrix data: runtime-only fields excluded from committed fixtures; the scenario × persona matrix size is a pinned 48; the 12 <code>CALC-ROOF</code> ids; full property-type / polygon / roof-surface coverage; roof-payload placeholders are empty <code>{}</code>; the no-panel scenario is UI-only; scenario ids are unique; arena type matches each group; the negative scenario sits below <code>QUOTABLE_MINIMUM_PANEL_COUNT</code>; only the company persona has elevated rights; panel counts align with each panel mode.</li>
         <li><strong><code>matrix/product-roles-contract.spec.ts</code> (10, offline)</strong> — role-capability data contract for the three sign-in roles: all three are modeled and distinct; each has a name + role description; a valid post-funding destination; customer is the only role routed to quotations; customer/consultant can open quotations from results while company downloads its own; only company can open company pricing / management; company is the sole holder of elevated rights.</li>
       </ul>
@@ -925,9 +926,29 @@
       </div>
     </div>
 
+    <div class="panel" data-accent="violet">
+      <h3><span class="badge">SEC · 20</span> security &nbsp;<code>tests/security/**</code> · CI matrix · live backend</h3>
+      <p>Twenty authorized, <strong>non-destructive</strong> penetration-testing checks against the Organuz Supabase/PostgREST backend using only the public anon key (browserless <code>APIRequestContext</code>, no writes). A failure here is a <strong>real security finding</strong>, not a flaky environment skip. Runs green by default and in the GitHub Actions matrix.</p>
+      <ul>
+        <li><strong><code>backend-pentest.spec.ts</code> (20, live)</strong> — probes across authentication, RLS / authorization boundaries, injection (SQL / PostgREST operator abuse), transport security (HTTPS / headers), CORS policy, anon-key hygiene, and edge-function exposure.</li>
+      </ul>
+    </div>
+
+    <div class="panel" data-accent="blue">
+      <h3><span class="badge">WEB · 50</span> local-web &nbsp;<code>tests/local-web/**</code> · local-only (self-skips on <code>CI</code>) · prod <code>www.organuz.ai</code></h3>
+      <p>Fifty local-only end-to-end checks that drive real Chromium against the live marketing site. This project is <strong>intentionally not in the CI matrix</strong> — every spec self-skips when <code>process.env.CI</code> is set, so it is a rich local signal without adding CI flake (a deliberate local/CI divergence). Read-only visibility/navigation assertions; no form submissions reach the CRM.</p>
+      <ul>
+        <li><strong><code>home-hero-nav.local.spec.ts</code> (6)</strong> — hero heading, primary nav, and header CTA.</li>
+        <li><strong><code>home-audiences-why.local.spec.ts</code> (3)</strong> — audience/user-type buttons and the &ldquo;Why Organuz&rdquo; section.</li>
+        <li><strong><code>home-or-agents-projects.local.spec.ts</code> (5)</strong> — the &ldquo;Meet Or&rdquo; agents and active-projects showcase.</li>
+        <li><strong><code>home-faq.local.spec.ts</code> (2)</strong> — the FAQ heading and known questions.</li>
+        <li><strong><code>home-contact.local.spec.ts</code> (1)</strong> — the contact form fields (presence only).</li>
+      </ul>
+    </div>
+
     <div class="panel" data-accent="peach">
       <h3><span class="badge">MON · 50</span> monitoring &nbsp;<code>tests/monitoring/**</code> · opt-in (<code>MONITORING_ENABLED=true</code>) · live third-party</h3>
-      <p>Dedicated availability + contract monitoring for the two critical third-party map dependencies the product relies on, using <code>APIRequestContext</code> only (no browser). This project is registered <strong>only</strong> when <code>MONITORING_ENABLED=true</code>, so it never runs in the default 3-test suite (53 with it); it is driven separately by the <strong>External API Monitoring</strong> workflow (<code>monitoring.yml</code>, cron every 30 min) and is <em>meant to fail</em> when a dependency is down — that failure is the alert (auto-managed GitHub issue + Slack), so a Govmap/Ofek outage can never break the green PR gate. When the <code>govmap.gov.il</code> edge instead serves an HTML block/challenge page to the runner (a geo/bot block — e.g. a CI runner outside Israel), a per-worker canary in <code>tests/monitoring/support/availability.ts</code> (called from each spec's <code>beforeEach</code>) makes the specs <em>skip</em> rather than fail; a real break (5xx / connection error / real-but-wrong non-HTML payload) still fails.</p>
+      <p>Dedicated availability + contract monitoring for the two critical third-party map dependencies the product relies on, using <code>APIRequestContext</code> only (no browser). This project is registered <strong>only</strong> when <code>MONITORING_ENABLED=true</code>, so it never runs in the default 110-test suite (160 with it); it is driven separately by the <strong>External API Monitoring</strong> workflow (<code>monitoring.yml</code>, cron every 30 min) and is <em>meant to fail</em> when a dependency is down — that failure is the alert (auto-managed GitHub issue + Slack), so a Govmap/Ofek outage can never break the green PR gate. When the <code>govmap.gov.il</code> edge instead serves an HTML block/challenge page to the runner (a geo/bot block — e.g. a CI runner outside Israel), a per-worker canary in <code>tests/monitoring/support/availability.ts</code> (called from each spec's <code>beforeEach</code>) makes the specs <em>skip</em> rather than fail; a real break (5xx / connection error / real-but-wrong non-HTML payload) still fails.</p>
       <ul>
         <li><strong><code>govmap.spec.ts</code> (25, live)</strong> — <strong>Govmap</strong> (<code>www.govmap.gov.il</code>): the map API and address geocoding.</li>
         <li><strong><code>ofek.spec.ts</code> (25, live)</strong> — <strong>Ofek</strong> (<code>basemaps.govmap.gov.il</code>): the Survey-of-Israel national orthophoto tiles the roof scan runs on.</li>
@@ -945,6 +966,8 @@
           <tr><td>Matrix &amp; role data contracts</td><td><code>product</code></td><td><code>product-matrix-contract</code></td></tr>
           <tr><td>Live per-role e2e</td><td><code>product-setup</code> &rarr; <code>product-authenticated</code></td><td><code>product-roles-e2e</code> (+ <code>organuz-product-roles</code>)</td></tr>
           <tr><td>Supabase projects contract</td><td><code>organuz-api</code></td><td><code>organuz-api-tests</code></td></tr>
+          <tr><td>Backend penetration checks</td><td><code>security</code></td><td>&mdash; (in the CI matrix; see <code>test-suite-parity</code>)</td></tr>
+          <tr><td>Local-only marketing e2e</td><td><code>local-web</code> (local-only)</td><td>&mdash; (self-skips on CI; see <code>ui-sanity-tests</code>)</td></tr>
           <tr><td>Orchestrator regression + <code>TestPlanAgent</code></td><td><code>agent</code></td><td>&mdash; (see <code>src/agent/README.md</code>)</td></tr>
           <tr><td>External-API monitoring (Govmap + Ofek)</td><td><code>monitoring</code> (opt-in)</td><td>&mdash; (External API Monitoring workflow; <code>organuz-monitoring</code> covers the stack)</td></tr>
         </tbody>
@@ -978,10 +1001,10 @@
     <div class="panel">
       <h2 id="tags">Tags &amp; Gating</h2>
       <ul>
-        <li><code>@other-smoke</code> — the default filter for the non-product projects; every active <code>organuz-api</code> (1) and <code>agent</code> (2) test carries it (as do <code>chromium</code>'s 12 when that project is re-enabled).</li>
+        <li><code>@other-smoke</code> — the default filter for the smoke-gated projects; every active <code>organuz-api</code> (1) and <code>agent</code> (2) test carries it (as do <code>chromium</code>'s 12 when that project is re-enabled). The <code>product</code> (37), <code>security</code> (20), and <code>local-web</code> (50) projects run their own specs without that grep.</li>
         <li><code>@ui</code> — marketing-site specs; <code>@organuz-api @contract</code> — the backend contract test.</li>
         <li><code>@product @api @sanity</code> — the dev token-sanity spec (<code>@critical</code>/<code>@security</code> on individual checks); <code>@product @roles @e2e</code> — the live per-role specs. The <code>product</code> project has no grep filter, so every matched spec runs.</li>
-        <li>Sanctioned env-conditional skips: <code>token-sanity</code> (dev-gateway outage) and the live role specs (<code>product-setup</code> + <code>product-authenticated</code>, no credential/session) — both in the currently-disabled projects. Everything else must pass — the active baseline is 3 passed, 0 skipped (with the disabled projects re-enabled: 46 passed, 13 skipped).</li>
+        <li>Sanctioned env-conditional skips: <code>token-sanity</code> / <code>public-app-sanity</code> (dev-gateway outage), <code>local-web</code> (self-skips on CI), and the live role specs (<code>product-setup</code> + <code>product-authenticated</code>, no credential/session — both currently disabled). Everything else must pass — the active baseline is <strong>110 tests</strong> (<code>product</code> 37, <code>local-web</code> 50, <code>security</code> 20, <code>agent</code> 2, <code>organuz-api</code> 1); with the opt-in <code>monitoring</code> project, 160.</li>
         <li>Specs run <strong>fully parallel</strong> (<code>fullyParallel: true</code>); data-contract and stubbed-agent tests share no state, and role specs reuse read-only saved sessions.</li>
       </ul>
     </div>
@@ -1026,10 +1049,10 @@
         <h2 id="ci">GitHub Actions</h2>
         <ul>
           <li><code>typecheck</code> validates TypeScript.</li>
-          <li><code>tests</code> runs <code>organuz-api</code> and <code>agent</code> as a <code>fail-fast: false</code> matrix (<code>strategy.matrix.project</code>), identical to the local default run; the <code>chromium</code> / <code>product</code> / <code>product-authenticated</code> shards are commented out to match the disabled config (re-enable by uncommenting). Keep in sync per the <code>test-suite-parity</code> skill.</li>
+          <li><code>tests</code> runs <code>organuz-api</code>, <code>agent</code>, <code>security</code>, and <code>product</code> as a <code>fail-fast: false</code> matrix (<code>strategy.matrix.project</code>); the <code>chromium</code> and <code>product-authenticated</code> shards are commented out to match the disabled config (re-enable by uncommenting). <code>local-web</code> is intentionally <strong>not</strong> in the matrix — it is local-only and self-skips on CI. Keep in sync per the <code>test-suite-parity</code> skill.</li>
           <li>Beyond push / PR / manual dispatch, the workflow also runs on a daily <strong>05:00 Asia/Jerusalem</strong> schedule via a DST-aware <code>gate</code> job (two UTC crons, 02:00 + 03:00; the gate lets through only the slot that is the 05:xx hour in Israel). The non-blocking <code>monitoring</code> job still runs on every push/PR.</li>
-          <li>When re-enabled, the <code>product</code> shard sets <code>QA_TARGET_ENV: dev</code> and needs the <code>PRODUCT_PLATFORM_PASSWORD</code> secret (token-sanity opens the dev calculator); a missing secret shows as 3 skips, not a red job.</li>
-          <li>The active <code>organuz-api</code> and <code>agent</code> shards need no browser; Chromium is installed only for the <code>chromium</code> and <code>product</code> shards when those are re-enabled.</li>
+          <li>The <code>product</code> shard sets <code>QA_TARGET_ENV: dev</code> (per-target env files <code>env/.dev.env</code> / <code>env/.prod.env</code>, with a root <code>.env</code> fallback) and needs the <code>PRODUCT_PLATFORM_PASSWORD</code> secret (token/public-app sanity open the dev calculator); a missing secret shows as skips, not a red job.</li>
+          <li>The <code>organuz-api</code>, <code>agent</code>, and <code>security</code> shards need no browser; Chromium is installed for the <code>product</code> shard (and the <code>chromium</code> shard when re-enabled).</li>
           <li><code>services-smoke</code> starts FastAPI, Scalar, Prometheus, and Grafana.</li>
           <li><code>publish-allure</code> merges Allure artifacts and generates Allure 3.</li>
           <li><code>deploy-allure</code> publishes the report to GitHub Pages on <code>main</code> or <code>master</code>.</li>
@@ -1061,6 +1084,7 @@
       |-- <span class="file">Dockerfile</span><br>
       |-- <span class="file">docker-compose.yml</span><br>
       |-- <span class="file">playwright.config.ts</span><br>
+      |-- <span class="dir">env/</span> <span class="file">.dev.env (default) / .prod.env — selected by QA_TARGET_ENV; root .env fallback</span><br>
       |-- <span class="dir">docs/test-plans/</span> <span class="file">one written plan per group + index, and pdf/</span><br>
       |-- <span class="dir">scripts/</span><br>
       |   `-- <span class="file">run-all-tests.sh</span><br>
@@ -1086,7 +1110,10 @@
       `-- <span class="dir">tests/</span><br>
           |-- <span class="dir">agent/orchestrator/</span> · <span class="dir">agent/test-plan/</span><br>
           |-- <span class="dir">organuz-api/contracts/</span><br>
-          |-- <span class="dir">product/api/</span> <span class="file">token-sanity.spec.ts</span><br>
+          |-- <span class="dir">security/</span> <span class="file">backend-pentest.spec.ts + support/target.ts</span><br>
+          |-- <span class="dir">local-web/</span> <span class="file">*.local.spec.ts — local-only, self-skip on CI</span><br>
+          |-- <span class="dir">product/api/</span> <span class="file">token-sanity.spec.ts + public-app-sanity.spec.ts</span><br>
+          |-- <span class="dir">product/en/</span> <span class="file">public-app-en-sanity.spec.ts</span><br>
           |-- <span class="dir">product/matrix/</span> <span class="file">data files + matrix &amp; roles data-contract specs</span><br>
           |-- <span class="dir">product/flows/</span> <span class="file">roles.spec.ts (product-authenticated)</span><br>
           |-- <span class="dir">product/support/</span> <span class="file">ProductAppPage, flows, auth(.setup), errors, TokenInterceptor</span><br>

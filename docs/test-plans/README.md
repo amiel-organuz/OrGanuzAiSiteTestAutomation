@@ -19,23 +19,31 @@ removed, keep these plans in sync with the specs and with the counts in
 | # | Plan | Project(s) | Specs | Cases | Target |
 |---|------|-----------|-------|-------|--------|
 | 1 | [UI Sanity](01-ui-sanity.md) | `chromium` **(disabled)** | `tests/ui/**` | 12 | Marketing site (prod `www.organuz.ai`) |
-| 2 | [Product Public Sanity](02-product-public-sanity.md) | `product` **(disabled)** | `tests/product/api/**` | 8 | Dev calculator (no login) |
-| 3 | [Product Matrix & Role Contracts](03-product-matrix-contract.md) | `product` **(disabled)** | `tests/product/matrix/**` | 23 | Offline — checked-in fixtures |
+| 2 | [Product Public Sanity](02-product-public-sanity.md) | `product` | `tests/product/api/**` | 8 | Dev calculator (no login) |
+| 3 | [Product Matrix & Role Contracts](03-product-matrix-contract.md) | `product` | `tests/product/matrix/**` | 23 | Offline — checked-in fixtures |
 | 4 | [Product Roles E2E](04-product-roles-e2e.md) | `product-setup` → `product-authenticated` **(disabled)** | `tests/product/flows/**` | 13 | Dev calculator (per-role login) |
 | 5 | [Organuz API Contracts](05-organuz-api.md) | `organuz-api` | `tests/organuz-api/**` | 1 | Organuz Supabase / PostgREST |
 | 6 | [QA Agent](06-agent.md) | `agent` | `tests/agent/**` | 2 | Offline — stubs, no network/browser |
 | 7 | [External API Monitoring](07-monitoring.md) | `monitoring` (opt-in) | `tests/monitoring/**` | 50 | Live third-party maps — Govmap + Ofek |
+| 8 | [Security (penetration testing)](08-security.md) | `security` | `tests/security/**` | 20 | Organuz Supabase / PostgREST (anon key) |
+| 9 | [Local Web (local-only marketing e2e)](09-local-web.md) | `local-web` | `tests/local-web/**` | 50 | Marketing site (prod `www.organuz.ai`) — self-skips on CI |
 
-Plans **1–4 are currently DISABLED** — their projects are commented out in
+Plans **1 and 4 are currently DISABLED** — their projects are commented out in
 `playwright.config.ts` (spec files retained; re-enable by uncommenting). Their
 case counts above describe the specs as written, not the current default run.
 
-**Default run** (`npx playwright test`): **3 tests**, all green — `agent` 2 +
-`organuz-api` 1. Plans **1–4 are disabled** (their projects are commented out in
-`playwright.config.ts`), so the marketing UI, product public-sanity, product
-matrix/role contracts, and product roles e2e do not run in the default suite.
-Re-enable a group by uncommenting its project; the plan for each group documents
-which project to uncomment and the specs it covers.
+**Default run** (`npx playwright test`): **110 tests**, all green, across five
+projects — `product` 37 (public sanity 8 + matrix/role contracts 23 + the rest),
+`local-web` 50, `security` 20, `agent` 2, and `organuz-api` 1. Plans **1 and 4
+are disabled** (their projects are commented out in `playwright.config.ts`), so
+the marketing UI sanity and the product roles e2e do not run in the default
+suite. Re-enable a group by uncommenting its project; the plan for each group
+documents which project to uncomment and the specs it covers.
+
+The `local-web` group (Plan 9) is in the default local run but **self-skips on
+CI** — every spec `test.skip`s when `process.env.CI` is set — so those 50 specs
+run locally and stay green (skipped) on GitHub Actions. This is a sanctioned
+local/CI divergence; see the `test-suite-parity` skill.
 
 **Opt-in monitoring** (`npm run test:monitoring`, i.e. `MONITORING_ENABLED=true`):
 this adds the `monitoring` project — 50 live availability checks against Govmap
@@ -43,7 +51,7 @@ and Ofek (govmap 25 + ofek 25). It is **never** part of the default suite, so an
 outage at Govmap or Ofek can't break the PR gate. Instead it runs on the
 scheduled **External API Monitoring** workflow and alerts through an
 auto-managed GitHub issue plus Slack. With monitoring enabled, the total is
-**53** (default 3 + monitoring 50).
+**160** (default 110 + monitoring 50).
 
 ## Sanctioned skips (never failures)
 
@@ -53,12 +61,17 @@ auto-managed GitHub issue plus Slack. With monitoring enabled, the total is
   `tests/monitoring/support/availability.ts` detects it and skips via each
   `beforeEach`. A **real** break — a 5xx, a connection error, or a real-but-wrong
   (non-HTML) payload — still fails; that failure is the alert.
-- **Group 2 (public sanity) — disabled:** would skip only during a genuine dev
-  outage (dev gateway or password gate down, no UI token extractable). A token
-  that *is* observed but comes back malformed is a real regression and fails.
+- **Group 2 (public sanity):** skips only during a genuine dev outage (dev
+  gateway or password gate down, no UI token extractable). A token that *is*
+  observed but comes back malformed is a real regression and fails.
 - **Group 4 (roles e2e) — disabled:** each role skips on its own — no
   `<ROLE>_PHONE`/`_OTP_CODE` credential (product-setup) or no saved session
   (product-authenticated).
+- **Group 9 (local web):** every spec self-skips when `process.env.CI` is set —
+  a top-level `localOnly()` guard `test.skip`s the whole file on CI. The 50
+  specs run (and pass) on a developer machine and are simply skipped on GitHub
+  Actions; the `local-web` project is not in the CI matrix. Sanctioned
+  local/CI divergence.
 
 Everything else must pass. See `CLAUDE.md` → "Conventions" for the full policy.
 

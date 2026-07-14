@@ -60,15 +60,43 @@ export interface AcceptanceCriterion {
   description: string;
 }
 
+/** Test priority for a generated STD case: P1 highest … P3 lowest. */
+export type TestPriority = 'P1' | 'P2' | 'P3';
+
+/**
+ * A single detailed step of an STD (Software Test Description): the concrete
+ * action a tester/automation performs and the observable result expected of it.
+ */
+export interface TestStep {
+  /** 1-based step number within the case. */
+  index: number;
+  /** The action performed at this step. */
+  action: string;
+  /** The observable expected result after the action. */
+  expected: string;
+}
+
 /** A single Azure DevOps test case to execute. */
 export interface TestCase {
   id: string;
   title: string;
-  /** Ordered, human-readable repro/automation steps. */
+  /** Ordered, human-readable repro/automation steps (flattened `detailedSteps` actions). */
   steps: string[];
   acceptanceCriteria: AcceptanceCriterion[];
   /** Free-form tags from Azure DevOps, e.g. "@smoke", "@flaky". */
   tags: string[];
+  /**
+   * Detailed STD fields, populated for generated plans ({@link TestPlanAgent}).
+   * Optional so hand-authored / Azure DevOps cases stay valid without them.
+   */
+  /** One-line objective / purpose of the case. */
+  objective?: string;
+  /** Preconditions that must hold before the steps run. */
+  preconditions?: string[];
+  /** Test priority (P1 highest). */
+  priority?: TestPriority;
+  /** Detailed action→expected steps; `steps` is the flattened action list. */
+  detailedSteps?: TestStep[];
 }
 
 /** A suite / test plan grouping of cases read from Azure DevOps Test Plans. */
@@ -423,6 +451,21 @@ export interface TestPlanOptions {
   maxCases?: number;
   /** Tags applied to every generated case, on top of `@generated`. Default: `['@smoke']`. */
   tags?: string[];
+  /**
+   * Reference screenshots of the page(s) — file paths, e.g. from the `test_input/`
+   * folder. When present, the agent adds a visual-reference case so the generated plan
+   * carries the images as visual-regression / layout candidates. See {@link readTestInput}.
+   */
+  referenceImages?: string[];
+}
+
+/**
+ * Inputs read from the `test_input/` folder for {@link TestPlanAgent}: a list of URLs
+ * (from a urls file) and a set of web-page screenshot paths (the images in the folder).
+ */
+export interface TestPlanInput {
+  urls: string[];
+  images: string[];
 }
 
 export interface ParsedRequirementFile {
