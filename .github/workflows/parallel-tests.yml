@@ -89,16 +89,17 @@ jobs:
       fail-fast: false
       matrix:
         project:
-          # chromium, product, and product-authenticated are commented out because those
-          # projects are currently DISABLED in playwright.config.ts (their spec files are
-          # kept). Re-enable them here in the same change that uncomments the config blocks
-          # — otherwise a shard names a project that no longer resolves and the job errors.
+          # chromium and product-authenticated stay commented out because those projects
+          # are DISABLED in playwright.config.ts (their spec files are kept). Re-enable a
+          # shard in the SAME change that uncomments its config block — otherwise a shard
+          # names a project that no longer resolves and the job errors.
           # (product-authenticated pulls in product-setup as its dependency, so setup runs
           # within that shard — no separate product-setup shard needed.)
           # - chromium
           - organuz-api
           - agent
-          # - product
+          - security
+          - product
           # - product-authenticated
 
     env:
