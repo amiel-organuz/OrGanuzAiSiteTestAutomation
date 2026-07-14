@@ -8,6 +8,11 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 # the run output stays readable (harmless on Node versions that don't emit it).
 export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--disable-warning=DEP0205"
 
+# Load the gitignored .env up front so the whole script honors local overrides
+# (GRAFANA_URL, PUSHGATEWAY_URL, MONITORING_ENABLED, NOTIFY_SLACK, Slack webhooks)
+# the same way Playwright's dotenv does — not just the Slack step at the end.
+if [ -f .env ]; then set -a; . ./.env || true; set +a; fi
+
 echo "Running TypeScript typecheck..."
 npx tsc --noEmit
 
@@ -159,7 +164,7 @@ fi
 # failed post never breaks the run. Disable with NOTIFY_SLACK=false.
 NOTIFY_SLACK="${NOTIFY_SLACK:-true}"
 if [ "$NOTIFY_SLACK" = "true" ]; then
-  set -a; { [ -f .env ] && . ./.env; } || true; set +a
+  # .env was already sourced at the top of the script.
   SLACK_WEBHOOK_URL="${SLACK_WEBHOOK_URL:-}"
   SLACK_WEBHOOK_BOT_URL="${SLACK_WEBHOOK_BOT_URL:-}"
   if [ -n "$SLACK_WEBHOOK_URL" ] || [ -n "$SLACK_WEBHOOK_BOT_URL" ]; then
