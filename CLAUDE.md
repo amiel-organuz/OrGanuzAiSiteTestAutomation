@@ -44,5 +44,6 @@ Per-test-group skills (how to run/extend one group; see the mapping in `Architec
 - **`product-public-sanity`** — the no-login dev-calculator checks (`tests/product/api/**`: token-sanity + public-app-sanity), skip-on-outage.
 - **`product-matrix-contract`** — the offline matrix & role data-contract specs (`tests/product/matrix/**`).
 - **`product-roles-e2e`** — the live per-role browser group (`product-setup` → `product-authenticated`, `tests/product/flows/**`); pairs with `organuz-product-roles`.
+- **`external-api-monitoring`** — the live Govmap + Ofek `monitoring` group (`tests/monitoring/**`): browserless `APIRequestContext` health checks, the three auth tiers (no-token search / domain-bound token / referer-gated tiles), `config.json → monitoring` env overrides, and the CI/cron alerting. Use when editing `tests/monitoring/**` or the endpoints helper.
 
 Add new skills under `.claude/skills/<name>/SKILL.md` (frontmatter: `name`, `description`) and list them here.
