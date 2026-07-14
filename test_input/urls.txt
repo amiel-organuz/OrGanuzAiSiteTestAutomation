@@ -1,0 +1,5 @@
+# TestPlanAgent input — one URL per line.
+# Blank lines and lines starting with '#' are ignored.
+# Each URL becomes its own generated STD plan (npm run agent:plan -- --input).
+
+https://www.organuz.ai
