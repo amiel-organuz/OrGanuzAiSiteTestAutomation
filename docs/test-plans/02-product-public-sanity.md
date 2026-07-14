@@ -1,5 +1,11 @@
 # Test Plan 2 — Product Public Sanity (No-Login Dev Calculator)
 
+> **⚠️ CURRENTLY DISABLED.** The `product` project is commented out in
+> `playwright.config.ts`, so this group does **not** run in the default suite.
+> The spec files under `tests/product/api/**` are retained — re-enable the group
+> by uncommenting the `product` project in `playwright.config.ts`. The cases
+> below still describe those specs.
+
 | | |
 |---|---|
 | **Project** | `product` |
@@ -13,23 +19,28 @@
 
 ## Scope
 
-Public, unauthenticated checks against the live dev product calculator. They
-open the app through the shared password gate (`PRODUCT_PLATFORM_PASSWORD`),
-confirm the calculator shell loads for a signed-out visitor, and verify the
-front-end's backend token is well-formed and transmitted securely (in the body,
-over HTTPS, never in the URL). No sign-in, no personal data.
+Public, no-login checks against the live dev product calculator. The tests open
+the app through the shared password gate (`PRODUCT_PLATFORM_PASSWORD`), confirm
+the calculator shell loads for a signed-out visitor, and verify the front-end's
+backend token. "Token" here means the credential the UI sends with its backend
+calls; the tests check it is well-formed and transmitted securely — in the
+request body, over HTTPS, and never in the URL. There is no sign-in and no
+personal data.
 
 ## Preconditions
 
-- Live dev app reachable; `PRODUCT_PLATFORM_PASSWORD` set (local `.env` / CI secret).
-- `TokenInterceptor` can observe the UI's backend calls to extract the token.
+- The live dev app is reachable, and `PRODUCT_PLATFORM_PASSWORD` is set (in the
+  local `.env` file or as a CI secret).
+- `TokenInterceptor` (a helper that watches the UI's outgoing backend calls) can
+  observe those calls in order to extract the token.
 
 ## Gating (sanctioned skip)
 
-- **AppUnavailableError / OtpUnavailableError** → the whole group skips with a
-  clear "dev app unavailable (not a product bug)" reason.
-- **token-sanity** additionally skips when no UI token can be extracted. A token
-  that IS observed but malformed or drifted from config **fails** (real regression).
+- **AppUnavailableError / OtpUnavailableError** → the whole group skips, with a
+  clear reason: "dev app unavailable (not a product bug)".
+- **token-sanity** also skips when no UI token can be extracted at all. But if a
+  token IS observed and comes back malformed, or drifted from what config
+  expects, the test **fails** — that is a real regression.
 
 ## Cases
 
@@ -59,7 +70,9 @@ QA_TARGET_ENV=dev npx playwright test --project=product tests/product/api
 
 ## Notes
 
-- Never use `waitForLoadState('networkidle')` — the map iframe keeps the network
-  busy; rely on `domcontentloaded` / `expect` auto-waiting.
-- Environmental outages are typed errors (`tests/product/support/errors.ts`);
-  the spec edge decides skip-vs-fail, not the page object.
+- Never use `waitForLoadState('networkidle')`. The embedded map iframe keeps the
+  network busy, so it never goes idle; rely on `domcontentloaded` or on
+  `expect` auto-waiting instead.
+- Environmental outages are represented as typed errors (in
+  `tests/product/support/errors.ts`). The decision to skip versus fail is made
+  at the spec edge, not inside the page object.
