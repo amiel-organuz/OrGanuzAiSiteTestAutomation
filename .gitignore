@@ -8,6 +8,13 @@ venv/
 .env
 .env.local
 .env.*.local
+# Per-target env files under env/ (env/.dev.env, env/.prod.env, backups) — Restricted.
+# The `*.example` templates are committed (negated below).
+env/*.env
+env/.*.env
+env/*.bak
+!env/*.example
+!env/.*.example
 
 # Playwright MCP session artifacts (snapshots/console dumps)
 .playwright-mcp/

@@ -3,15 +3,60 @@ set -Eeuo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
+usage() {
+  cat <<'EOF'
+Usage: run-all-tests.sh [dev|test|prod]
+
+Runs the full local Playwright suite + server stack against a target environment.
+The optional first argument selects the environment (default: dev):
+
+  run-all-tests.sh dev     # dev product app (dev1.app.organize.organuz.com), password gate
+  run-all-tests.sh prod    # prod product app (energy.organuz.com), no gate
+  run-all-tests.sh         # same as dev
+
+It sets QA_TARGET_ENV, which drives both the env/.<env>.env file loaded below and
+the product baseURL resolved in playwright.config.ts. Env vars still override:
+  MONITORING_ENABLED=true  include the live Govmap/Ofek monitoring project
+  NOTIFY_SLACK=false       skip the end-of-run Slack post
+  OPEN_BROWSER=false       do not open report tabs
+EOF
+}
+
+# Optional first arg selects the target env. Anything else is rejected so a typo
+# (e.g. `prd`) fails loudly instead of silently running dev.
+case "${1:-}" in
+  dev|test|prod) export QA_TARGET_ENV="$1"; shift ;;
+  -h|--help)     usage; exit 0 ;;
+  "")            : ;;  # no arg — fall back to an existing QA_TARGET_ENV, else dev
+  *)             echo "Unknown environment '$1' (expected dev|test|prod)." >&2; usage >&2; exit 2 ;;
+esac
+
+# Canonical, lower-cased target env. The CLI arg (when given) wins; otherwise an
+# inherited QA_TARGET_ENV; otherwise dev.
+TARGET_ENV="$(printf '%s' "${QA_TARGET_ENV:-dev}" | tr '[:upper:]' '[:lower:]')"
+echo "Target environment: ${TARGET_ENV}"
+
 # Playwright's TypeScript loader still calls module.register(), which Node 22+/26
 # reports as DEP0205 — one line per worker. Silence just that one deprecation so
 # the run output stays readable (harmless on Node versions that don't emit it).
 export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--disable-warning=DEP0205"
 
-# Load the gitignored .env up front so the whole script honors local overrides
+# Load the gitignored env files up front so the whole script honors local overrides
 # (GRAFANA_URL, PUSHGATEWAY_URL, MONITORING_ENABLED, NOTIFY_SLACK, Slack webhooks)
 # the same way Playwright's dotenv does — not just the Slack step at the end.
+# Split per target env under env/: env/.dev.env (default) / env/.prod.env, picked
+# by TARGET_ENV; a root .env, if present, is a shared fallback. Load the env file
+# LAST so it wins (a later `set -a; . file` re-assigns).
 if [ -f .env ]; then set -a; . ./.env || true; set +a; fi
+if [ -f "env/.${TARGET_ENV}.env" ]; then
+  set -a; . "./env/.${TARGET_ENV}.env" || true; set +a
+else
+  echo "Note: env/.${TARGET_ENV}.env not found — copy env/.${TARGET_ENV}.env.example to create it." >&2
+fi
+# Re-assert the chosen target so an explicit CLI arg stays authoritative even if a
+# sourced env file carried a different QA_TARGET_ENV. Exported for the Playwright
+# child process (playwright.config.ts resolves the product baseURL from it).
+export QA_TARGET_ENV="$TARGET_ENV"
 
 echo "Running TypeScript typecheck..."
 npx tsc --noEmit
@@ -66,20 +111,41 @@ echo "Running all Playwright tests..."
 # only whatever ran last).
 rm -rf allure-results
 set +e
-# Every real, non-credential-gated project, in one invocation so their results
-# aggregate into a single Allure report: marketing UI, Supabase contract, the
-# product data-contracts + skip-safe public sanity, and the stubbed agent specs.
-# (`dev-api` was a removed project — naming it aborted the whole run.) The
-# credential-gated product-setup/product-authenticated role flows stay out.
-PROJECT_ARGS=(--project=chromium --project=organuz-api --project=product --project=agent)
-# Opt-in live Govmap/Ofek monitoring: MONITORING_ENABLED=true registers the
-# `monitoring` project in playwright.config.ts, so add it to the run too. These
-# 50 checks hit the real map APIs and are meant to fail when a dependency is down.
+# Every real, non-credential-gated project we WANT in the aggregated Allure report:
+# marketing UI, Supabase contract, the product data-contracts + skip-safe public
+# sanity, the stubbed agent specs, and the always-local web sanity. Opt-in live
+# Govmap/Ofek monitoring joins when MONITORING_ENABLED=true. The credential-gated
+# product-setup/product-authenticated role flows stay out.
+DESIRED_PROJECTS=(chromium organuz-api product agent security local-web)
 if [ "${MONITORING_ENABLED:-}" = "true" ]; then
-  echo "MONITORING_ENABLED=true — including the live Govmap/Ofek monitoring project."
-  PROJECT_ARGS+=(--project=monitoring)
+  echo "MONITORING_ENABLED=true — requesting the live Govmap/Ofek monitoring project."
+  DESIRED_PROJECTS+=(monitoring)
 fi
-npx playwright test "${PROJECT_ARGS[@]}"
+
+# Intersect the wanted list with the projects Playwright ACTUALLY has configured
+# for this env, so a project currently commented out in playwright.config.ts is
+# skipped with a note instead of aborting the whole run ("Project(s) 'x' not found").
+# `--list` loads the same config (same QA_TARGET_ENV), so the set is accurate.
+AVAILABLE_PROJECTS="$(npx playwright test --list 2>/dev/null \
+  | awk 'match($0, /\[[a-z0-9-]+\]/) { print substr($0, RSTART + 1, RLENGTH - 2) }' \
+  | sort -u)"
+
+PROJECT_ARGS=()
+for p in "${DESIRED_PROJECTS[@]}"; do
+  if printf '%s\n' "$AVAILABLE_PROJECTS" | grep -qx "$p"; then
+    PROJECT_ARGS+=(--project="$p")
+  else
+    echo "Note: project '$p' is not configured for ${TARGET_ENV} — skipping."
+  fi
+done
+
+if [ "${#PROJECT_ARGS[@]}" -eq 0 ]; then
+  echo "No requested projects are configured — running the full default suite." >&2
+  npx playwright test
+else
+  echo "Running projects:${PROJECT_ARGS[*]//--project=/ }"
+  npx playwright test "${PROJECT_ARGS[@]}"
+fi
 TEST_EXIT_CODE=$?
 set -e
 
@@ -189,11 +255,11 @@ fi
 # ---- Slack notification -----------------------------------------------------
 # Once the run has finished, post the report links (Allure + Grafana) to both
 # Slack channels, mirroring the CI report-summary step. Webhooks come from the
-# gitignored .env (or the environment); each is optional (unset = skipped) and a
-# failed post never breaks the run. Disable with NOTIFY_SLACK=false.
+# gitignored env/.<env>.env (or the environment); each is optional (unset = skipped)
+# and a failed post never breaks the run. Disable with NOTIFY_SLACK=false.
 NOTIFY_SLACK="${NOTIFY_SLACK:-true}"
 if [ "$NOTIFY_SLACK" = "true" ]; then
-  # .env was already sourced at the top of the script.
+  # The env files were already sourced at the top of the script.
   SLACK_WEBHOOK_URL="${SLACK_WEBHOOK_URL:-}"
   SLACK_WEBHOOK_BOT_URL="${SLACK_WEBHOOK_BOT_URL:-}"
   if [ -n "$SLACK_WEBHOOK_URL" ] || [ -n "$SLACK_WEBHOOK_BOT_URL" ]; then
@@ -202,7 +268,7 @@ if [ "$NOTIFY_SLACK" = "true" ]; then
     else
       SLACK_STATUS=":x: failed (exit ${TEST_EXIT_CODE})"
     fi
-    SLACK_TEXT=":bar_chart: *Organuz — Local test run* finished — ${SLACK_STATUS}\n• <${ALLURE_URL}|Allure report>\n• <${GRAFANA_DASHBOARD_URL}|Grafana dashboard>"
+    SLACK_TEXT=":bar_chart: *Organuz — Local test run* (\`${TARGET_ENV}\`) finished — ${SLACK_STATUS}\n• <${ALLURE_URL}|Allure report>\n• <${GRAFANA_DASHBOARD_URL}|Grafana dashboard>"
     SLACK_PAYLOAD=$(printf '{"text":"%s"}' "$SLACK_TEXT")
     slack_post() { # $1 = label, $2 = url
       if [ -z "$2" ]; then echo "  $1: not set — skipping."; return 0; fi
