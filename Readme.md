@@ -12,7 +12,7 @@ The tests are written with [Playwright](https://playwright.dev/) (a browser-auto
 
 Each part of the system and what it does:
 
-- **Playwright** — runs the actual tests. The active default suite is the Organuz backend API contract check and the QA-agent regression tests; the marketing UI checks and the product smoke/registration/matrix/role flows are **currently disabled** in `playwright.config.ts` (their spec files under `tests/ui/**` and `tests/product/**` are kept — re-enable by uncommenting the project blocks).
+- **Playwright** — runs the actual tests. The active default suite is **110 tests**: the product calculator smoke/registration/matrix specs (`product`), the Organuz backend API contract check (`organuz-api`), the authorized backend penetration tests (`security`), the local-only marketing-site e2e (`local-web`), and the QA-agent regression tests (`agent`). The marketing UI checks (`chromium`) and the live per-role product flows (`product-setup` / `product-authenticated`) remain **disabled** in `playwright.config.ts` (their spec files under `tests/ui/**` and `tests/product/flows/**` are kept — re-enable by uncommenting the project blocks). The live external-API monitoring group (`monitoring`) is opt-in.
 - **TypeScript** — the language the tests and framework code are written in.
 - **FastAPI** — a small local web service that exposes health checks and metadata endpoints.
 - **Scalar** — a nice API-reference page for the external OpenAPI docs.
@@ -68,12 +68,17 @@ Each part of the system and what it does:
     |   |-- api/               # gated product role backend API checks
     |   |-- smoke/             # credential-free public calculator shell checks
     |   `-- support/           # page helpers, ProductFlows, fixtures, product-setup auth (storageState)
-    |-- ui/
+    |-- ui/                    # marketing-site specs (chromium project — currently disabled)
     |   |-- content/           # blog, FAQ, agents, projects, static pages
     |   |-- diagnostics/       # expected-failure pipeline checks
     |   |-- flows/             # cross-section critical user journeys
     |   |-- support/           # UI-only flow fixtures such as siteFlows
     |   `-- homepage/          # hero, navigation, contact
+    |-- local-web/             # local-only marketing-site e2e (self-skips on CI)
+    |-- security/              # authorized non-destructive backend pentest specs
+    |   `-- support/           # anon-key target helper
+    |-- monitoring/            # live Govmap + Ofek availability checks (opt-in)
+    |   `-- support/           # availability canary + endpoints helper
     `-- constants.ts
 ```
 
@@ -95,20 +100,23 @@ npm test
 
 ### What `npm test` runs
 
-`npm test` runs the Playwright projects that are currently **active** in `playwright.config.ts`: `organuz-api` and the internal `agent` orchestrator project.
+`npm test` runs the Playwright projects that are currently **active** in `playwright.config.ts`: `product`, `organuz-api`, `agent`, `security`, and `local-web`.
 
-The default suite is **3 tests**, all green:
+The default suite is **110 tests**, all green:
 
+- `product` runs 37 tests — the credential-free public calculator smoke, registration validation, and the offline data-contract matrix/role specs (`tests/product/**` excluding the live `flows/**`).
 - `organuz-api` runs one `@other-smoke` API contract.
 - `agent` runs two `@other-smoke` tests (the orchestrator regression and the URL-driven test-plan generator).
+- `security` runs 20 authorized, non-destructive backend penetration checks (`SEC-01…SEC-20`).
+- `local-web` runs 50 local-only marketing-site e2e — but every spec **self-skips when `CI` is set**, so they run only on a developer machine.
 
-The marketing-site (`chromium`) and product-app (`product`, `product-setup`, `product-authenticated`) projects are **currently disabled** — commented out in `playwright.config.ts`. Their spec files under `tests/ui/**` and `tests/product/**` are kept; re-enable a project by uncommenting its block (also re-add `devices` to the config's import). When enabled the former counts are: `chromium` 12, `product` 31, `product-setup` 3, `product-authenticated` 10 (13 of those product-* tests are credential-gated per-role specs that *skip* without persona secrets).
+The marketing-site (`chromium`) and the live per-role product projects (`product-setup`, `product-authenticated`) remain **disabled** — commented out in `playwright.config.ts`. Their spec files under `tests/ui/**` and `tests/product/flows/**` are kept; re-enable a project by uncommenting its block. When enabled the counts are: `chromium` 12, `product-setup` 3, `product-authenticated` 10 (the 13 product-* live specs are credential-gated per-role tests that *skip* without persona secrets).
 
-The opt-in `monitoring` project is never part of this default green gate. Enabling it (`MONITORING_ENABLED=true`, see [External API monitoring](#external-api-monitoring-govmap--ofek)) adds 50 more tests, for **53 total**.
+The opt-in `monitoring` project is never part of this default green gate. Enabling it (`MONITORING_ENABLED=true`, see [External API monitoring](#external-api-monitoring-govmap--ofek)) adds 50 more tests, for **160 total**.
 
 A couple more defaults worth knowing:
 
-- Product live browser flows stay gated (they don't run) unless `PRODUCT_E2E_ENABLED=true` **and** persona credentials are set — and moot while the product projects are disabled.
+- Live per-role browser flows stay gated (they don't run) unless the `product-setup` / `product-authenticated` projects are re-enabled **and** persona credentials are set.
 
 ### Run the full local automation flow
 
@@ -120,7 +128,7 @@ This one script does everything end to end. In order, it:
 
 1. Typechecks the project.
 2. Starts the local server stack when needed.
-3. Runs the active Playwright projects in a single invocation — currently `organuz-api` and `agent` (the `chromium` and `product` projects run too once they are re-enabled in `playwright.config.ts`). Results go into a freshly cleaned `allure-results/`, so the report aggregates all of them.
+3. Runs the active Playwright projects in a single invocation — currently `product`, `organuz-api`, `agent`, `security`, and `local-web` (the `chromium`, `product-setup`, and `product-authenticated` projects run too once they are re-enabled in `playwright.config.ts`). Results go into a freshly cleaned `allure-results/`, so the report aggregates all of them.
 4. Generates an Allure 3 report.
 5. Brings up all local servers (FastAPI, Scalar, Prometheus, Pushgateway, Grafana, Allure).
 6. Pushes the run's QA metrics to the Pushgateway, so Grafana shows fresh numbers.
@@ -142,15 +150,23 @@ To smoke-test the Slack webhooks without doing a full run, use `./scripts/slack-
 npm run test:ui
 ```
 
-> The `chromium` project is **currently disabled** in `playwright.config.ts`, so this command runs nothing until you re-enable it (uncomment the `chromium` block). The `tests/ui/**` specs are kept.
+> The `chromium` project is **currently disabled** in `playwright.config.ts`, so this command runs nothing until you re-enable it (uncomment the `chromium` block). The `tests/ui/**` specs are kept. For a marketing-site suite that runs today, see the `local-web` project below.
 
-### Run the product E2E matrix (50 tests when enabled)
+### Run the local-web marketing e2e (local only)
+
+```bash
+npx playwright test --project=local-web
+```
+
+The `local-web` project (`tests/local-web/**`, 50 tests) drives a real chromium context against the prod marketing site `https://www.organuz.ai` — hero/nav, audiences, contact, FAQ, and agents/projects coverage. It is registered by default and runs locally, but **every spec self-skips when `process.env.CI` is set** (via `localOnly()` in `tests/local-web/support.ts`), and the CI matrix does not list the project — an intentional local/CI divergence (a sanctioned skip, per the `test-suite-parity` skill).
+
+### Run the product project (37 tests)
 
 ```bash
 npm run test:product
 ```
 
-> The `product` project is **currently disabled** in `playwright.config.ts` (specs under `tests/product/**` are kept). Re-enable the `product` / `product-setup` / `product-authenticated` blocks to run the flows below.
+The `product` project is **active** and targets the calculator app for the selected `QA_TARGET_ENV` (default dev). Its default `product` run carries 37 tests: the credential-free smoke and registration specs plus the offline data-contract matrix/role specs. The live per-role browser flows live in the disabled `product-setup` / `product-authenticated` projects (re-enable both together to run them).
 
 The product suite is split into two Playwright projects: the plain `product` project and the role-session `product-authenticated` project.
 
@@ -164,13 +180,7 @@ The matrix is **data-driven** — it's generated from `tests/product/matrix/e2e-
 - Negative coverage for fewer than 5 panels.
 - UI-only tracking for the no-panel case, where the request should *not* be sent.
 
-`npm run test:product` is scoped to exactly the 50 live E2E matrix tests in `Product calculator and quotation E2E matrix`: 48 main scenario/persona combinations, one insufficient-panels negative case, and one company-employee access-blocking case.
-
-To run the broader product suite instead:
-
-```bash
-npm run test:product:all
-```
+`npm run test:product` runs the whole `product` project (37 tests: smoke + registration + the offline matrix/role data-contract specs). The matrix contract asserts the generated combinations offline — the 48 main scenario/persona combinations, one insufficient-panels negative case, and one company-employee access-blocking case — without opening a browser.
 
 ### External API monitoring (Govmap + Ofek)
 
@@ -211,22 +221,25 @@ Beyond the matrix, the `product` project also carries credential-free smoke spec
 
 ### Run the live persona browser flows
 
-These are opt-in until live-app credentials and stable selectors are available:
+The live per-role browser flows live in the `product-setup` and `product-authenticated` projects, which are **currently disabled** (commented out in `playwright.config.ts`; specs under `tests/product/flows/**` are kept). Re-enable both blocks together, then run:
 
 ```bash
-PRODUCT_E2E_ENABLED=true \
-CUSTOMER_PHONE=... CUSTOMER_OTP_CODE=... \
-CONSULTANT_PHONE=... CONSULTANT_OTP_CODE=... \
-COMPANY_PHONE=... COMPANY_OTP_CODE=... \
-COMPANY_EMPLOYEE_PHONE=... COMPANY_EMPLOYEE_OTP_CODE=... \
-npm run test:product
+npx playwright test --project=product-authenticated
 ```
 
-Email/password variables are still supported as a fallback, but the live app currently uses a phone/OTP login path.
+They need per-role phone/OTP credentials. Credentials are **env-aware**: for the active `QA_TARGET_ENV` the runner reads `<ENV>_<ROLE>_PHONE` first (e.g. `DEV_CUSTOMER_PHONE`, `PROD_CUSTOMER_PHONE`) and falls back to the plain `<ROLE>_PHONE`, resolved in `tests/product/support/roleCredentials.ts` (the OTP follows the same rule; dev uses the fixed OTP `7777`). Set them for `CUSTOMER`, `CONSULTANT`, `COMPANY` in the gitignored per-env file (see [Environment files](#environment-files)). A role with no credential is skipped, so the projects stay green without secrets.
 
-**How the sessions are shared:** only the `product-authenticated` project depends on `product-setup` (`tests/product/support/auth.setup.ts`). Setup logs each authenticated role — `customer`, `consultant`, `company` — in once and saves its `storageState` (the saved browser session) to `playwright/.auth/` (gitignored). The per-role specs (`roles`, `role-areas`, `role-session`, `role-sanity`, `role-backend`) then resume that saved session via `test.use({ authRole })` + `product.resumeSession()` instead of logging in again — so those specs send at most one OTP per role. Registration, smoke, matrix, full-flow, and sign-out stay in the plain `product` project so they don't trigger the shared auth setup unnecessarily. The `company-employee` role has no phone and cannot sign in.
+**How the sessions are shared:** only the `product-authenticated` project depends on `product-setup` (`tests/product/support/auth.setup.ts`). Setup logs each authenticated role — `customer`, `consultant`, `company` — in once and saves its `storageState` (the saved browser session) to `playwright/.auth/` (gitignored). The per-role specs then resume that saved session via `test.use({ authRole })` + `product.resumeSession()` instead of logging in again — so those specs send at most one OTP per role. Smoke, registration, and the offline matrix/role contracts stay in the plain `product` project so they don't trigger the shared auth setup unnecessarily.
 
 By default, broad lower-priority marketing suites tagged `@low-priority` are excluded. Set `INCLUDE_LOW_PRIORITY_TESTS=true` to include them.
+
+### Run the backend security (pentest) tests
+
+```bash
+npx playwright test --project=security
+```
+
+The `security` project (`tests/security/**`, 20 checks) is **authorized, non-destructive penetration testing** of the Organuz Supabase/PostgREST backend using only the public `anon` key (browserless `APIRequestContext`). The checks `SEC-01…SEC-20` span authentication (missing/garbage/malformed keys), RLS write-blocking (INSERT/UPDATE/DELETE), table enumeration and data-exposure, SQL-injection and reflected-XSS handling, error hygiene, HTTPS transport, CORS policy, JWT/key hygiene, and edge-function auth. Every check is read-only or write-denied — nothing mutates data. A failure here is a **real security finding**, not flakiness. It runs in the CI matrix on every push/PR.
 
 ### Run the Organuz backend API tests
 
@@ -469,23 +482,40 @@ Runtime configuration is read from environment variables, with fallbacks in `con
 | `WORKERS` | Playwright worker count |
 | `BROWSER` | Browser project selection |
 | `INCLUDE_LOW_PRIORITY_TESTS` | Include broad marketing suites tagged `@low-priority` |
-| `PRODUCT_E2E_ENABLED` | Enables live product browser flows when credentials are present |
+| `MONITORING_ENABLED` | Registers the opt-in `monitoring` project (`true` to run the live Govmap/Ofek checks) |
 | `QA_PLAYWRIGHT_RESULTS_PATH` | Path read by `scripts/push-qa-metrics.mjs` for the latest Playwright JSON report; defaults to `test-results/results.json` |
 | `PUSHGATEWAY_URL` | Prometheus Pushgateway the QA metrics are pushed to; defaults to `http://localhost:9091` |
 
-The Playwright projects are (only `organuz-api` and `agent` are active by default today; the four `chromium` / `product*` projects are commented out in `playwright.config.ts` with their specs retained):
+The Playwright projects (`product`, `organuz-api`, `agent`, `security`, and `local-web` are active by default; `chromium`, `product-setup`, and `product-authenticated` are commented out in `playwright.config.ts` with their specs retained; `monitoring` is opt-in):
 
 | Project | Status | Test files | Target | Typical command |
 | --- | --- | --- | --- | --- |
-| `chromium` | disabled (commented out; specs kept) | `tests/ui/**/*.spec.ts` filtered to `@other-smoke` | Marketing site `https://www.organuz.ai` (prod) | `npx playwright test --project=chromium` |
-| `product` | disabled (commented out; specs kept) | Product specs that do not need shared role storage | Product calculator app, environment from `QA_TARGET_ENV` (default dev `https://dev1.app.organize.organuz.com`) | `npx playwright test --project=product` |
-| `product-setup` | disabled (commented out; specs kept) | `tests/product/support/auth.setup.ts` | Logs each product role in once and saves its `storageState` | runs automatically as a `product-authenticated` dependency |
-| `product-authenticated` | disabled (commented out; specs kept) | Per-role product specs that resume saved sessions | Authenticated customer / consultant / company role coverage | `npx playwright test --project=product-authenticated` |
-| `organuz-api` | active | `tests/organuz-api/**/*.spec.ts` filtered to `@other-smoke` | Organuz Supabase/PostgREST backend (`/rest/v1/projects`, edge functions) | `npx playwright test --project=organuz-api` |
+| `product` | active | `tests/product/**/*.spec.ts` excluding `flows/**` (37) | Product calculator app, environment from `QA_TARGET_ENV` (default dev `https://dev1.app.organize.organuz.com`) | `npx playwright test --project=product` |
+| `organuz-api` | active | `tests/organuz-api/**/*.spec.ts` filtered to `@other-smoke` (1) | Organuz Supabase/PostgREST backend (`/rest/v1/projects`, edge functions) | `npx playwright test --project=organuz-api` |
+| `agent` | active | `tests/agent/**/*.spec.ts` filtered to `@other-smoke` (2) | QA-agent orchestrator + TestPlanAgent stubs (no network) | `npx playwright test --project=agent` |
+| `security` | active | `tests/security/**/*.spec.ts` (20) | Authorized non-destructive pentest of the Organuz Supabase backend (anon key) | `npx playwright test --project=security` |
+| `local-web` | active, but every spec self-skips on CI | `tests/local-web/**/*.spec.ts` (50) | Local-only marketing-site e2e vs prod `https://www.organuz.ai` | `npx playwright test --project=local-web` |
+| `chromium` | disabled (commented out; specs kept) | `tests/ui/**/*.spec.ts` filtered to `@other-smoke` (12) | Marketing site `https://www.organuz.ai` (prod) | `npx playwright test --project=chromium` |
+| `product-setup` | disabled (commented out; specs kept) | `tests/product/support/auth.setup.ts` (3) | Logs each product role in once and saves its `storageState` | runs automatically as a `product-authenticated` dependency |
+| `product-authenticated` | disabled (commented out; specs kept) | `tests/product/flows/**/*.spec.ts` (10) | Authenticated customer / consultant / company role coverage | `npx playwright test --project=product-authenticated` |
+| `monitoring` | opt-in (`MONITORING_ENABLED=true`) | `tests/monitoring/**/*.spec.ts` (50) | Live Govmap + Ofek external-dependency availability | `npm run test:monitoring` |
 
-The `agent` project (`tests/agent/**/*.spec.ts`, filtered to `@other-smoke`) is also active for orchestrator regression coverage, but it's internal. Re-enable a disabled project by uncommenting its block in `playwright.config.ts` (and re-add `devices` to the config's import).
+Re-enable a disabled project by uncommenting its block in `playwright.config.ts`.
 
-Real credentials and local overrides live only in a gitignored `.env` (Restricted). The dev and test product apps sit behind a shared password gate; dev login uses a phone number plus a fixed OTP, `7777`. `.env.example` documents every variable with placeholders. **Never commit `.env` or move secrets into tracked files.**
+The default suite is **110 tests** (`product` 37 + `organuz-api` 1 + `agent` 2 + `security` 20 + `local-web` 50), all green — **160** with `MONITORING_ENABLED=true`. Note the 50 `local-web` tests run only off CI, so the CI matrix runs 60 (`product`, `organuz-api`, `agent`, `security`) plus the non-blocking `monitoring` job.
+
+### Environment files
+
+Env credentials and local overrides are **split per target environment** under `env/`, selected by `QA_TARGET_ENV`:
+
+| `QA_TARGET_ENV` | File loaded | Product target | Password gate |
+| --- | --- | --- | --- |
+| `dev` (default) | `env/.dev.env` | `dev1.app.organize.organuz.com` | yes |
+| `prod` | `env/.prod.env` | `energy.organuz.com` | no |
+
+`playwright.config.ts` loads `env/.${QA_TARGET_ENV}.env` first (it wins); an optional root `.env` is a shared fallback (dotenv never overrides). Per-role login uses `<ROLE>_PHONE` / `<ROLE>_OTP_CODE` for `CUSTOMER`, `CONSULTANT`, `COMPANY`, resolved env-aware in `tests/product/support/roleCredentials.ts` (which also accepts a legacy `<ENV>_<ROLE>_PHONE` form, e.g. `DEV_CUSTOMER_PHONE`); dev uses the fixed OTP `7777`.
+
+The real `env/.dev.env` / `env/.prod.env` are **gitignored** (Restricted); only the `*.example` templates are committed. Copy a template to start: `cp env/.dev.env.example env/.dev.env`. On CI the prod pipeline materializes `env/.prod.env` from the `DOTENV_PROD` repo secret. See `env/README.md`. **Never commit real env files or move secrets into tracked files.**
 
 The QA agent reads its own variables (`ADO_PLAN_ID`, `ADO_SUITE_ID`, `ADO_START_READONLY`, `QA_ENVIRONMENT`, `QA_RERUN_FLAKY`, `QA_FLAKY_TAG`, `QA_FILE_BUGS`, `QA_MAX_CASES`, `QA_EVIDENCE_PREFIX`, `QA_REQUIREMENTS_PATH`, `QA_REQUIREMENTS_SOURCE`). They're listed with defaults and purpose in [`src/agent/README.md`](src/agent/README.md) and seeded in `.env.example`. `agent:current-tests` also respects the normal Playwright target variables such as `WEB_BASE_URL`, `QA_TARGET_ENV`, and `APP_BASE_URL`.
 
@@ -505,16 +535,14 @@ Local service URL variables used by `scripts/run-all-tests.sh`:
 The parallel pipeline in `.github/workflows/parallel-tests.yml` runs:
 
 - `typecheck`
-- The Playwright `chromium` and `organuz-api` projects in parallel (a matrix), each filtered to its `@other-smoke` default checks.
-- A credential-free product smoke job (`npx playwright test --project=product --grep @smoke`) against prod.
+- The Playwright `organuz-api`, `agent`, `security`, and `product` projects in parallel (a matrix).
+- A non-blocking `monitoring` job (live Govmap + Ofek checks) — `continue-on-error: true`, so an outage shows the job red and folds into the Allure report but never fails the green PR gate.
 - The FastAPI, Scalar API reference, Prometheus, and Grafana service smoke checks.
 - Allure 3 report generation.
 - GitHub Pages deployment for the Allure report on `main` or `master`.
 - GitHub Actions summary links for Allure, FastAPI, Scalar, and Grafana.
 
-> **Parity note:** the workflow's `strategy.matrix.project` has been trimmed to `organuz-api, agent` so it matches the currently active projects — the `chromium`, `product`, and `product-authenticated` shards are commented out there (and the credential-free product smoke job produces no tests while `product` is disabled). Keeping the local config and the workflow in sync is the job of the **`test-suite-parity`** skill — re-enable the projects in **both** `playwright.config.ts` and the workflow matrix together.
-
-The 50-test product E2E matrix is available locally via `npm run test:product` (once the `product` project is re-enabled), and the broader product suite via `npm run test:product:all`. Add either to CI separately if you want the pipeline to gate on those flows.
+> **Parity note:** the workflow's `strategy.matrix.project` is `organuz-api, agent, security, product` so it matches the currently active projects — the `chromium` and `product-authenticated` shards stay commented out there. The `local-web` project is deliberately **not** in the matrix (its specs self-skip on CI), the one sanctioned local/CI divergence. Keeping the local config and the workflow in sync is the job of the **`test-suite-parity`** skill — re-enable a project in **both** `playwright.config.ts` and the workflow matrix together.
 
 The workflow summary includes:
 
@@ -541,6 +569,6 @@ Set these repository variables when the summary should point to externally reach
 
 Open [Architecture.html](Architecture.html) in a browser for a pastel, single-file visual overview of the Docker Compose services, the CLI flow, the GitHub Actions pipeline, report publishing, the QA agent orchestrator, the product matrix, the QA dashboard, and the project structure.
 
-The test suite is organized by subject under `tests/`: UI homepage/content/flows/support/diagnostics, Organuz backend API contracts/resources/security/functions, product smoke/registration/matrix/role flows/API/support, and agent orchestrator coverage.
+The test suite is organized by subject under `tests/`: UI homepage/content/flows/support/diagnostics, Organuz backend API contracts/resources/security/functions, product smoke/registration/matrix/role flows/API/support, agent orchestrator + test-plan coverage, backend penetration testing (`security/`), local-only marketing e2e (`local-web/`), and live external-dependency monitoring (`monitoring/`).
 
 For the QA agent specifically — its architecture diagram, the orchestration loop, the design decisions it encodes, and how to swap stubs for real connectors — see [`src/agent/README.md`](src/agent/README.md).

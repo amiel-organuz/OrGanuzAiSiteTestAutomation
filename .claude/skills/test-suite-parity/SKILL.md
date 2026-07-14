@@ -12,25 +12,27 @@ description: Keep the Playwright suite identical locally and on GitHub Actions �
 
 The matrix `project:` list MUST equal the *invokable* project names in `playwright.config.ts`. CI shards by project; locally they all run in one invocation. Same projects ⇒ same tests. (`product-setup` is the exception: it is a setup dependency of `product-authenticated`, not a standalone shard — running `--project=product-authenticated` pulls it in, so the matrix names `product-authenticated` and not `product-setup`.)
 
-## Current suite (3 active tests; the `chromium` + product projects are currently DISABLED)
+## Current suite (110 active tests; `chromium` + the role projects are DISABLED)
 
-> **State change:** `chromium` and the three product projects (`product`, `product-setup`, `product-authenticated`) are **commented out** in `playwright.config.ts` — the spec files are kept; re-enable by uncommenting the project blocks (and re-adding `devices` to the `@playwright/test` import + uncommenting `productUse`). So a plain `npx playwright test` currently runs **3 tests**: `agent` (2) + `organuz-api` (1), all green. With `MONITORING_ENABLED=true` the opt-in `monitoring` project adds 50, for **53** total.
+> **State:** a plain `npx playwright test` runs **110 tests** — `product` 37 + `local-web` 50 + `security` 20 + `agent` 2 + `organuz-api` 1. With `MONITORING_ENABLED=true` the opt-in `monitoring` project adds 50, for **160** total. `chromium` and the two role projects (`product-setup`, `product-authenticated`) are **commented out** in `playwright.config.ts` (spec files kept; re-enable by uncommenting the blocks).
 >
-> **Parity is currently held by trimming both files.** `.github/workflows/parallel-tests.yml` has `strategy.matrix.project` trimmed to `organuz-api, agent` (the `chromium` / `product` / `product-authenticated` entries are commented out there), matching the active projects in `playwright.config.ts`. So local and CI both run the same 3 tests. **Re-enable the disabled projects in BOTH files in the same change** — uncommenting the config blocks without uncommenting the matrix entries (or vice-versa) re-breaks parity.
+> **Parity — one deliberate divergence.** `.github/workflows/parallel-tests.yml` has `strategy.matrix.project` = `organuz-api, agent, security, product` (the `chromium` / `product-authenticated` entries are commented out, matching the disabled config). `local-web` is **intentionally not** a CI shard: every `local-web` spec self-skips when `process.env.CI` is set (`tests/local-web/support.ts`), so it runs locally only. That is the one sanctioned local⇄CI difference. Re-enable the disabled projects in BOTH files in the same change.
 
 | Project | testMatch | Default filter | Tests | Status / needs |
 |---|---|---|---|---|
-| `organuz-api` | `tests/organuz-api/**` | `@other-smoke` | 1 | **active** — none (Supabase anon key baked in `config.json`) |
-| `agent` | `tests/agent/**` | `@other-smoke` | 2 | **active** — none (pure stubs): orchestrator run-loop + `TestPlanAgent` (URL → MCP exploration → plan) |
-| `monitoring` *(opt-in, not in the default count)* | `tests/monitoring/**` | — | 50 | **active only when `MONITORING_ENABLED=true`**; live Govmap + Ofek. Now **skips** (not fails) when the runner is served an HTML block/challenge page (geo/bot block) via `tests/monitoring/support/availability.ts`; a real break still fails. Runs on cron in `monitoring.yml` **and** as a **non-blocking** `monitoring` job in `parallel-tests.yml` (`continue-on-error: true`) — never a matrix shard, so it can't red the gate |
-| `chromium` | `tests/ui/**` | `@other-smoke` | (12) | **DISABLED** (commented in config) — marketing `www.organuz.ai`, public |
-| `product` | `tests/product/**` (ignore `flows/**`) | — (all) | (31) | **DISABLED** (commented in config) — product app `*.organuz.com` |
+| `product` | `tests/product/**` (ignore `flows/**`) | — (all) | 37 | **active** — product calculator (`*.organuz.com`), env via `QA_TARGET_ENV`; token-sanity opens the live dev app (skips on outage) |
+| `local-web` | `tests/local-web/**` | — | 50 | **active locally only** — real Chromium vs prod `www.organuz.ai`; every spec self-skips when `CI` is set; **not** a CI matrix shard |
+| `security` | `tests/security/**` | — | 20 | **active** — non-destructive backend penetration testing (Supabase anon key, `APIRequestContext`); a failure is a real finding; in the CI matrix |
+| `agent` | `tests/agent/**` | `@other-smoke` | 2 | **active** — pure stubs: orchestrator run-loop + `TestPlanAgent` |
+| `organuz-api` | `tests/organuz-api/**` | `@other-smoke` | 1 | **active** — Supabase anon key baked in `config.json` |
+| `monitoring` *(opt-in, not in the count)* | `tests/monitoring/**` | — | 50 | **only when `MONITORING_ENABLED=true`**; live Govmap + Ofek. **Skips** (not fails) on an HTML block/challenge page via `tests/monitoring/support/availability.ts`; a real break still fails. Non-blocking `monitoring` job in `parallel-tests.yml` (`continue-on-error`) — never a matrix shard |
+| `chromium` | `tests/ui/**` | `@other-smoke` | (12) | **DISABLED** (commented in config) — marketing `www.organuz.ai` |
 | `product-setup` | `tests/product/support/auth.setup.ts` | — | (3) | **DISABLED** — per-role login → `storageState` (dependency of `product-authenticated`) |
 | `product-authenticated` | `tests/product/flows/**` | — | (10) | **DISABLED** — resumes saved per-role sessions |
 
-Non-`product` active projects run only their `@other-smoke`-tagged tests by default (see CLAUDE.md). Parenthesised counts are what each disabled project ran **when enabled**.
+`agent` / `organuz-api` run only their `@other-smoke`-tagged tests by default; `product` / `security` / `local-web` have no grep and run everything matched. Parenthesised counts are what each disabled project runs **when re-enabled**.
 
-**When re-enabled**, the former baseline was **59 tests: 46 green + 13 credential-gated skips**, with these sanctioned skips (never failures): (1) `token-sanity` (3) skips when the live dev gateway is down and no UI token can be extracted — a token that IS observed but malformed still fails; (2) the live per-role specs (`product-setup` 3 + `product-authenticated` 10 = 13) skip when a role has no credential/saved session. With the current active-only set, the baseline is simply **3 passed, 0 skipped**.
+**Sanctioned skips** (never failures): (1) `token-sanity` skips when the live dev gateway is down and no UI token can be extracted (a malformed-but-observed token still fails); (2) every `local-web` spec skips under CI (local-only by design); (3) when re-enabled, the live per-role specs (`product-setup` 3 + `product-authenticated` 10) skip without per-role credentials. Everything else must pass.
 
 ## The rule when you change the suite
 
