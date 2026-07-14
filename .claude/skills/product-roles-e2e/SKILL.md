@@ -5,7 +5,9 @@ description: Live per-role browser e2e — the product-setup project authenticat
 
 # Live per-role e2e — `product-setup` → `product-authenticated`
 
-Live browser coverage that signs each product role into the dev app once and reuses the session. **Skip-safe:** without per-role credentials (or a saved session), the specs skip so the suite stays green. 10 role specs + 3 setup tests today.
+> **⚠️ CURRENTLY DISABLED.** Both the `product-setup` and `product-authenticated` projects are commented out in `playwright.config.ts`, so they do **not** run in the default suite right now. The spec files under `tests/product/flows/**` and `tests/product/support/auth.setup.ts` are retained — re-enable by uncommenting both projects. While disabled, `npx playwright test --project=product-authenticated` reports "no tests". The how-to/debug content below stays valid once re-enabled.
+
+Live browser coverage that signs each product role into the dev app once and reuses the session. **Skip-safe:** without per-role credentials (or a saved session), the specs skip so the suite stays green. 10 role specs + 3 setup tests when enabled.
 
 For the deeper auth/session/personal-area design (login UI, OTP, `resumeSession`, roles), see the **`organuz-product-roles`** skill — this skill is the test-group how-to for the two projects.
 

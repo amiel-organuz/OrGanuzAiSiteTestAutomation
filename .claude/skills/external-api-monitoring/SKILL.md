@@ -21,6 +21,32 @@ Three tiers, all testable today with zero private credentials:
 2. **Govmap embed + layers-catalog auth** (`POST /api/layers-catalog/api/auth` with `{token, hostUrl}`) — a **public embed token bound to the app origin**. Govmap tokens are domain-bound and *not valid on another domain*, so the handshake test (#20) must send `hostUrl = GOVMAP.embedHostUrl` (`dev1.app.organize.organuz.com`). A protected catalog endpoint (`baseLayers`) is used as an auth-enforcement check (expects 400/401/403), not a data check.
 3. **Ofek tiles** — **no token; referer-gated.** `/tms/<orthoLayer>/{z}/{x}/{y}.jpg` and `/backgroundMaps/<labelsLayer>/{z}/{x}/{y}.png` require `Referer: https://www.govmap.gov.il/` (`TILE_HEADERS`). Any other/no referer → 401.
 
+## Block-page → skip (not fail) — geo/bot-blocked runners
+The `govmap.gov.il` edge (CDN/WAF) sometimes answers with an **HTML block/challenge page**
+(HTTP 200 + `text/html`) instead of the real asset, typically when the requesting IP is
+geo/bot-blocked — e.g. a CI runner outside Israel. In that state the dependency is
+environmentally unavailable *from this runner*: it's neither a Govmap/Ofek outage nor a
+product regression, so the specs **SKIP** rather than fail (the same "environmental
+unavailability → skip" rule the product suite uses).
+
+- Implemented in **`tests/monitoring/support/availability.ts`**: a per-worker (memoised)
+  canary probes a URL that should return a **non-HTML** asset — `govmapBlockReason()` hits the
+  Govmap API loader (`…/govmap/api/govmap.api.js`), `ofekBlockReason()` hits a sample ortho tile
+  (with `TILE_HEADERS`). If the body/content-type **looks like an HTML page** it returns a clear
+  skip reason string; otherwise `null`.
+- Each spec calls it in `test.beforeEach` and skips the whole file when blocked:
+  ```ts
+  test.beforeEach(async ({ request }) => {
+    const reason = await govmapBlockReason(request); // ofekBlockReason in ofek.spec.ts
+    test.skip(reason !== null, reason ?? '');
+  });
+  ```
+- **Skip vs fail rule.** Only an HTML block/challenge page counts as "blocked" → skip. A
+  **genuine break still FAILS as intended**: a 5xx, a connection/TLS error, or a real-but-wrong
+  non-HTML payload does not look like an HTML page (network errors return `null`), so the health
+  checks run and fail — the alert. Net: **a red monitoring run now means a genuine Govmap/Ofek
+  break, not a blocked runner.**
+
 ## Config + env overrides
 Values live in `config.json → monitoring`; each is overridable via env (in the gitignored `.env` locally, or GitHub secrets/vars on CI) so you never edit committed config to point at your own token/domain or track a layer rename:
 
@@ -62,6 +88,6 @@ On GitHub Actions it runs two ways, both defined outside the blocking gate:
 ## Gotchas
 - **Tile 401** = wrong/missing `Referer` (`OFEK_REFERER`), not an outage. **Auth-handshake 401** = token not authorized for `GOVMAP_EMBED_HOST` (token is origin-bound).
 - **Layer names drift** (ortho yearly, labels monthly) — a rename surfaces as a tile 404; that's a real signal, update `OFEK_ORTHO_LAYER`/`OFEK_LABELS_LAYER`.
-- CI runners reach the public internet, so both APIs are reachable from GitHub-hosted jobs — a red run here means the dependency is actually degraded.
+- CI runners reach the public internet, so both APIs are reachable from GitHub-hosted jobs — a red run here means the dependency is actually degraded. A runner that Govmap geo/bot-blocks with an HTML page **skips** (see "Block-page → skip" above), it does not red.
 
 See [[organuz-monitoring]] (the Grafana/Prometheus stack that graphs these), [[test-suite-parity]] (how monitoring sits in CI), and the `govmap-ofek-monitoring` memory.

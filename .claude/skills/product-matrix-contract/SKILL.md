@@ -5,7 +5,9 @@ description: Offline data-contract specs for the property-characterization matri
 
 # Product matrix & role data contracts — `tests/product/matrix/**`
 
-**Network-free** specs (import `test`/`expect` from `@playwright/test`, no fixtures/browser) that assert the shape of the checked-in matrix data. Part of the `product` project. 23 tests today.
+> **⚠️ CURRENTLY DISABLED.** The `product` project is commented out in `playwright.config.ts`, so these specs do **not** run in the default suite right now. The spec files under `tests/product/matrix/**` are retained — re-enable by uncommenting the `product` project. While disabled, `npx playwright test tests/product/matrix --project=product` reports "no tests". The how-to/debug content below stays valid once re-enabled.
+
+**Network-free** specs (import `test`/`expect` from `@playwright/test`, no fixtures/browser) that assert the shape of the checked-in matrix data. Part of the `product` project. 23 tests when enabled.
 
 ## Data files (split; re-exported through the barrel)
 - `matrix-types.ts` — types/interfaces (leaf).

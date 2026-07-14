@@ -5,7 +5,9 @@ description: Marketing-site sanity tests (the chromium project, tests/ui/**) —
 
 # UI sanity tests — `chromium` project
 
-**Scope:** `tests/ui/**` → prod marketing site `www.organuz.ai` (`baseURL: config.web.baseUrl`), default-filtered to `@other-smoke`. 12 tests today.
+> **⚠️ CURRENTLY DISABLED.** The `chromium` project is commented out in `playwright.config.ts`, so it does **not** run in the default suite right now. The spec files under `tests/ui/**` are retained — re-enable by uncommenting the project. While disabled, `npx playwright test --project=chromium` reports "no tests". The how-to/debug content below stays valid once re-enabled.
+
+**Scope:** `tests/ui/**` → prod marketing site `www.organuz.ai` (`baseURL: config.web.baseUrl`), default-filtered to `@other-smoke`. 12 tests when enabled.
 
 ## Files
 - `tests/ui/homepage/hero.spec.ts` (1), `navigation.spec.ts` (1), `sections.spec.ts` (5), `contact.spec.ts` (1)
