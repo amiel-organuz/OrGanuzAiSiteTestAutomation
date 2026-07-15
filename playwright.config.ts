@@ -154,6 +154,18 @@ export default defineConfig({
         headless: true,
       },
     },
+    // CI-enabled accessibility regression suite for the public marketing site.
+    // Uses one shared browser context per spec to avoid repeatedly loading prod.
+    {
+      name: 'accessibility',
+      testMatch: 'tests/accessibility/**/*.spec.ts',
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: config.web.baseUrl,
+        viewport: { width: 1440, height: 1000 },
+        headless: true,
+      },
+    },
     // Opt-in external-dependency monitoring; only registered when MONITORING_ENABLED=true
     // so the default suite never runs live third-party checks.
     ...(includeMonitoring

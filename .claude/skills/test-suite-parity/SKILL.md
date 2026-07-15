@@ -12,17 +12,18 @@ description: Keep the Playwright suite identical locally and on GitHub Actions �
 
 The matrix `project:` list MUST equal the *invokable* project names in `playwright.config.ts`. CI shards by project; locally they all run in one invocation. Same projects ⇒ same tests. (`product-setup` is the exception: it is a setup dependency of `product-authenticated`, not a standalone shard — running `--project=product-authenticated` pulls it in, so the matrix names `product-authenticated` and not `product-setup`.)
 
-## Current suite (110 active tests; `chromium` + the role projects are DISABLED)
+## Current suite (150 active tests; `chromium` + the role projects are DISABLED)
 
-> **State:** a plain `npx playwright test` runs **120 tests** — `product` 37 + `local-web` 50 + `security` 30 + `agent` 2 + `organuz-api` 1. With `MONITORING_ENABLED=true` the opt-in `monitoring` project adds 50, for **170** total. `chromium` and the two role projects (`product-setup`, `product-authenticated`) are **commented out** in `playwright.config.ts` (spec files kept; re-enable by uncommenting the blocks).
+> **State:** a plain `npx playwright test` runs **150 tests** — `product` 37 + `local-web` 50 + `accessibility` 30 + `security` 30 + `agent` 2 + `organuz-api` 1. With `MONITORING_ENABLED=true` the opt-in `monitoring` project adds 50, for **200** total.
 >
-> **Parity — one deliberate divergence.** `.github/workflows/parallel-tests.yml` has `strategy.matrix.project` = `organuz-api, agent, security, product` (the `chromium` / `product-authenticated` entries are commented out, matching the disabled config). `local-web` is **intentionally not** a CI shard: every `local-web` spec self-skips when `process.env.CI` is set (`tests/local-web/support.ts`), so it runs locally only. That is the one sanctioned local⇄CI difference. Re-enable the disabled projects in BOTH files in the same change.
+> **Parity — one deliberate divergence.** `.github/workflows/parallel-tests.yml` has `strategy.matrix.project` = `organuz-api, agent, security, product, accessibility` (the `chromium` / `product-authenticated` entries are commented out, matching the disabled config). `local-web` is **intentionally not** a CI shard: every `local-web` spec self-skips when `process.env.CI` is set, so it runs locally only.
 
 | Project | testMatch | Default filter | Tests | Status / needs |
 |---|---|---|---|---|
 | `product` | `tests/product/**` (ignore `flows/**`) | — (all) | 37 | **active** — product calculator (`*.organuz.com`), env via `QA_TARGET_ENV`; token-sanity opens the live dev app (skips on outage) |
 | `local-web` | `tests/local-web/**` | — | 50 | **active locally only** — real Chromium vs prod `www.organuz.ai`; every spec self-skips when `CI` is set; **not** a CI matrix shard |
-| `security` | `tests/security/**` | — | 20 | **active** — non-destructive backend penetration testing (Supabase anon key, `APIRequestContext`); a failure is a real finding; in the CI matrix |
+| `accessibility` | `tests/accessibility/**` | — | 30 | **active** — marketing accessibility checks; local + CI; Chromium required |
+| `security` | `tests/security/**` | — | 30 | **active** — safe-by-default backend penetration testing; in the CI matrix |
 | `agent` | `tests/agent/**` | `@other-smoke` | 2 | **active** — pure stubs: orchestrator run-loop + `TestPlanAgent` |
 | `organuz-api` | `tests/organuz-api/**` | `@other-smoke` | 1 | **active** — Supabase anon key baked in `config.json` |
 | `monitoring` *(opt-in, not in the count)* | `tests/monitoring/**` | — | 50 | **only when `MONITORING_ENABLED=true`**; live Govmap + Ofek. **Skips** (not fails) on an HTML block/challenge page via `tests/monitoring/support/availability.ts`; a real break still fails. Non-blocking `monitoring` job in `parallel-tests.yml` (`continue-on-error`) — never a matrix shard |
@@ -40,7 +41,7 @@ Any change that alters what a default run executes must be mirrored in BOTH file
 
 - **Add/remove a Playwright project** → update `playwright.config.ts` projects AND the workflow `matrix.project` list. (Deleting a project the matrix still names = CI fails on an unknown project.)
 - **Add a spec needing a new secret/env** → add it to the workflow `tests` job `env:` (from `secrets.*`) AND document it in `.env.example`.
-- **Add a project that drives a browser** → extend the "Install Chromium" step's `if:` (currently `chromium || product || product-authenticated`). `organuz-api`/`agent` need no browser.
+- **Add a project that drives a browser** → extend the "Install Chromium" step's `if:` (currently `chromium || accessibility || product || product-authenticated`). `organuz-api`/`agent` need no browser.
 - **Add a setup/dependency project** → name the *dependent* project in the matrix (its `dependencies` pull the setup in); do not shard the setup separately, or it runs twice (and would double-login).
 - **Delete tests** → make sure nothing left behind (a stale `--grep @tag` job, a `dependencies:` project, a `testIgnore` entry) points at deleted files.
 
@@ -66,7 +67,7 @@ done
 # and the loop should also cover: chromium product product-authenticated.
 ```
 
-Cross-check `strategy.matrix.project` in `parallel-tests.yml` against the **currently active** invokable projects. Right now both are trimmed to `organuz-api, agent` (the `chromium` / `product` / `product-authenticated` matrix entries are commented out, matching the disabled config blocks) — in sync. The fully-enabled matrix is `chromium, organuz-api, agent, product`; when you re-enable the config projects, uncomment the matching matrix entries in the same change.
+Cross-check `strategy.matrix.project` in `parallel-tests.yml` against the **currently active** invokable projects. The active CI matrix is `organuz-api, agent, security, product, accessibility`; `local-web` is the documented local-only exception. Re-enable disabled config projects in the workflow matrix in the same change.
 
 ## Gotchas
 
