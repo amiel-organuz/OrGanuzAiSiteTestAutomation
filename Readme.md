@@ -1,33 +1,15 @@
 <div align="center">
 
-# OrGanuz AI Site Test Automation
+# 🌞 OrGanuz AI Site Test Automation
 
-***Playwright + TypeScript test automation for the OrGanuz marketing site &amp; solar-calculator product — with a local FastAPI · Prometheus · Grafana QA dashboard.***
+***Playwright + TypeScript test automation for the OrGanuz marketing site & solar-calculator product — with a local FastAPI · Prometheus · Grafana QA dashboard.***
 
-<p>
-  <img src="https://img.shields.io/badge/Playwright-2EAD33?style=for-the-badge&logo=playwright&logoColor=white" alt="Playwright" />
-  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/Node.js_22-339933?style=for-the-badge&logo=nodedotjs&logoColor=white" alt="Node.js 22" />
-  <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
-  <img src="https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white" alt="Grafana" />
-  <img src="https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=prometheus&logoColor=white" alt="Prometheus" />
-</p>
+🎭 **Playwright**  ·  🟦 **TypeScript**  ·  🟢 **Node.js 22**  ·  🐳 **Docker**  ·  📈 **Grafana**  ·  🔥 **Prometheus**
 
-<p>
-  <img src="https://img.shields.io/badge/tests-150_green-brightgreen?style=for-the-badge&logo=checkmarx&logoColor=white" alt="150 tests green" />
-  <img src="https://img.shields.io/badge/security-30_checks-critical?style=for-the-badge&logo=springsecurity&logoColor=white" alt="30 security checks" />
-  <img src="https://img.shields.io/badge/a11y-WCAG_%2F_Axe-8A2BE2?style=for-the-badge&logo=accessibleicon&logoColor=white" alt="Accessibility WCAG / Axe" />
-</p>
+✅ **150 tests green**  ·  🛡️ **30 security checks**  ·  ♿ **WCAG / Axe accessibility**
 
-<p>
-  <a href="#local-setup"><img src="https://img.shields.io/badge/Setup-2088FF?style=for-the-badge&logo=npm&logoColor=white" alt="Setup" /></a>
-  <a href="#what-npm-test-runs"><img src="https://img.shields.io/badge/Test_Suite-2EAD33?style=for-the-badge&logo=playwright&logoColor=white" alt="Test Suite" /></a>
-  <a href="#run-the-backend-security-pentest-tests"><img src="https://img.shields.io/badge/Security-D6336C?style=for-the-badge&logo=springsecurity&logoColor=white" alt="Security" /></a>
-  <a href="#qa-agent"><img src="https://img.shields.io/badge/QA_Agent-6E5494?style=for-the-badge&logo=robotframework&logoColor=white" alt="QA Agent" /></a>
-  <a href="#grafana-qa-dashboard"><img src="https://img.shields.io/badge/Dashboard-F46800?style=for-the-badge&logo=grafana&logoColor=white" alt="Dashboard" /></a>
-  <a href="#github-actions"><img src="https://img.shields.io/badge/CI-2088FF?style=for-the-badge&logo=githubactions&logoColor=white" alt="CI" /></a>
-  <a href="#configuration"><img src="https://img.shields.io/badge/Config-334155?style=for-the-badge&logo=dotenv&logoColor=white" alt="Config" /></a>
-</p>
+| [🚀&nbsp;Setup](#local-setup) | [▶️&nbsp;Test&nbsp;Suite](#what-npm-test-runs) | [🛡️&nbsp;Security](#run-the-backend-security-pentest-tests) | [🤖&nbsp;QA&nbsp;Agent](#qa-agent) | [📊&nbsp;Dashboard](#grafana-qa-dashboard) | [⚙️&nbsp;CI](#github-actions) | [🔧&nbsp;Config](#configuration) |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 
 </div>
 
