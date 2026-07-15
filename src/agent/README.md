@@ -115,7 +115,7 @@ path needs neither.
 ```ts
 import { McpCliPlaywrightClient, McpPageExplorer, TestPlanAgent } from './src/agent';
 
-const client = new McpCliPlaywrightClient({ headless: true }); // spawns npx @playwright/mcp --headless --isolated
+const client = new McpCliPlaywrightClient({ headless: true }); // spawns the package-lock-pinned @playwright/mcp
 try {
   const suite = await new TestPlanAgent(new McpPageExplorer(client)).generatePlan('https://www.organuz.ai');
 } finally {

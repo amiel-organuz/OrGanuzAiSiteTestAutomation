@@ -27,6 +27,7 @@
     "agent:current-tests": "npm run agent:build && node dist/src/agent/run-current-tests.js"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@playwright/mcp": "^0.0.78",
     "@playwright/test": "^1.60.0",

@@ -1,6 +1,6 @@
 import { logger } from '../../utils/logger';
 import { execFile } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
+import { readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import type {
   DataRow,
@@ -118,6 +118,11 @@ export class PlaywrightCliArgsBuilder {
 export class PlaywrightJsonReportReader {
   constructor(private readonly cwd = process.cwd()) {}
 
+  /** Remove the prior case's report before invoking Playwright. */
+  async reset(): Promise<void> {
+    await rm(join(this.cwd, PLAYWRIGHT_JSON_REPORT_PATH), { force: true });
+  }
+
   async read(stdout: string): Promise<PlaywrightJsonReport | undefined> {
     const fromStdout = this.parseStdout(stdout);
     if (fromStdout) return fromStdout;
@@ -219,6 +224,7 @@ export class CliPlaywrightRunner implements PlaywrightRunner {
     logger.step(`Playwright CLI: case ${testCase.id} "${testCase.title}" -> npx playwright test ${args.join(' ')}`);
 
     const started = Date.now();
+    await this.reportReader.reset();
     const commandResult = await this.commandRunner.run(args, {
       ...process.env,
       WEB_BASE_URL: env.baseUrl,

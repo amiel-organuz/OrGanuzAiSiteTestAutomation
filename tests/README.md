@@ -9,7 +9,7 @@ Tests are grouped by subject so each Playwright project stays easy to scan.
 | UI flows | `tests/ui/flows/` | Cross-section critical user journeys (disabled). |
 | UI diagnostics | `tests/ui/diagnostics/` | Expected-failure checks for artifact capture (disabled). |
 | Local web | `tests/local-web/` | Local-only marketing-site e2e vs prod `www.organuz.ai`; every spec self-skips on CI (`local-web` project). |
-| Security | `tests/security/` | Authorized non-destructive backend penetration tests (`SEC-01…SEC-20`, `security` project). |
+| Security | `tests/security/` | Authorized, safe-by-default backend penetration tests (`SEC-01…SEC-30`, incl. account takeover; `security` project). |
 | Organuz API contracts | `tests/organuz-api/contracts/` | Supabase/PostgREST `projects` schema and response contract coverage. |
 | Organuz API resources | `tests/organuz-api/resources/` | `projects` query behaviours (select, order, filter, count). |
 | Organuz API security | `tests/organuz-api/security/` | Anon-key auth, RLS, and negative cases. |
@@ -35,7 +35,7 @@ are:
 - `product` *(active, 37 tests)*: `tests/product/**/*.spec.ts` excluding `flows/**` — smoke, registration, and the offline matrix/role data-contract specs. Targets the calculator app for the selected `QA_TARGET_ENV` (default dev).
 - `organuz-api` *(active, 1 test)*: `tests/organuz-api/**/*.spec.ts`, default-filtered to `@other-smoke`
 - `agent` *(active, 2 tests)*: `tests/agent/**/*.spec.ts`, default-filtered to `@other-smoke`
-- `security` *(active, 20 tests)*: `tests/security/**/*.spec.ts` — authorized, non-destructive penetration testing of the Organuz Supabase backend with the public anon key (browserless `APIRequestContext`). `SEC-01…SEC-20` span auth, RLS, injection/XSS, transport, CORS, key/JWT hygiene, and edge-function auth. A failure is a real security finding.
+- `security` *(active, 30 tests)*: `tests/security/**/*.spec.ts` — authorized, safe-by-default penetration testing of the Organuz Supabase backend with the public anon key, incl. the `SEC-21…SEC-30` account-takeover checks. The INSERT and unqualified DELETE denial probes skip unless a disposable target is explicitly acknowledged with `SECURITY_WRITE_PROBES=true` and an exact `SECURITY_WRITE_TARGET`.
 - `local-web` *(active, 50 tests, but self-skips on CI)*: `tests/local-web/**/*.spec.ts` — local-only marketing-site e2e (real chromium vs prod `www.organuz.ai`). Every spec calls `localOnly()` (`tests/local-web/support.ts`), which `test.skip`s the file when `process.env.CI` is set, and the CI matrix does not list the project — an intentional local/CI divergence (a sanctioned skip).
 - `chromium` *(disabled — commented out; specs kept, 12 tests when enabled)*: `tests/ui/**/*.spec.ts`, default-filtered to `@other-smoke`
 - `product-setup` *(disabled — commented out; specs kept, 3 tests when enabled)*: `tests/product/support/auth.setup.ts`
@@ -47,8 +47,8 @@ are:
   block/challenge page — a geo/bot block rather than a real outage — via the `beforeEach`
   canary in `tests/monitoring/support/availability.ts`.
 
-The default suite is therefore **110 tests** (`product` 37 + `organuz-api` 1 + `agent` 2 +
-`security` 20 + `local-web` 50), all green — or **160** with `MONITORING_ENABLED=true`.
+The default suite is therefore **120 tests** (`product` 37 + `organuz-api` 1 + `agent` 2 +
+`security` 30 + `local-web` 50), all green — or **170** with `MONITORING_ENABLED=true`.
 Because the 50 `local-web` specs self-skip on CI (and the project is absent from the CI
 matrix), CI runs the other 60 active tests plus the non-blocking `monitoring` job. The
 `organuz-api` and `agent` projects run only their `@other-smoke`-tagged checks (a tag that

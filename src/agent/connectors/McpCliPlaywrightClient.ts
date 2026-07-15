@@ -52,7 +52,10 @@ export class McpCliPlaywrightClient implements PlaywrightMcpClient {
       );
     }
 
-    const serverSpec = this.options.serverSpec ?? '@playwright/mcp@latest';
+    // Resolve the version pinned in package-lock.json. Using `@latest` here made a
+    // previously green build download and execute unreviewed code at runtime and
+    // allowed upstream releases to break the agent without a repository change.
+    const serverSpec = this.options.serverSpec ?? '@playwright/mcp';
     const args = [
       serverSpec,
       ...(this.options.headless === false ? [] : ['--headless']),
