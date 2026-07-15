@@ -38,13 +38,6 @@ const projectMappings: ProjectMapping[] = [
     acceptanceCriterion: { id: 'AC-API', description: 'organuz-api project exits successfully' },
   },
   {
-    id: 'PW-CHROMIUM',
-    title: 'Run Chromium UI Playwright project',
-    project: 'chromium',
-    tags: ['@playwright', '@ui'],
-    acceptanceCriterion: { id: 'AC-UI', description: 'Chromium project exits successfully' },
-  },
-  {
     id: 'PW-PRODUCT',
     title: 'Run product Playwright project',
     project: 'product',

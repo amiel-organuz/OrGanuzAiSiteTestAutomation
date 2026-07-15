@@ -130,9 +130,9 @@ export default defineConfig({
       grep: /@other-smoke/,
     },
     {
-      // Authorized, NON-DESTRUCTIVE penetration testing of the Organuz Supabase
-      // backend with the public anon key only (browserless APIRequestContext).
-      // Asserts the backend's security posture; a failure is a real finding.
+      // Authorized penetration testing of the Organuz Supabase backend with the
+      // public anon key only (browserless APIRequestContext). Mutating denial probes
+      // are skipped unless explicitly acknowledged for a disposable target.
       name: 'security',
       testMatch: 'tests/security/**/*.spec.ts',
       use: {

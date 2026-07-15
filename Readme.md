@@ -12,7 +12,7 @@ The tests are written with [Playwright](https://playwright.dev/) (a browser-auto
 
 Each part of the system and what it does:
 
-- **Playwright** — runs the actual tests. The active default suite is **110 tests**: the product calculator smoke/registration/matrix specs (`product`), the Organuz backend API contract check (`organuz-api`), the authorized backend penetration tests (`security`), the local-only marketing-site e2e (`local-web`), and the QA-agent regression tests (`agent`). The marketing UI checks (`chromium`) and the live per-role product flows (`product-setup` / `product-authenticated`) remain **disabled** in `playwright.config.ts` (their spec files under `tests/ui/**` and `tests/product/flows/**` are kept — re-enable by uncommenting the project blocks). The live external-API monitoring group (`monitoring`) is opt-in.
+- **Playwright** — runs the actual tests. The active default suite is **120 tests**: the product calculator smoke/registration/matrix specs (`product`), the Organuz backend API contract check (`organuz-api`), the authorized backend penetration tests (`security`), the local-only marketing-site e2e (`local-web`), and the QA-agent regression tests (`agent`). The marketing UI checks (`chromium`) and the live per-role product flows (`product-setup` / `product-authenticated`) remain **disabled** in `playwright.config.ts` (their spec files under `tests/ui/**` and `tests/product/flows/**` are kept — re-enable by uncommenting the project blocks). The live external-API monitoring group (`monitoring`) is opt-in.
 - **TypeScript** — the language the tests and framework code are written in.
 - **FastAPI** — a small local web service that exposes health checks and metadata endpoints.
 - **Scalar** — a nice API-reference page for the external OpenAPI docs.
@@ -75,7 +75,7 @@ Each part of the system and what it does:
     |   |-- support/           # UI-only flow fixtures such as siteFlows
     |   `-- homepage/          # hero, navigation, contact
     |-- local-web/             # local-only marketing-site e2e (self-skips on CI)
-    |-- security/              # authorized non-destructive backend pentest specs
+    |-- security/              # authorized, safe-by-default backend pentest specs
     |   `-- support/           # anon-key target helper
     |-- monitoring/            # live Govmap + Ofek availability checks (opt-in)
     |   `-- support/           # availability canary + endpoints helper
@@ -102,12 +102,12 @@ npm test
 
 `npm test` runs the Playwright projects that are currently **active** in `playwright.config.ts`: `product`, `organuz-api`, `agent`, `security`, and `local-web`.
 
-The default suite is **110 tests**, all green:
+The default suite is **120 tests**, all green:
 
 - `product` runs 37 tests — the credential-free public calculator smoke, registration validation, and the offline data-contract matrix/role specs (`tests/product/**` excluding the live `flows/**`).
 - `organuz-api` runs one `@other-smoke` API contract.
 - `agent` runs two `@other-smoke` tests (the orchestrator regression and the URL-driven test-plan generator).
-- `security` runs 20 authorized, non-destructive backend penetration checks (`SEC-01…SEC-20`).
+- `security` runs 30 authorized, safe-by-default backend penetration checks (`SEC-01…SEC-30`, including the `SEC-21…SEC-30` account-takeover set); two mutating denial probes skip unless a disposable target is explicitly acknowledged.
 - `local-web` runs 50 local-only marketing-site e2e — but every spec **self-skips when `CI` is set**, so they run only on a developer machine.
 
 The marketing-site (`chromium`) and the live per-role product projects (`product-setup`, `product-authenticated`) remain **disabled** — commented out in `playwright.config.ts`. Their spec files under `tests/ui/**` and `tests/product/flows/**` are kept; re-enable a project by uncommenting its block. When enabled the counts are: `chromium` 12, `product-setup` 3, `product-authenticated` 10 (the 13 product-* live specs are credential-gated per-role tests that *skip* without persona secrets).
@@ -239,7 +239,7 @@ By default, broad lower-priority marketing suites tagged `@low-priority` are exc
 npx playwright test --project=security
 ```
 
-The `security` project (`tests/security/**`, 20 checks) is **authorized, non-destructive penetration testing** of the Organuz Supabase/PostgREST backend using only the public `anon` key (browserless `APIRequestContext`). The checks `SEC-01…SEC-20` span authentication (missing/garbage/malformed keys), RLS write-blocking (INSERT/UPDATE/DELETE), table enumeration and data-exposure, SQL-injection and reflected-XSS handling, error hygiene, HTTPS transport, CORS policy, JWT/key hygiene, and edge-function auth. Every check is read-only or write-denied — nothing mutates data. A failure here is a **real security finding**, not flakiness. It runs in the CI matrix on every push/PR.
+The `security` project (`tests/security/**`, 30 checks) is **authorized, safe-by-default penetration testing** of the Organuz Supabase/PostgREST backend using only the public `anon` key (browserless `APIRequestContext`). The checks `SEC-01…SEC-30` span authentication, RLS write-blocking, table enumeration and data exposure, injection/XSS handling, error hygiene, HTTPS, CORS, JWT hygiene, edge-function auth, and **account takeover** (`SEC-21…SEC-30`: forged-credential login, forged/replayed refresh token, forged & `alg:none`/tampered JWTs, wrong-OTP no-session, no account enumeration, bad-login-burst resistance, admin user-provisioning blocked, auth error hygiene). `SEC-06` and `SEC-08` can mutate data when the policy under test is broken, so they skip by default. Run them only against a disposable backend by setting `SECURITY_WRITE_PROBES=true` and `SECURITY_WRITE_TARGET` to the exact backend origin. The remaining probes run normally in CI.
 
 ### Run the Organuz backend API tests
 
@@ -493,7 +493,7 @@ The Playwright projects (`product`, `organuz-api`, `agent`, `security`, and `loc
 | `product` | active | `tests/product/**/*.spec.ts` excluding `flows/**` (37) | Product calculator app, environment from `QA_TARGET_ENV` (default dev `https://dev1.app.organize.organuz.com`) | `npx playwright test --project=product` |
 | `organuz-api` | active | `tests/organuz-api/**/*.spec.ts` filtered to `@other-smoke` (1) | Organuz Supabase/PostgREST backend (`/rest/v1/projects`, edge functions) | `npx playwright test --project=organuz-api` |
 | `agent` | active | `tests/agent/**/*.spec.ts` filtered to `@other-smoke` (2) | QA-agent orchestrator + TestPlanAgent stubs (no network) | `npx playwright test --project=agent` |
-| `security` | active | `tests/security/**/*.spec.ts` (20) | Authorized non-destructive pentest of the Organuz Supabase backend (anon key) | `npx playwright test --project=security` |
+| `security` | active | `tests/security/**/*.spec.ts` (30) | Authorized, safe-by-default pentest of the Organuz Supabase backend (anon key), incl. account-takeover checks | `npx playwright test --project=security` |
 | `local-web` | active, but every spec self-skips on CI | `tests/local-web/**/*.spec.ts` (50) | Local-only marketing-site e2e vs prod `https://www.organuz.ai` | `npx playwright test --project=local-web` |
 | `chromium` | disabled (commented out; specs kept) | `tests/ui/**/*.spec.ts` filtered to `@other-smoke` (12) | Marketing site `https://www.organuz.ai` (prod) | `npx playwright test --project=chromium` |
 | `product-setup` | disabled (commented out; specs kept) | `tests/product/support/auth.setup.ts` (3) | Logs each product role in once and saves its `storageState` | runs automatically as a `product-authenticated` dependency |
@@ -502,7 +502,7 @@ The Playwright projects (`product`, `organuz-api`, `agent`, `security`, and `loc
 
 Re-enable a disabled project by uncommenting its block in `playwright.config.ts`.
 
-The default suite is **110 tests** (`product` 37 + `organuz-api` 1 + `agent` 2 + `security` 20 + `local-web` 50), all green — **160** with `MONITORING_ENABLED=true`. Note the 50 `local-web` tests run only off CI, so the CI matrix runs 60 (`product`, `organuz-api`, `agent`, `security`) plus the non-blocking `monitoring` job.
+The default suite is **120 tests** (`product` 37 + `organuz-api` 1 + `agent` 2 + `security` 30 + `local-web` 50), all green — **170** with `MONITORING_ENABLED=true`. Note the 50 `local-web` tests run only off CI, so the CI matrix runs 70 (`product`, `organuz-api`, `agent`, `security`) plus the non-blocking `monitoring` job.
 
 ### Environment files
 

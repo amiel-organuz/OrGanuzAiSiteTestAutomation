@@ -14,7 +14,7 @@ The matrix `project:` list MUST equal the *invokable* project names in `playwrig
 
 ## Current suite (110 active tests; `chromium` + the role projects are DISABLED)
 
-> **State:** a plain `npx playwright test` runs **110 tests** — `product` 37 + `local-web` 50 + `security` 20 + `agent` 2 + `organuz-api` 1. With `MONITORING_ENABLED=true` the opt-in `monitoring` project adds 50, for **160** total. `chromium` and the two role projects (`product-setup`, `product-authenticated`) are **commented out** in `playwright.config.ts` (spec files kept; re-enable by uncommenting the blocks).
+> **State:** a plain `npx playwright test` runs **120 tests** — `product` 37 + `local-web` 50 + `security` 30 + `agent` 2 + `organuz-api` 1. With `MONITORING_ENABLED=true` the opt-in `monitoring` project adds 50, for **170** total. `chromium` and the two role projects (`product-setup`, `product-authenticated`) are **commented out** in `playwright.config.ts` (spec files kept; re-enable by uncommenting the blocks).
 >
 > **Parity — one deliberate divergence.** `.github/workflows/parallel-tests.yml` has `strategy.matrix.project` = `organuz-api, agent, security, product` (the `chromium` / `product-authenticated` entries are commented out, matching the disabled config). `local-web` is **intentionally not** a CI shard: every `local-web` spec self-skips when `process.env.CI` is set (`tests/local-web/support.ts`), so it runs locally only. That is the one sanctioned local⇄CI difference. Re-enable the disabled projects in BOTH files in the same change.
 
