@@ -16,17 +16,17 @@
 <p>
   <img src="https://img.shields.io/badge/tests-150_green-brightgreen?style=for-the-badge&logo=checkmarx&logoColor=white" alt="150 tests green" />
   <img src="https://img.shields.io/badge/security-30_checks-critical?style=for-the-badge&logo=springsecurity&logoColor=white" alt="30 security checks" />
-  <img src="https://img.shields.io/badge/a11y-WCAG_/_Axe-8A2BE2?style=for-the-badge&logo=accessibleicon&logoColor=white" alt="Accessibility WCAG / Axe" />
+  <img src="https://img.shields.io/badge/a11y-WCAG_%2F_Axe-8A2BE2?style=for-the-badge&logo=accessibleicon&logoColor=white" alt="Accessibility WCAG / Axe" />
 </p>
 
 <p>
-  <a href="#local-setup"><img src="https://img.shields.io/badge/🚀_Setup-2088FF?style=for-the-badge&logoColor=white" alt="Setup" /></a>
-  <a href="#what-npm-test-runs"><img src="https://img.shields.io/badge/▶_Test_Suite-2EAD33?style=for-the-badge&logoColor=white" alt="Test Suite" /></a>
-  <a href="#run-the-backend-security-pentest-tests"><img src="https://img.shields.io/badge/🛡_Security-D6336C?style=for-the-badge&logoColor=white" alt="Security" /></a>
-  <a href="#qa-agent"><img src="https://img.shields.io/badge/🤖_QA_Agent-6E5494?style=for-the-badge&logoColor=white" alt="QA Agent" /></a>
-  <a href="#grafana-qa-dashboard"><img src="https://img.shields.io/badge/📊_Dashboard-F46800?style=for-the-badge&logoColor=white" alt="Dashboard" /></a>
-  <a href="#github-actions"><img src="https://img.shields.io/badge/⚙_CI-2088FF?style=for-the-badge&logo=githubactions&logoColor=white" alt="CI" /></a>
-  <a href="#configuration"><img src="https://img.shields.io/badge/🔧_Config-334155?style=for-the-badge&logoColor=white" alt="Config" /></a>
+  <a href="#local-setup"><img src="https://img.shields.io/badge/Setup-2088FF?style=for-the-badge&logo=npm&logoColor=white" alt="Setup" /></a>
+  <a href="#what-npm-test-runs"><img src="https://img.shields.io/badge/Test_Suite-2EAD33?style=for-the-badge&logo=playwright&logoColor=white" alt="Test Suite" /></a>
+  <a href="#run-the-backend-security-pentest-tests"><img src="https://img.shields.io/badge/Security-D6336C?style=for-the-badge&logo=springsecurity&logoColor=white" alt="Security" /></a>
+  <a href="#qa-agent"><img src="https://img.shields.io/badge/QA_Agent-6E5494?style=for-the-badge&logo=robotframework&logoColor=white" alt="QA Agent" /></a>
+  <a href="#grafana-qa-dashboard"><img src="https://img.shields.io/badge/Dashboard-F46800?style=for-the-badge&logo=grafana&logoColor=white" alt="Dashboard" /></a>
+  <a href="#github-actions"><img src="https://img.shields.io/badge/CI-2088FF?style=for-the-badge&logo=githubactions&logoColor=white" alt="CI" /></a>
+  <a href="#configuration"><img src="https://img.shields.io/badge/Config-334155?style=for-the-badge&logo=dotenv&logoColor=white" alt="Config" /></a>
 </p>
 
 </div>
