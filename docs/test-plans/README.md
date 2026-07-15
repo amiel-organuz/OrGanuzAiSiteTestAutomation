@@ -25,16 +25,17 @@ removed, keep these plans in sync with the specs and with the counts in
 | 5 | [Organuz API Contracts](05-organuz-api.md) | `organuz-api` | `tests/organuz-api/**` | 1 | Organuz Supabase / PostgREST |
 | 6 | [QA Agent](06-agent.md) | `agent` | `tests/agent/**` | 2 | Offline — stubs, no network/browser |
 | 7 | [External API Monitoring](07-monitoring.md) | `monitoring` (opt-in) | `tests/monitoring/**` | 50 | Live third-party maps — Govmap + Ofek |
-| 8 | [Security (penetration testing)](08-security.md) | `security` | `tests/security/**` | 20 | Organuz Supabase / PostgREST (anon key) |
+| 8 | [Security (penetration testing)](08-security.md) | `security` | `tests/security/**` | 30 | Organuz Supabase / PostgREST (anon key) |
 | 9 | [Local Web (local-only marketing e2e)](09-local-web.md) | `local-web` | `tests/local-web/**` | 50 | Marketing site (prod `www.organuz.ai`) — self-skips on CI |
+| 10 | [Accessibility](10-accessibility.md) | `accessibility` | `tests/accessibility/**` | 30 | Marketing site (prod `www.organuz.ai`) — local + CI |
 
 Plans **1 and 4 are currently DISABLED** — their projects are commented out in
 `playwright.config.ts` (spec files retained; re-enable by uncommenting). Their
 case counts above describe the specs as written, not the current default run.
 
-**Default run** (`npx playwright test`): **110 tests**, all green, across five
+**Default run** (`npx playwright test`): **150 tests**, all green, across six
 projects — `product` 37 (public sanity 8 + matrix/role contracts 23 + the rest),
-`local-web` 50, `security` 20, `agent` 2, and `organuz-api` 1. Plans **1 and 4
+`local-web` 50, `accessibility` 30, `security` 30, `agent` 2, and `organuz-api` 1. Plans **1 and 4
 are disabled** (their projects are commented out in `playwright.config.ts`), so
 the marketing UI sanity and the product roles e2e do not run in the default
 suite. Re-enable a group by uncommenting its project; the plan for each group
@@ -51,7 +52,7 @@ and Ofek (govmap 25 + ofek 25). It is **never** part of the default suite, so an
 outage at Govmap or Ofek can't break the PR gate. Instead it runs on the
 scheduled **External API Monitoring** workflow and alerts through an
 auto-managed GitHub issue plus Slack. With monitoring enabled, the total is
-**160** (default 110 + monitoring 50).
+**200** (default 150 + monitoring 50).
 
 ## Sanctioned skips (never failures)
 

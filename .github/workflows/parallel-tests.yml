@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - master
   pull_request:
     branches:
       - main
@@ -100,6 +99,7 @@ jobs:
           - agent
           - security
           - product
+          - accessibility
           # - product-authenticated
 
     env:
@@ -133,10 +133,10 @@ jobs:
         run: npm ci
 
       - name: Install Chromium
-        # chromium drives the marketing site; product opens a chromium context to
+        # chromium/accessibility drive the marketing site; product opens a chromium context to
         # extract the UI token; product-authenticated (+ its product-setup dependency)
         # drive the dev calculator. The organuz-api and agent projects need no browser.
-        if: matrix.project == 'chromium' || matrix.project == 'product' || matrix.project == 'product-authenticated'
+        if: matrix.project == 'chromium' || matrix.project == 'accessibility' || matrix.project == 'product' || matrix.project == 'product-authenticated'
         run: npx playwright install --with-deps chromium
 
       - name: Run Playwright project
