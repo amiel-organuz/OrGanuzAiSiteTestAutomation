@@ -5,7 +5,10 @@
       "Bash(grep -n \"^- \\\\*\\\\*\\\\`security\\\\`\\\\*\\\\*\\\\|^- \\\\*\\\\*\\\\`local-web\\\\`\\\\*\\\\*\\\\|test-suite-parity\\\\`\\\\*\\\\* —\\\\|flaky-test-triage\\\\`\\\\*\\\\*\" CLAUDE.md)",
       "Edit(/.claude/skills/organuz-fraud-detection/**)",
       "Bash(grep -rlnoE \"toBe\\\\\\([0-9]{3}\\\\\\)|status\\\\\\(\\\\\\).{0,6}[0-9]{3}|\\\\b\\(200|201|204|400|401|403|404|429|500\\)\\\\b\" tests/monitoring)",
-      "Bash(grep -rhoE \"toBe\\\\\\([0-9]{3}\\\\\\)|toBeLessThan\\\\\\([0-9]{3}\\\\\\)|toBeGreaterThanOrEqual\\\\\\([0-9]{3}\\\\\\)|toBeLessThanOrEqual\\\\\\([0-9]{3}\\\\\\)|toBeGreaterThan\\\\\\([0-9]{3}\\\\\\)|toContain\\\\\\([0-9]{3}\\\\\\)|\\\\[[0-9]{3}\\(, ?[0-9]{3}\\)*\\\\]\" tests/monitoring)"
+      "Bash(grep -rhoE \"toBe\\\\\\([0-9]{3}\\\\\\)|toBeLessThan\\\\\\([0-9]{3}\\\\\\)|toBeGreaterThanOrEqual\\\\\\([0-9]{3}\\\\\\)|toBeLessThanOrEqual\\\\\\([0-9]{3}\\\\\\)|toBeGreaterThan\\\\\\([0-9]{3}\\\\\\)|toContain\\\\\\([0-9]{3}\\\\\\)|\\\\[[0-9]{3}\\(, ?[0-9]{3}\\)*\\\\]\" tests/monitoring)",
+      "Bash(echo \"exit:$?\")",
+      "Bash(QA_TARGET_ENV=dev npx playwright test --project=fraud --reporter=line)",
+      "Bash(echo \"tsc exit:$?\")"
     ]
   }
 }
