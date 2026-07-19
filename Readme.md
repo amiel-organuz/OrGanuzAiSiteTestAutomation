@@ -173,7 +173,9 @@ To smoke-test the Slack webhooks without doing a full run, use `./scripts/slack-
 npm run test:ui
 ```
 
-> The `chromium` project is **currently disabled** in `playwright.config.ts`, so this command runs nothing until you re-enable it (uncomment the `chromium` block). The `tests/ui/**` specs are kept. For a marketing-site suite that runs today, see the `local-web` project below.
+`npm run test:ui` runs the active marketing-site UI suite — the `local-web` project (`tests/local-web/**`, see below).
+
+> The original `chromium` project (`tests/ui/**`) is **currently disabled** in `playwright.config.ts` (its spec files are kept; re-enable by uncommenting the `chromium` block). Because `chromium` isn't registered, `test:ui` points at `local-web` so the command works today. Note `local-web` **self-skips when `process.env.CI` is set**, so on CI this command runs no tests.
 
 ### ***Run the local-web marketing e2e (local only)***
 
