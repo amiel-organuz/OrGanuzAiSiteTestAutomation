@@ -4,23 +4,21 @@
  * Sibling of account-takeover.spec.ts: asserts the product resists input tampering,
  * injection, brute-force and information leakage that enable fraud. Same env model
  * (QA_TARGET_ENV), same non-destructive guarantees (fabricated identities, verify-only —
- * never an OTP send), same reachability-canary skip for backend checks.
+ * never an OTP send), same reachability-canary skip for backend checks. Requests go
+ * through the FraudApi endpoint client, which returns a parsed response.
  *
  * Browserless (`APIRequestContext`). Tagged @fraud @anti-abuse @security.
  */
 import { test, expect } from '@playwright/test';
 import { allureEpic, allureFeature, allureStory, allureSeverity } from '../../src/utils/allure';
 import { HttpStatus } from '../../src/utils/httpStatus';
+import { FraudApi } from './support/api';
 import {
-  APP,
-  AUTH,
   FAKE,
   OTP_VERIFY_CALL,
-  MAX_OTP_ATTEMPTS,
   INTERNAL_LEAK_MARKERS,
   OTP_CONTRACT_SKIP_REASON,
-  rpcBody,
-  authBackendBlockReason,
+  MAX_OTP_ATTEMPTS,
   isUnknownRoute,
   grantsSession,
 } from './support/target';
@@ -37,16 +35,15 @@ test.describe('Anti-fraud controls (Organuz product app)', { tag: ['@fraud', '@a
     await allureSeverity('critical');
     const marker = '__qa_fraud_xss__';
     const payload = `<script>${marker}</script>`;
-    const res = await request.get(`${APP.origin}/?q=${encodeURIComponent(payload)}`, { failOnStatusCode: false });
-    const body = await res.text().catch(() => '');
-    expect(body, 'the raw <script> payload must not be reflected into the document').not.toContain(payload);
+    const res = await new FraudApi(request).appWithQuery(payload);
+    expect(res.text, 'the raw <script> payload must not be reflected into the document').not.toContain(payload);
   });
 
   test('FRAUD-02 any session/auth cookie is set with Secure + HttpOnly (theft resistance)', async ({ request }) => {
     await allureStory('cookie hygiene');
     await allureSeverity('normal');
-    const res = await request.get(APP.origin + '/', { failOnStatusCode: false });
-    const setCookies = res.headersArray().filter((h) => h.name.toLowerCase() === 'set-cookie');
+    const res = await new FraudApi(request).appDocument();
+    const setCookies = res.headersArray.filter((h) => h.name === 'set-cookie');
     // The SPA may set no cookies on the initial document — nothing to protect, nothing to fail.
     test.skip(setCookies.length === 0, 'app origin sets no cookies on the initial document');
     for (const { value } of setCookies) {
@@ -60,32 +57,25 @@ test.describe('Anti-fraud controls (Organuz product app)', { tag: ['@fraud', '@a
   test('FRAUD-03 an injection payload is treated as data — JSON error, never a 5xx or HTML', async ({ request }) => {
     await allureStory('injection is data, not code');
     await allureSeverity('critical');
-    const block = await authBackendBlockReason(request);
+    const api = new FraudApi(request);
+    const block = await api.authBlockReason();
     test.skip(!!block, block);
 
     const injection = "'; DROP TABLE users;-- <script>alert(1)</script>";
-    const res = await request.post(AUTH.baseUrl + '/', {
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      data: rpcBody(injection, { phone: injection }),
-      failOnStatusCode: false,
-    });
-    const body = await res.text().catch(() => '');
-    expect(res.status(), 'injection input must not crash the backend (no 5xx)').toBeLessThan(HttpStatus.SERVER_ERROR_MIN);
-    expect(body, 'injection input must not be reflected unescaped').not.toContain('<script>alert(1)</script>');
+    const res = await api.authRpc(injection, { phone: injection });
+    expect(res.status, 'injection input must not crash the backend (no 5xx)').toBeLessThan(HttpStatus.SERVER_ERROR_MIN);
+    expect(res.text, 'injection input must not be reflected unescaped').not.toContain('<script>alert(1)</script>');
   });
 
   test('FRAUD-04 error responses do not leak stack traces or server internals', async ({ request }) => {
     await allureStory('no internal leakage in errors');
     await allureSeverity('normal');
-    const block = await authBackendBlockReason(request);
+    const api = new FraudApi(request);
+    const block = await api.authBlockReason();
     test.skip(!!block, block);
 
-    const res = await request.post(AUTH.baseUrl + '/', {
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      data: 'action=token&this=is&not=a&valid=body',
-      failOnStatusCode: false,
-    });
-    const body = (await res.text().catch(() => '')).toLowerCase();
+    const res = await api.authRaw('action=token&this=is&not=a&valid=body');
+    const body = res.text.toLowerCase();
     for (const marker of INTERNAL_LEAK_MARKERS) {
       expect(body, `an error must not leak "${marker}"`).not.toContain(marker.toLowerCase());
     }
@@ -95,22 +85,18 @@ test.describe('Anti-fraud controls (Organuz product app)', { tag: ['@fraud', '@a
     await allureStory('OTP brute-force');
     await allureSeverity('blocker');
     test.skip(!OTP_VERIFY_CALL, OTP_CONTRACT_SKIP_REASON);
-    const block = await authBackendBlockReason(request);
+    const api = new FraudApi(request);
+    const block = await api.authBlockReason();
     test.skip(!!block, block);
 
     // Bounded, verify-only (no OTP send) attempts against a phone registered to nobody.
     // None may yield a session, and responses must stay uniform (no "user exists" leak).
     const bodies: string[] = [];
     for (const code of FAKE.wrongOtps.slice(0, MAX_OTP_ATTEMPTS)) {
-      const res = await request.post(AUTH.baseUrl + '/', {
-        headers: { 'content-type': 'application/x-www-form-urlencoded' },
-        data: rpcBody(OTP_VERIFY_CALL, { phone: FAKE.phone, code }),
-        failOnStatusCode: false,
-      });
-      const body = await res.text().catch(() => '');
-      test.skip(isUnknownRoute(res.status(), body), OTP_CONTRACT_SKIP_REASON);
-      bodies.push(body);
-      expect(grantsSession(body), `wrong OTP "${code}" must never authenticate`).toBeFalsy();
+      const res = await api.authOtpVerify(FAKE.phone, code);
+      test.skip(isUnknownRoute(res.status, res.text), OTP_CONTRACT_SKIP_REASON);
+      bodies.push(res.text);
+      expect(grantsSession(res.text), `wrong OTP "${code}" must never authenticate`).toBeFalsy();
     }
     // Uniform rejection: a fabricated (never-registered) phone must not reveal itself via
     // a materially different response than any other wrong-code attempt.
@@ -121,21 +107,14 @@ test.describe('Anti-fraud controls (Organuz product app)', { tag: ['@fraud', '@a
   test('FRAUD-06 the auth backend does not reflect an arbitrary Origin with credentials', async ({ request }) => {
     await allureStory('backend CORS credential leak');
     await allureSeverity('critical');
-    const block = await authBackendBlockReason(request);
+    const api = new FraudApi(request);
+    const block = await api.authBlockReason();
     test.skip(!!block, block);
 
     const evil = 'https://evil.attacker.example';
-    const res = await request.fetch(AUTH.baseUrl + '/', {
-      method: 'OPTIONS',
-      headers: {
-        Origin: evil,
-        'Access-Control-Request-Method': 'POST',
-        'Access-Control-Request-Headers': 'content-type',
-      },
-      failOnStatusCode: false,
-    });
-    const allowOrigin = res.headers()['access-control-allow-origin'] ?? '';
-    const allowCreds = (res.headers()['access-control-allow-credentials'] ?? '').toLowerCase();
+    const res = await api.authPreflight(evil);
+    const allowOrigin = res.headers['access-control-allow-origin'] ?? '';
+    const allowCreds = (res.headers['access-control-allow-credentials'] ?? '').toLowerCase();
     const leaks = (allowOrigin === evil || allowOrigin === '*') && allowCreds === 'true';
     expect(leaks, 'backend must not allow an attacker Origin together with credentials').toBeFalsy();
   });

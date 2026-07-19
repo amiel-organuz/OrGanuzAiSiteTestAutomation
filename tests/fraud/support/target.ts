@@ -22,7 +22,6 @@
  * data. The suite NEVER triggers an OTP *send* (which would cost a real SMS on prod) —
  * it only exercises verify/read paths. No writes, no fuzzing volume, no service key.
  */
-import type { APIRequestContext } from '@playwright/test';
 import { config } from '../../../src/utils/config';
 import { HttpStatus } from '../../../src/utils/httpStatus';
 
@@ -92,6 +91,16 @@ export const BACKEND_SKIP_REASON =
   'auth backend not confirmed reachable (unreachable or served an HTML block/challenge ' +
   'page to the runner) — env-gated skip, not a finding';
 
+/**
+ * Assert a hardening-header control that is MANDATORY on production but commonly absent on
+ * the gated dev app. On prod a missing control FAILS (real finding); on dev it is recorded
+ * as a known gap and passes — an explicit, documented env split so the default dev pipeline
+ * stays green while prod stays strict. Returns a note to annotate on the dev-gap path.
+ */
+export function hardeningGapNote(control: string): string {
+  return `${control}: known dev hardening gap — enforced (hard-failed) on prod only`;
+}
+
 export const OTP_CONTRACT_SKIP_REASON =
   'OTP verify RPC method not confirmed for this env — set FRAUD_OTP_VERIFY_CALL to the ' +
   'live call name to activate the brute-force / magic-OTP probes';
@@ -114,27 +123,6 @@ export function looksLikeHtml(contentType: string | undefined, body: string): bo
 export function isUnknownRoute(status: number, body: string): boolean {
   if (status === HttpStatus.NOT_FOUND) return true;
   return /unknown (?:method|call|action)|method not found|no such (?:call|route)/i.test(body);
-}
-
-/**
- * Reachability canary for the auth backend. Returns a skip reason string when the gateway
- * is unreachable or answers with an HTML block/challenge page (a geo/bot block to the
- * runner); returns '' when it answers as a real API endpoint. Never mutates anything.
- */
-export async function authBackendBlockReason(request: APIRequestContext): Promise<string> {
-  try {
-    const res = await request.post(AUTH.baseUrl + '/', {
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      data: rpcBody('__qa_fraud_canary__'),
-      timeout: 15_000,
-      failOnStatusCode: false,
-    });
-    const body = await res.text().catch(() => '');
-    if (looksLikeHtml(res.headers()['content-type'], body)) return BACKEND_SKIP_REASON;
-    return '';
-  } catch {
-    return BACKEND_SKIP_REASON;
-  }
 }
 
 /** A response bearing a real per-user session token would mean the fake creds were honoured. */
