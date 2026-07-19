@@ -12,6 +12,7 @@ import {
   allureStep,
 } from '../../../src/utils/allure';
 import { Project, PROJECT_REQUIRED_FIELDS } from '../../../src/types/organuz.types';
+import { HttpStatus } from '../../../src/utils/httpStatus';
 
 /** Fields the schema declares as numbers. */
 const NUMERIC_FIELDS: Array<keyof Project> = ['solar_capacity_kw', 'storage_capacity_kwh', 'roi_years'];
@@ -35,7 +36,7 @@ test.describe('Contract: organuz projects', { tag: ['@organuz-api', '@contract']
 
     await allureStep('Returns 200 + JSON with a non-empty array of projects', async () => {
       const response = await organuzApi.getProjects();
-      expect(response.status()).toBe(200);
+      expect(response.status()).toBe(HttpStatus.OK);
       expect(response.headers()['content-type']).toContain('application/json');
 
       projects = (await response.json()) as Project[];

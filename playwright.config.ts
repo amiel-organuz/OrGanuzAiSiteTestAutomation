@@ -117,6 +117,18 @@ export default defineConfig({
     //   use: productUse,
     // },
     {
+      // Authorized, non-destructive fraud / account-takeover testing of the Organuz
+      // PRODUCT app + auth backend for the selected env (QA_TARGET_ENV: dev default,
+      // prod on demand). Browserless APIRequestContext. App-origin checks run on both
+      // envs; auth-backend checks self-skip via a reachability canary. A failure is a
+      // real finding. baseURL is the env-resolved calculator origin.
+      name: 'fraud',
+      testMatch: 'tests/fraud/**/*.spec.ts',
+      use: {
+        baseURL: config.app.baseUrl,
+      },
+    },
+    {
       name: 'organuz-api',
       testMatch: 'tests/organuz-api/**/*.spec.ts',
       grep: /@other-smoke/,
