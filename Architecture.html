@@ -118,7 +118,8 @@
       font-weight: 800;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: #97a0b5;
+      /* was #97a0b5 (2.62:1 on white — fails AA); darkened same cool-slate hue → 5.95:1 */
+      color: #58647c;
     }
 
     .sidebar a {
@@ -191,7 +192,10 @@
 
     h2 {
       margin: 42px 0 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--line);
       font-size: 27px;
+      font-weight: 800;
       letter-spacing: 0;
       color: #283552;
     }
@@ -215,12 +219,32 @@
       margin: 6px 0;
     }
 
+    /* Cap the measure of long prose blocks for readability (wide panels can run
+       past 100 characters otherwise). Cards/tables/grids are unaffected. */
+    .subtitle,
+    .panel > p,
+    .panel > ul,
+    .hero > p {
+      max-width: 78ch;
+    }
+
+    /* Visible keyboard-focus indicator (none existed before). */
+    a:focus-visible,
+    nav a:focus-visible,
+    .sidebar a:focus-visible {
+      outline: 2px solid #5d4fb3;
+      outline-offset: 2px;
+      border-radius: 8px;
+    }
+
     code {
       padding: 2px 6px;
       border-radius: 7px;
-      background: rgba(255, 255, 255, 0.7);
-      border: 1px solid rgba(223, 231, 243, 0.9);
-      color: #303a52;
+      /* Tinted so inline code reads as a distinct element on the near-white panels
+         (the old translucent-white fill was indistinguishable). Text stays ~8:1. */
+      background: #eef1f8;
+      border: 1px solid #cdd7e8;
+      color: #2c3550;
       font-family: "SFMono-Regular", Consolas, monospace;
       font-size: 0.9em;
     }
@@ -283,9 +307,11 @@
       min-width: 38px;
       padding: 3px 8px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.72);
-      border: 1px solid rgba(255, 255, 255, 0.9);
-      color: #41506d;
+      /* Was near-white on near-white (pill was invisible against the card).
+         Soft slate tint + defined border so the pill reads; text darkened to ~8:1. */
+      background: #e9eef7;
+      border: 1px solid #c7d3e6;
+      color: #33415c;
       font-size: 11px;
       font-weight: 900;
     }
@@ -672,60 +698,60 @@
         <rect x="95" y="80" width="300" height="104" rx="20" fill="url(#gloss)"/>
         <text x="245" y="118" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">Playwright</text>
         <text x="245" y="143" text-anchor="middle" font-size="12.5" fill="#46566e">product · api · agent · security · local-web</text>
-        <text x="245" y="165" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">5 active · 3 disabled · +monitoring opt-in</text>
+        <text x="245" y="165" text-anchor="middle" font-size="12" fill="#42536b" font-family="ui-monospace, Menlo, monospace">5 active · 3 disabled · +monitoring opt-in</text>
 
         <rect x="470" y="80" width="300" height="104" rx="20" fill="#b6f1d6" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
         <rect x="470" y="80" width="300" height="104" rx="20" fill="url(#gloss)"/>
         <text x="620" y="118" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">FastAPI</text>
         <text x="620" y="143" text-anchor="middle" font-size="12.5" fill="#46566e">docs · OpenAPI · process metrics</text>
-        <text x="620" y="165" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">localhost:8000</text>
+        <text x="620" y="165" text-anchor="middle" font-size="12" fill="#42536b" font-family="ui-monospace, Menlo, monospace">localhost:8000</text>
 
         <rect x="845" y="80" width="300" height="104" rx="20" fill="#d6c2ff" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
         <rect x="845" y="80" width="300" height="104" rx="20" fill="url(#gloss)"/>
         <text x="995" y="118" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">Scalar</text>
         <text x="995" y="143" text-anchor="middle" font-size="12.5" fill="#46566e">external API reference</text>
-        <text x="995" y="165" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">localhost:8080</text>
+        <text x="995" y="165" text-anchor="middle" font-size="12" fill="#42536b" font-family="ui-monospace, Menlo, monospace">localhost:8080</text>
 
         <!-- row 2: metrics & dashboards -->
         <rect x="95" y="285" width="300" height="104" rx="20" fill="#ffe1a0" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
         <rect x="95" y="285" width="300" height="104" rx="20" fill="url(#gloss)"/>
         <text x="245" y="323" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">Pushgateway</text>
         <text x="245" y="348" text-anchor="middle" font-size="12.5" fill="#46566e">QA metrics ingress</text>
-        <text x="245" y="370" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">localhost:9091</text>
+        <text x="245" y="370" text-anchor="middle" font-size="12" fill="#42536b" font-family="ui-monospace, Menlo, monospace">localhost:9091</text>
 
         <rect x="470" y="285" width="300" height="104" rx="20" fill="#ffcb9a" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
         <rect x="470" y="285" width="300" height="104" rx="20" fill="url(#gloss)"/>
         <text x="620" y="323" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">Prometheus</text>
         <text x="620" y="348" text-anchor="middle" font-size="12.5" fill="#46566e">scrapes pushgateway + fastapi</text>
-        <text x="620" y="370" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">localhost:9092</text>
+        <text x="620" y="370" text-anchor="middle" font-size="12" fill="#42536b" font-family="ui-monospace, Menlo, monospace">localhost:9092</text>
 
         <rect x="845" y="285" width="300" height="104" rx="20" fill="#bfe9f6" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
         <rect x="845" y="285" width="300" height="104" rx="20" fill="url(#gloss)"/>
         <text x="995" y="323" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">Grafana</text>
         <text x="995" y="348" text-anchor="middle" font-size="12.5" fill="#46566e">QA dashboard</text>
-        <text x="995" y="370" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">localhost:3001</text>
+        <text x="995" y="370" text-anchor="middle" font-size="12" fill="#42536b" font-family="ui-monospace, Menlo, monospace">localhost:3001</text>
 
         <!-- row 3: report & deliver -->
         <rect x="95" y="470" width="300" height="104" rx="20" fill="#79dcae" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
         <rect x="95" y="470" width="300" height="104" rx="20" fill="url(#gloss)"/>
         <text x="245" y="508" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">Allure</text>
         <text x="245" y="533" text-anchor="middle" font-size="12.5" fill="#46566e">aggregated 3.0 report</text>
-        <text x="245" y="555" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">localhost:5050 · Pages</text>
+        <text x="245" y="555" text-anchor="middle" font-size="12" fill="#42536b" font-family="ui-monospace, Menlo, monospace">localhost:5050 · Pages</text>
 
         <rect x="470" y="470" width="300" height="104" rx="20" fill="#d6dbe3" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
         <rect x="470" y="470" width="300" height="104" rx="20" fill="url(#gloss)"/>
         <text x="620" y="508" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">GitHub Actions</text>
         <text x="620" y="533" text-anchor="middle" font-size="12.5" fill="#46566e">matrix + monitoring job</text>
-        <text x="620" y="555" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">Pages · daily 05:00 + 30-min cron</text>
+        <text x="620" y="555" text-anchor="middle" font-size="12" fill="#42536b" font-family="ui-monospace, Menlo, monospace">Pages · daily 05:00 + 30-min cron</text>
 
         <rect x="845" y="470" width="300" height="104" rx="20" fill="#ffcecb" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
         <rect x="845" y="470" width="300" height="104" rx="20" fill="url(#gloss)"/>
         <text x="995" y="508" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">External targets</text>
         <text x="995" y="533" text-anchor="middle" font-size="12.5" fill="#46566e">Supabase · Govmap · Ofek</text>
-        <text x="995" y="555" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">live API + monitoring</text>
+        <text x="995" y="555" text-anchor="middle" font-size="12" fill="#42536b" font-family="ui-monospace, Menlo, monospace">live API + monitoring</text>
 
         <!-- legend -->
-        <g font-family="ui-monospace, Menlo, monospace" font-size="12" fill="#7b8aa1">
+        <g font-family="ui-monospace, Menlo, monospace" font-size="12" fill="#55627b">
           <path d="M 100 608 L 134 608" stroke="#7d8aa3" stroke-width="2.2" fill="none" marker-end="url(#arrow)"/>
           <text x="144" y="612">data &amp; build flow</text>
           <text x="1140" y="612" text-anchor="end">ports shown are local defaults</text>
