@@ -500,8 +500,6 @@ jobs:
       - name: Notify Slack with report links
         if: always() && github.event_name != 'pull_request'
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_WEBHOOK_BOT_URL: ${{ secrets.SLACK_WEBHOOK_BOT_URL }}
           SLACK_ORGANUZ_TESTING_URL: ${{ secrets.SLACK_ORGANUZ_TESTING_URL }}
           GRAFANA_LINK_URL: ${{ vars.GRAFANA_URL || 'http://localhost:3001' }}
           SWAGGER_LINK_URL: ${{ vars.SWAGGER_URL || 'http://localhost:8080' }}
@@ -532,6 +530,4 @@ jobs:
               echo "$1: post failed (non-fatal)."
             fi
           }
-          post SLACK_WEBHOOK_URL "$SLACK_WEBHOOK_URL"
-          post SLACK_WEBHOOK_BOT_URL "$SLACK_WEBHOOK_BOT_URL"
           post SLACK_ORGANUZ_TESTING_URL "$SLACK_ORGANUZ_TESTING_URL"
