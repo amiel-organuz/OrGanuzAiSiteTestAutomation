@@ -373,6 +373,23 @@ export interface DiscoveredControl {
   name: string;
 }
 
+/** A network request the page issued, as read back from the MCP. */
+export interface DiscoveredRequest {
+  method: string;
+  url: string;
+  status: number;
+}
+
+/**
+ * Runtime health signals captured alongside the static page surface: console
+ * errors and failed (4xx/5xx) network requests. Populated only when the explorer
+ * has a diagnostics-capable client (the live MCP); omitted for the offline stub.
+ */
+export interface PageDiagnostics {
+  consoleErrors: string[];
+  failedRequests: DiscoveredRequest[];
+}
+
 /** The testable surface of a single page. */
 export interface PageExploration {
   url: string;
@@ -381,6 +398,8 @@ export interface PageExploration {
   links: DiscoveredLink[];
   forms: DiscoveredForm[];
   controls: DiscoveredControl[];
+  /** Runtime health signals, when a diagnostics-capable client provided them. */
+  diagnostics?: PageDiagnostics;
 }
 
 /**
@@ -393,6 +412,21 @@ export interface PlaywrightMcpClient {
   navigate(url: string): Promise<void>;
   /** Return the current page's accessibility snapshot (maps to `browser_snapshot`). */
   snapshot(): Promise<PageSnapshot>;
+  /**
+   * Give a client-rendered (SPA) page a moment to settle before snapshotting
+   * (maps to `browser_wait_for`). Optional — clients that can't wait are skipped.
+   */
+  waitForSettle?(seconds: number): Promise<void>;
+  /**
+   * Console error/warning lines the page logged (maps to `browser_console_messages`).
+   * Optional — a client without it contributes no console diagnostics.
+   */
+  consoleErrors?(): Promise<string[]>;
+  /**
+   * Network requests the page issued (maps to `browser_network_requests`).
+   * Optional — a client without it contributes no request diagnostics.
+   */
+  networkRequests?(): Promise<DiscoveredRequest[]>;
 }
 
 /** The subset of a Playwright MCP snapshot this explorer consumes. */
@@ -409,7 +443,11 @@ export interface PageSnapshot {
 }
 
 export interface McpCliOptions {
-  /** npx package spec for the server. Default `@playwright/mcp@latest`. */
+  /**
+   * npx package spec for the server. Default: `@playwright/mcp@<installed version>`
+   * — pinned to the version in `package.json`/`package-lock.json`, never a
+   * floating tag, so a run can't silently fetch and execute a newer release.
+   */
   serverSpec?: string;
   /** Run the browser headless. Default `true`. */
   headless?: boolean;
@@ -421,6 +459,13 @@ export interface McpCliOptions {
   isolated?: boolean;
   /** Extra CLI args passed to the Playwright MCP server (e.g. `['--device', 'iPhone 15']`). */
   args?: string[];
+  /**
+   * Per-tool-call timeout in ms. A hung `navigate`/`snapshot` (slow page, block
+   * page, wedged server) rejects instead of hanging the CLI forever. Default 30000.
+   */
+  timeoutMs?: number;
+  /** Retry attempts for a failed/timed-out tool call. Default 2. */
+  retries?: number;
 }
 
 /** The four connectors the orchestrator depends on, injected for testability. */

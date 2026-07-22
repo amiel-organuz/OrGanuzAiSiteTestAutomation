@@ -1,4 +1,6 @@
 export { ApiClient } from './ApiClient';
+export { parseResponse } from './apiResponse';
+export type { ParsedResponse } from './apiResponse';
 export { ApiConstants } from './ApiConstants';
 export { RestApiConstants } from './RestApiConstants';
 export { Timeout } from './Timeout';

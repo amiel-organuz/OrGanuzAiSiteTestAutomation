@@ -5,31 +5,62 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 usage() {
   cat <<'EOF'
-Usage: run-all-tests.sh [dev|test|prod]
+Usage: run-all-tests.sh [dev|test|prod] [--debug] [-- <playwright args>]
 
 Runs the full local Playwright suite + server stack against a target environment.
-The optional first argument selects the environment (default: dev):
+The optional env argument selects the environment (default: dev):
 
   run-all-tests.sh dev     # dev product app (dev1.app.organize.organuz.com), password gate
   run-all-tests.sh prod    # prod product app (energy.organuz.com), no gate
   run-all-tests.sh         # same as dev
 
+  --debug, -d              DEBUG MODE — watch the tests run with your own eyes.
+                           Runs headed (visible browser), single-worker (one test
+                           at a time), and in slow motion, so it is MUCH slower than
+                           a normal run. Slack posting is off by default in this mode.
+
+  -- <playwright args>     Everything after `--` is forwarded verbatim to
+                           `npx playwright test`. A `--project`/`-g` here scopes the
+                           run (instead of adding to the default project set), so
+                           `dev --debug -- --project=product -g @some-tag` watches
+                           just those tests.
+
 It sets QA_TARGET_ENV, which drives both the env/.<env>.env file loaded below and
 the product baseURL resolved in playwright.config.ts. Env vars still override:
+  DEBUG=true               same as --debug (also honored from env/.<env>.env)
+  PW_SLOWMO_MS=500         debug slow-motion delay per browser action (default 500)
   MONITORING_ENABLED=true  include the live Govmap/Ofek monitoring project
   NOTIFY_SLACK=false       skip the end-of-run Slack post
   OPEN_BROWSER=false       do not open report tabs
 EOF
 }
 
-# Optional first arg selects the target env. Anything else is rejected so a typo
-# (e.g. `prd`) fails loudly instead of silently running dev.
-case "${1:-}" in
-  dev|test|prod) export QA_TARGET_ENV="$1"; shift ;;
-  -h|--help)     usage; exit 0 ;;
-  "")            : ;;  # no arg — fall back to an existing QA_TARGET_ENV, else dev
-  *)             echo "Unknown environment '$1' (expected dev|test|prod)." >&2; usage >&2; exit 2 ;;
-esac
+# Parse args: an optional env (dev|test|prod), the --debug/-d flag, and an optional
+# `--` after which everything is forwarded verbatim to `npx playwright test`. The env
+# is validated so a typo (e.g. `prd`) fails loudly instead of silently running dev; an
+# unknown -flag is rejected as an option (not mislabeled as an environment). --debug is
+# resolved into DEBUG_MODE below, after the env files are sourced, so DEBUG=true in an
+# env file works too.
+DEBUG_FLAG=false
+ENV_ARG=""
+PASSTHROUGH=()
+parsing_passthrough=false
+for arg in "$@"; do
+  if [ "$parsing_passthrough" = "true" ]; then PASSTHROUGH+=("$arg"); continue; fi
+  case "$arg" in
+    --)         parsing_passthrough=true ;;
+    --debug|-d) DEBUG_FLAG=true ;;
+    -h|--help)  usage; exit 0 ;;
+    dev|test|prod)
+      if [ -n "$ENV_ARG" ]; then
+        echo "Multiple environments given ('$ENV_ARG' and '$arg')." >&2; usage >&2; exit 2
+      fi
+      ENV_ARG="$arg" ;;
+    -*)         echo "Unknown option '$arg' (see --help; use '--' to pass args to Playwright)." >&2; usage >&2; exit 2 ;;
+    *)          echo "Unknown environment '$arg' (expected dev|test|prod)." >&2; usage >&2; exit 2 ;;
+  esac
+done
+if [ -n "$ENV_ARG" ]; then export QA_TARGET_ENV="$ENV_ARG"; fi
 
 # Canonical, lower-cased target env. The CLI arg (when given) wins; otherwise an
 # inherited QA_TARGET_ENV; otherwise dev.
@@ -46,7 +77,7 @@ export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--disable-warning=DEP0205"
 # the same way Playwright's dotenv does — not just the Slack step at the end.
 # Split per target env under env/: env/.dev.env (default) / env/.prod.env, picked
 # by TARGET_ENV; a root .env, if present, is a shared fallback. Load the env file
-# LAST so it wins (a later `set -a; . file` re-assigns).
+# LAST so it wins (a later 1`set -a; . file` re-assigns).
 if [ -f .env ]; then set -a; . ./.env || true; set +a; fi
 if [ -f "env/.${TARGET_ENV}.env" ]; then
   set -a; . "./env/.${TARGET_ENV}.env" || true; set +a
@@ -57,6 +88,32 @@ fi
 # sourced env file carried a different QA_TARGET_ENV. Exported for the Playwright
 # child process (playwright.config.ts resolves the product baseURL from it).
 export QA_TARGET_ENV="$TARGET_ENV"
+
+# Resolve debug mode now that the env files are sourced, so DEBUG=true set in
+# env/.<env>.env works like the other env overrides (MONITORING_ENABLED, NOTIFY_SLACK).
+# The CLI --debug/-d flag also forces it on regardless of the env files.
+DEBUG_MODE="${DEBUG:-false}"
+if [ "$DEBUG_FLAG" = "true" ]; then DEBUG_MODE=true; fi
+
+# ---- Debug / human-watch mode ----------------------------------------------
+# --debug (or DEBUG=true) makes the run watchable by a person: headed browsers,
+# one test at a time, and slow motion (PW_SLOWMO_MS, read by playwright.config.ts).
+# This is MUCH slower than a normal run — that is the point. Slack posting defaults
+# off here so an interactive debug session does not ping the team.
+DEBUG_PW_ARGS=()
+if [ "$DEBUG_MODE" = "true" ]; then
+  export PW_SLOWMO_MS="${PW_SLOWMO_MS:-500}"
+  DEBUG_PW_ARGS=(--headed --workers=1)
+  NOTIFY_SLACK="${NOTIFY_SLACK:-false}"
+  echo "==============================================================="
+  echo " DEBUG MODE: headed + single-worker + slow motion (${PW_SLOWMO_MS}ms/action)."
+  echo " A browser window will open and drive each test slowly so you can watch."
+  echo " This is MUCH slower than a normal run. Ctrl-C to stop early."
+  echo "==============================================================="
+  if [ -n "${CI:-}" ] || [ -f /.dockerenv ]; then
+    echo "Warning: no display detected (CI/container) — headed mode may fail here." >&2
+  fi
+fi
 
 echo "Running TypeScript typecheck..."
 npx tsc --noEmit
@@ -139,12 +196,24 @@ for p in "${DESIRED_PROJECTS[@]}"; do
   fi
 done
 
-if [ "${#PROJECT_ARGS[@]}" -eq 0 ]; then
+# If the user selected projects via passthrough (`-- --project=…`), let that fully
+# drive project selection instead of layering the default DESIRED_PROJECTS on top
+# (multiple --project flags ADD projects, they don't scope down). A bare `-g`/other
+# passthrough is still additive and applies across the default project set.
+USER_PROJECTS=false
+for a in ${PASSTHROUGH[@]+"${PASSTHROUGH[@]}"}; do
+  case "$a" in --project|--project=*) USER_PROJECTS=true ;; esac
+done
+
+if [ "$USER_PROJECTS" = "true" ]; then
+  echo "Using project selection from passthrough args."
+  npx playwright test ${DEBUG_PW_ARGS[@]+"${DEBUG_PW_ARGS[@]}"} "${PASSTHROUGH[@]}"
+elif [ "${#PROJECT_ARGS[@]}" -eq 0 ]; then
   echo "No requested projects are configured — running the full default suite." >&2
-  npx playwright test
+  npx playwright test ${DEBUG_PW_ARGS[@]+"${DEBUG_PW_ARGS[@]}"} ${PASSTHROUGH[@]+"${PASSTHROUGH[@]}"}
 else
   echo "Running projects:${PROJECT_ARGS[*]//--project=/ }"
-  npx playwright test "${PROJECT_ARGS[@]}"
+  npx playwright test "${PROJECT_ARGS[@]}" ${DEBUG_PW_ARGS[@]+"${DEBUG_PW_ARGS[@]}"} ${PASSTHROUGH[@]+"${PASSTHROUGH[@]}"}
 fi
 TEST_EXIT_CODE=$?
 set -e
@@ -253,8 +322,10 @@ if [ "$OPEN_BROWSER" = "true" ]; then
 fi
 
 # ---- Slack notification -----------------------------------------------------
-# Once the run has finished, post the report links (Allure + Grafana) to both
-# Slack channels, mirroring the CI report-summary step. Webhooks come from the
+# Once the run has finished, post the report links (Allure + Grafana) to every
+# configured Slack channel (SLACK_WEBHOOK_URL, SLACK_WEBHOOK_BOT_URL, and the
+# organuz-testing channel SLACK_ORGANUZ_TESTING_URL), mirroring the CI
+# report-summary step. Webhooks come from the
 # gitignored env/.<env>.env (or the environment); each is optional (unset = skipped)
 # and a failed post never breaks the run. Disable with NOTIFY_SLACK=false.
 NOTIFY_SLACK="${NOTIFY_SLACK:-true}"
@@ -262,13 +333,14 @@ if [ "$NOTIFY_SLACK" = "true" ]; then
   # The env files were already sourced at the top of the script.
   SLACK_WEBHOOK_URL="${SLACK_WEBHOOK_URL:-}"
   SLACK_WEBHOOK_BOT_URL="${SLACK_WEBHOOK_BOT_URL:-}"
-  if [ -n "$SLACK_WEBHOOK_URL" ] || [ -n "$SLACK_WEBHOOK_BOT_URL" ]; then
+  SLACK_ORGANUZ_TESTING_URL="${SLACK_ORGANUZ_TESTING_URL:-}"
+  if [ -n "$SLACK_WEBHOOK_URL" ] || [ -n "$SLACK_WEBHOOK_BOT_URL" ] || [ -n "$SLACK_ORGANUZ_TESTING_URL" ]; then
     if [ "$TEST_EXIT_CODE" -eq 0 ]; then
       SLACK_STATUS=":white_check_mark: passed"
     else
       SLACK_STATUS=":x: failed (exit ${TEST_EXIT_CODE})"
     fi
-    SLACK_TEXT=":bar_chart: *Organuz — Local test run* (\`${TARGET_ENV}\`) finished — ${SLACK_STATUS}\n• <${ALLURE_URL}|Allure report>\n• <${GRAFANA_DASHBOARD_URL}|Grafana dashboard>"
+    SLACK_TEXT=":bar_chart: *Organuz — Local test run* (\`${TARGET_ENV}\`) finished — ${SLACK_STATUS}\n• <${ALLURE_URL}|Allure report>\n• <${GRAFANA_DASHBOARD_URL}|Grafana dashboard>\n• <${PLAYWRIGHT_REPORT_URL}|Playwright HTML report>\n• <${SWAGGER_URL}|Scalar API docs>"
     SLACK_PAYLOAD=$(printf '{"text":"%s"}' "$SLACK_TEXT")
     slack_post() { # $1 = label, $2 = url
       if [ -z "$2" ]; then echo "  $1: not set — skipping."; return 0; fi
@@ -281,8 +353,9 @@ if [ "$NOTIFY_SLACK" = "true" ]; then
     echo "Posting report links to Slack..."
     slack_post SLACK_WEBHOOK_URL "$SLACK_WEBHOOK_URL"
     slack_post SLACK_WEBHOOK_BOT_URL "$SLACK_WEBHOOK_BOT_URL"
+    slack_post SLACK_ORGANUZ_TESTING_URL "$SLACK_ORGANUZ_TESTING_URL"
   else
-    echo "No SLACK_WEBHOOK_URL / SLACK_WEBHOOK_BOT_URL set — skipping Slack notification."
+    echo "No SLACK_WEBHOOK_URL / SLACK_WEBHOOK_BOT_URL / SLACK_ORGANUZ_TESTING_URL set — skipping Slack notification."
   fi
 fi
 

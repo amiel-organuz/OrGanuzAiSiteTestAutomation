@@ -185,7 +185,59 @@ export class TestPlanAgent {
       });
     }
 
-    // 5. Visual reference case — only when reference screenshots were supplied
+    // 5. Runtime-health cases — only when the explorer captured diagnostics
+    //    (the live MCP path). These turn what the browser observed on load into
+    //    assertions: no console errors, and no broken (4xx/5xx) resources.
+    const diagnostics = exploration.diagnostics;
+    if (diagnostics) {
+      const errs = diagnostics.consoleErrors.slice(0, 5);
+      drafts.push({
+        title: `${host} loads with no JavaScript console errors`,
+        objective: `Verify ${host} loads without logging JavaScript errors to the browser console.`,
+        priority: 'P1',
+        steps: [
+          [`Navigate to ${url} with the browser console open`, 'The page loads'],
+          [
+            'Read the browser console after load',
+            errs.length > 0
+              ? `No error-level messages are logged (observed on capture: ${errs.join(' | ')})`
+              : 'No error-level messages are logged',
+          ],
+        ],
+        acceptanceCriteria: [
+          {
+            id: 'AC-CONSOLE',
+            description: `${host} logs no console errors on load`,
+          },
+        ],
+      });
+
+      const broken = diagnostics.failedRequests.slice(0, 5);
+      drafts.push({
+        title: `${host} loads without broken (4xx/5xx) network requests`,
+        objective: `Verify ${host} issues no failing network requests (4xx/5xx) during a cold load.`,
+        priority: 'P2',
+        steps: [
+          [`Navigate to ${url} with the network panel recording`, 'The page loads'],
+          [
+            'Inspect the recorded network requests',
+            broken.length > 0
+              ? `No request returns a 4xx/5xx status (observed on capture: ${broken
+                  .map((r) => `${r.status} ${r.method} ${r.url}`)
+                  .join(' | ')})`
+              : 'No request returns a 4xx/5xx status',
+          ],
+        ],
+        acceptanceCriteria: [
+          {
+            id: 'AC-NETWORK',
+            description: `${host} issues no 4xx/5xx requests on load`,
+          },
+        ],
+      });
+    }
+
+    // 6. Visual reference case — only when reference screenshots were supplied
     //    (e.g. from the `test_input/` folder). Carries the images as the baseline
     //    a tester compares the live layout against.
     const images = options.referenceImages ?? [];

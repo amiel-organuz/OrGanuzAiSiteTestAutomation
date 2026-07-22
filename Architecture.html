@@ -118,7 +118,8 @@
       font-weight: 800;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: #97a0b5;
+      /* was #97a0b5 (2.62:1 on white — fails AA); darkened same cool-slate hue → 5.95:1 */
+      color: #58647c;
     }
 
     .sidebar a {
@@ -191,7 +192,10 @@
 
     h2 {
       margin: 42px 0 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--line);
       font-size: 27px;
+      font-weight: 800;
       letter-spacing: 0;
       color: #283552;
     }
@@ -215,12 +219,32 @@
       margin: 6px 0;
     }
 
+    /* Cap the measure of long prose blocks for readability (wide panels can run
+       past 100 characters otherwise). Cards/tables/grids are unaffected. */
+    .subtitle,
+    .panel > p,
+    .panel > ul,
+    .hero > p {
+      max-width: 78ch;
+    }
+
+    /* Visible keyboard-focus indicator (none existed before). */
+    a:focus-visible,
+    nav a:focus-visible,
+    .sidebar a:focus-visible {
+      outline: 2px solid #5d4fb3;
+      outline-offset: 2px;
+      border-radius: 8px;
+    }
+
     code {
       padding: 2px 6px;
       border-radius: 7px;
-      background: rgba(255, 255, 255, 0.7);
-      border: 1px solid rgba(223, 231, 243, 0.9);
-      color: #303a52;
+      /* Tinted so inline code reads as a distinct element on the near-white panels
+         (the old translucent-white fill was indistinguishable). Text stays ~8:1. */
+      background: #eef1f8;
+      border: 1px solid #cdd7e8;
+      color: #2c3550;
       font-family: "SFMono-Regular", Consolas, monospace;
       font-size: 0.9em;
     }
@@ -283,9 +307,11 @@
       min-width: 38px;
       padding: 3px 8px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.72);
-      border: 1px solid rgba(255, 255, 255, 0.9);
-      color: #41506d;
+      /* Was near-white on near-white (pill was invisible against the card).
+         Soft slate tint + defined border so the pill reads; text darkened to ~8:1. */
+      background: #e9eef7;
+      border: 1px solid #c7d3e6;
+      color: #33415c;
       font-size: 11px;
       font-weight: 900;
     }
@@ -460,6 +486,500 @@
         align-self: stretch;
       }
     }
+
+    /* 2026 visual refresh — calm technical editorial system */
+    :root {
+      --bg: #f4f7fb;
+      --bg-2: #edf3f8;
+      --ink: #142033;
+      --muted: #536178;
+      --line: #d8e1ec;
+      --panel: rgba(255, 255, 255, 0.86);
+      --panel-strong: #ffffff;
+      --brand: #2846c7;
+      --brand-deep: #183081;
+      --brand-soft: #e8edff;
+      --cyan: #0ea5a8;
+      --shadow: 0 18px 48px rgba(35, 50, 78, 0.09);
+      --shadow-hover: 0 24px 60px rgba(35, 50, 78, 0.15);
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background:
+        radial-gradient(circle at 3% 4%, rgba(121, 220, 174, 0.2), transparent 26rem),
+        radial-gradient(circle at 97% 12%, rgba(99, 102, 241, 0.16), transparent 30rem),
+        linear-gradient(180deg, #f8fafc 0%, var(--bg) 38%, var(--bg-2) 100%);
+      background-attachment: fixed;
+      letter-spacing: -0.008em;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      opacity: 0.42;
+      background-image: radial-gradient(rgba(40, 70, 199, 0.13) 0.7px, transparent 0.7px);
+      background-size: 22px 22px;
+      -webkit-mask-image: linear-gradient(to bottom, #000, transparent 75%);
+      mask-image: linear-gradient(to bottom, #000, transparent 75%);
+    }
+
+    nav {
+      min-height: 68px;
+      gap: 6px;
+      padding: 0 max(24px, calc((100vw - 1420px) / 2));
+      background: rgba(248, 250, 252, 0.82);
+      border-color: rgba(203, 213, 225, 0.72);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.75);
+    }
+
+    nav .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-right: auto;
+      color: var(--ink);
+      letter-spacing: -0.02em;
+    }
+
+    nav .logo::before {
+      content: "OG";
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 11px;
+      color: #fff;
+      background: linear-gradient(145deg, #4161e8, #20399f);
+      box-shadow: 0 8px 18px rgba(40, 70, 199, 0.28);
+      font-size: 11px;
+      letter-spacing: 0.05em;
+    }
+
+    nav a {
+      padding: 8px 11px;
+      border-radius: 9px;
+      font-size: 13px;
+      transition: color 160ms ease, background 160ms ease;
+    }
+
+    nav a:hover {
+      color: var(--brand-deep);
+      background: rgba(232, 237, 255, 0.9);
+    }
+
+    .layout {
+      gap: 30px;
+      width: min(1420px, calc(100% - 48px));
+      padding: 34px 0 72px;
+    }
+
+    .sidebar {
+      top: 88px;
+      flex-basis: 264px;
+      max-height: calc(100vh - 112px);
+      padding: 18px 12px 20px;
+      background: rgba(255, 255, 255, 0.72);
+      border-color: rgba(203, 213, 225, 0.72);
+      border-radius: 18px;
+      box-shadow: 0 14px 36px rgba(35, 50, 78, 0.07);
+      scrollbar-width: thin;
+      scrollbar-color: #c7d2e3 transparent;
+    }
+
+    .sidebar .toc-brand {
+      margin: 0 10px 16px;
+      padding-bottom: 13px;
+      border-bottom: 1px solid var(--line);
+      color: var(--ink);
+      font-size: 14px;
+      letter-spacing: -0.01em;
+    }
+
+    .sidebar .toc-brand::before {
+      content: "⌘";
+      margin-right: 8px;
+      color: var(--brand);
+    }
+
+    .toc-group {
+      margin-bottom: 18px;
+    }
+
+    .toc-group > .toc-label {
+      margin-bottom: 5px;
+      color: #8995a8;
+      font-size: 10px;
+      letter-spacing: 0.13em;
+    }
+
+    .sidebar a {
+      position: relative;
+      margin: 1px 0;
+      padding: 7px 10px 7px 13px;
+      color: #627086;
+      font-size: 13px;
+      font-weight: 620;
+      transition: color 150ms ease, background 150ms ease, transform 150ms ease;
+    }
+
+    .sidebar a:hover {
+      transform: translateX(2px);
+      background: #f0f4ff;
+      color: var(--brand-deep);
+    }
+
+    .sidebar a.active {
+      background: var(--brand-soft);
+      color: var(--brand-deep);
+      box-shadow: inset 3px 0 0 var(--brand);
+    }
+
+    .hero {
+      position: relative;
+      isolation: isolate;
+      min-height: 440px;
+      padding: clamp(34px, 5vw, 64px);
+      overflow: hidden;
+      background:
+        linear-gradient(128deg, rgba(255, 255, 255, 0.98), rgba(245, 248, 255, 0.92)),
+        var(--panel-strong);
+      border-color: rgba(180, 195, 218, 0.72);
+      border-radius: 28px;
+      box-shadow: 0 26px 70px rgba(35, 50, 78, 0.12);
+    }
+
+    .hero::before,
+    .hero::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .hero::before {
+      width: 390px;
+      height: 390px;
+      right: -135px;
+      top: -170px;
+      background: repeating-radial-gradient(circle, rgba(40, 70, 199, 0.17) 0 1px, transparent 1px 22px);
+    }
+
+    .hero::after {
+      width: 330px;
+      height: 330px;
+      right: 5%;
+      bottom: -250px;
+      background: rgba(121, 220, 174, 0.34);
+      filter: blur(3px);
+    }
+
+    .eyebrow {
+      margin-bottom: 20px;
+      padding: 7px 11px;
+      border: 1px solid #cfd9ff;
+      background: var(--brand-soft);
+      color: var(--brand-deep);
+      font-size: 11px;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #19a974;
+      box-shadow: 0 0 0 4px rgba(25, 169, 116, 0.12);
+    }
+
+    h1 {
+      max-width: 960px;
+      font-size: clamp(38px, 5.25vw, 68px);
+      line-height: 0.99;
+      letter-spacing: -0.055em;
+      color: var(--ink);
+      text-wrap: balance;
+    }
+
+    h1 .hero-accent {
+      color: var(--brand);
+    }
+
+    .subtitle {
+      max-width: 86ch;
+      margin-top: 22px;
+      color: #536178;
+      font-size: 16px;
+      line-height: 1.75;
+    }
+
+    h2 {
+      position: relative;
+      margin: 50px 0 18px;
+      padding: 0 0 12px 18px;
+      border-bottom: 1px solid var(--line);
+      color: var(--ink);
+      font-size: 25px;
+      letter-spacing: -0.025em;
+    }
+
+    h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.28em;
+      width: 5px;
+      height: 0.8em;
+      border-radius: 999px;
+      background: linear-gradient(var(--brand), var(--cyan));
+    }
+
+    .panel h2 {
+      margin-top: 0;
+    }
+
+    h3 {
+      color: var(--ink);
+      letter-spacing: -0.015em;
+    }
+
+    p, li {
+      color: #56647a;
+    }
+
+    code {
+      border-color: #d9e1ee;
+      background: #f3f6fa;
+      color: #263759;
+    }
+
+    .services {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 30px;
+    }
+
+    .tile {
+      position: relative;
+      min-height: 82px;
+      padding: 17px 17px 15px;
+      overflow: hidden;
+      border-color: rgba(203, 213, 225, 0.75);
+      border-radius: 14px;
+      box-shadow: none;
+      transition: transform 170ms ease, box-shadow 170ms ease, border-color 170ms ease;
+    }
+
+    .tile:hover {
+      transform: translateY(-3px);
+      border-color: #b5c2d5;
+      box-shadow: 0 14px 28px rgba(35, 50, 78, 0.11);
+    }
+
+    .tile strong {
+      font-size: 13px;
+      letter-spacing: 0.015em;
+    }
+
+    .tile code {
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: #758197;
+      font-size: 11px;
+    }
+
+    [data-top] {
+      border-top-width: 3px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .card,
+    .panel,
+    .tile {
+      background: rgba(255, 255, 255, 0.82);
+      border-color: rgba(203, 213, 225, 0.76);
+      box-shadow: 0 10px 30px rgba(35, 50, 78, 0.065);
+    }
+
+    .card {
+      display: block;
+      min-height: 150px;
+      padding: 22px 22px 20px 25px;
+      border-radius: 17px;
+      transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+    }
+
+    .card:hover {
+      transform: translateY(-3px);
+      border-color: #bac7d9;
+      box-shadow: var(--shadow-hover);
+    }
+
+    .card::before {
+      inset: 0 auto 0 0;
+      width: 4px;
+    }
+
+    .card-title {
+      margin-bottom: 13px;
+      color: var(--ink);
+      font-size: 16px;
+    }
+
+    .card-desc {
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .badge {
+      min-width: 42px;
+      padding: 4px 8px;
+      border-color: #d4deec;
+      background: #f0f4f9;
+      color: #42516a;
+      font-size: 9px;
+      letter-spacing: 0.06em;
+    }
+
+    .panel {
+      padding: clamp(20px, 3vw, 28px);
+      border-radius: 18px;
+    }
+
+    .grid-2 {
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .flow {
+      gap: 14px;
+    }
+
+    .step {
+      background: #f9fbfd;
+      border-color: #dce4ee;
+      transition: transform 170ms ease, border-color 170ms ease;
+    }
+
+    .step:hover {
+      transform: translateY(-2px);
+      border-color: #bfcadd;
+    }
+
+    table {
+      border-color: #d8e1ec;
+      background: #fff;
+    }
+
+    th {
+      background: #f0f4fa;
+      color: #68758a;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #fafbfd;
+    }
+
+    tbody tr:hover {
+      background: #f1f5ff;
+    }
+
+    .arch-wrap {
+      padding: 12px;
+      background: linear-gradient(145deg, rgba(255,255,255,.95), rgba(242,246,252,.9));
+    }
+
+    .tree {
+      padding: 24px;
+      border-color: #d4deeb;
+      background: #111a2b;
+      color: #aebbd0;
+      box-shadow: 0 22px 52px rgba(17, 26, 43, 0.18);
+    }
+
+    .tree .dir { color: #93c5fd; }
+    .tree .file { color: #cbd5e1; }
+
+    footer {
+      padding: 28px 0 10px;
+      border-top: 1px solid var(--line);
+    }
+
+    @media (max-width: 1100px) {
+      .layout { width: min(100% - 32px, 1040px); gap: 20px; }
+      .sidebar { flex-basis: 230px; }
+      .cards { grid-template-columns: 1fr; }
+      .card { min-height: 0; }
+    }
+
+    @media (max-width: 880px) {
+      nav { min-height: 60px; padding: 0 16px; }
+      nav .logo { margin-right: 8px; }
+      nav .logo::before { width: 30px; height: 30px; }
+      .layout { width: min(100% - 24px, 720px); padding-top: 18px; }
+      .sidebar {
+        display: flex;
+        flex: none;
+        gap: 4px;
+        width: 100%;
+        height: auto;
+        min-height: 0;
+        max-height: 58px;
+        padding: 8px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        border-radius: 14px;
+      }
+      .sidebar .toc-brand, .toc-label { display: none; }
+      .toc-group { display: contents; }
+      .sidebar a { flex: 0 0 auto; padding: 8px 11px; }
+      .sidebar a:hover { transform: none; }
+      .sidebar a.active { box-shadow: inset 0 -3px 0 var(--brand); }
+      .page { width: 100%; }
+      .panel { overflow-wrap: anywhere; }
+      table {
+        display: block;
+        max-width: 100%;
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+      .hero { min-height: 0; padding: 30px 24px; border-radius: 22px; }
+      h1 { font-size: clamp(34px, 10vw, 48px); }
+      .subtitle { font-size: 15px; }
+      .services { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 560px) {
+      nav a { display: none; }
+      nav .logo { margin-right: auto; }
+      .services { grid-template-columns: 1fr; }
+      .tile { min-height: 0; }
+      .hero::before { opacity: .55; }
+      h2 { margin-top: 38px; font-size: 22px; }
+      .panel { padding: 18px; }
+      th, td { padding: 10px; font-size: 13px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { transition: none !important; }
+    }
   </style>
   <style id="inline-style-replacements">
     /* Utility rules replacing former inline-style attributes
@@ -538,8 +1058,8 @@
 
     <main class="page">
     <header class="hero" id="overview">
-      <span class="eyebrow">Pastel architecture map</span>
-      <h1>Playwright automation with Product E2E Matrix, QA orchestration, FastAPI, Scalar, Grafana, Prometheus, Organuz Supabase API tests, and Allure 3</h1>
+      <span class="eyebrow">System architecture · 2026</span>
+      <h1>The architecture behind <span class="hero-accent">OrGanuz AI</span> test automation</h1>
       <p class="subtitle">
         A single-file architecture view for the OrGanuz AI site automation stack. Local runs start the runtime services, execute the active Playwright projects, generate Allure 3, and print the main service links. Five projects run green by default — <code>product</code> (property-characterization matrix, role data-contracts, dev UI-token &amp; public-app sanity), <code>organuz-api</code> (the Supabase/PostgREST backend), <code>agent</code> (the QA-orchestrator regression plus the <code>TestPlanAgent</code>: URL → Playwright-MCP exploration → generated test plan), <code>security</code> (authorized non-destructive backend penetration checks), and <code>local-web</code> (local-only marketing-site e2e) — <strong>110 tests total</strong>. An opt-in <code>monitoring</code> project adds live Govmap/Ofek availability checks (<strong>160 total</strong>). The <code>chromium</code> (marketing site), <code>product-setup</code>, and <code>product-authenticated</code> (live per-role browser sessions) projects remain disabled in <code>playwright.config.ts</code> (commented out; spec files kept) — re-enable by uncommenting. GitHub Actions runs the CI matrix (<code>product</code>, <code>organuz-api</code>, <code>agent</code>, <code>security</code>) in parallel and publishes Allure to GitHub Pages; <code>local-web</code> is local-only (every spec self-skips on CI).
       </p>
@@ -672,60 +1192,60 @@
         <rect x="95" y="80" width="300" height="104" rx="20" fill="url(#gloss)"/>
         <text x="245" y="118" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">Playwright</text>
         <text x="245" y="143" text-anchor="middle" font-size="12.5" fill="#46566e">product · api · agent · security · local-web</text>
-        <text x="245" y="165" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">5 active · 3 disabled · +monitoring opt-in</text>
+        <text x="245" y="165" text-anchor="middle" font-size="12" fill="#42536b" font-family="ui-monospace, Menlo, monospace">5 active · 3 disabled · +monitoring opt-in</text>
 
         <rect x="470" y="80" width="300" height="104" rx="20" fill="#b6f1d6" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
         <rect x="470" y="80" width="300" height="104" rx="20" fill="url(#gloss)"/>
         <text x="620" y="118" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">FastAPI</text>
         <text x="620" y="143" text-anchor="middle" font-size="12.5" fill="#46566e">docs · OpenAPI · process metrics</text>
-        <text x="620" y="165" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">localhost:8000</text>
+        <text x="620" y="165" text-anchor="middle" font-size="12" fill="#42536b" font-family="ui-monospace, Menlo, monospace">localhost:8000</text>
 
         <rect x="845" y="80" width="300" height="104" rx="20" fill="#d6c2ff" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
         <rect x="845" y="80" width="300" height="104" rx="20" fill="url(#gloss)"/>
         <text x="995" y="118" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">Scalar</text>
         <text x="995" y="143" text-anchor="middle" font-size="12.5" fill="#46566e">external API reference</text>
-        <text x="995" y="165" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">localhost:8080</text>
+        <text x="995" y="165" text-anchor="middle" font-size="12" fill="#42536b" font-family="ui-monospace, Menlo, monospace">localhost:8080</text>
 
         <!-- row 2: metrics & dashboards -->
         <rect x="95" y="285" width="300" height="104" rx="20" fill="#ffe1a0" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
         <rect x="95" y="285" width="300" height="104" rx="20" fill="url(#gloss)"/>
         <text x="245" y="323" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">Pushgateway</text>
         <text x="245" y="348" text-anchor="middle" font-size="12.5" fill="#46566e">QA metrics ingress</text>
-        <text x="245" y="370" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">localhost:9091</text>
+        <text x="245" y="370" text-anchor="middle" font-size="12" fill="#42536b" font-family="ui-monospace, Menlo, monospace">localhost:9091</text>
 
         <rect x="470" y="285" width="300" height="104" rx="20" fill="#ffcb9a" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
         <rect x="470" y="285" width="300" height="104" rx="20" fill="url(#gloss)"/>
         <text x="620" y="323" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">Prometheus</text>
         <text x="620" y="348" text-anchor="middle" font-size="12.5" fill="#46566e">scrapes pushgateway + fastapi</text>
-        <text x="620" y="370" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">localhost:9092</text>
+        <text x="620" y="370" text-anchor="middle" font-size="12" fill="#42536b" font-family="ui-monospace, Menlo, monospace">localhost:9092</text>
 
         <rect x="845" y="285" width="300" height="104" rx="20" fill="#bfe9f6" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
         <rect x="845" y="285" width="300" height="104" rx="20" fill="url(#gloss)"/>
         <text x="995" y="323" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">Grafana</text>
         <text x="995" y="348" text-anchor="middle" font-size="12.5" fill="#46566e">QA dashboard</text>
-        <text x="995" y="370" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">localhost:3001</text>
+        <text x="995" y="370" text-anchor="middle" font-size="12" fill="#42536b" font-family="ui-monospace, Menlo, monospace">localhost:3001</text>
 
         <!-- row 3: report & deliver -->
         <rect x="95" y="470" width="300" height="104" rx="20" fill="#79dcae" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
         <rect x="95" y="470" width="300" height="104" rx="20" fill="url(#gloss)"/>
         <text x="245" y="508" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">Allure</text>
         <text x="245" y="533" text-anchor="middle" font-size="12.5" fill="#46566e">aggregated 3.0 report</text>
-        <text x="245" y="555" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">localhost:5050 · Pages</text>
+        <text x="245" y="555" text-anchor="middle" font-size="12" fill="#42536b" font-family="ui-monospace, Menlo, monospace">localhost:5050 · Pages</text>
 
         <rect x="470" y="470" width="300" height="104" rx="20" fill="#d6dbe3" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
         <rect x="470" y="470" width="300" height="104" rx="20" fill="url(#gloss)"/>
         <text x="620" y="508" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">GitHub Actions</text>
         <text x="620" y="533" text-anchor="middle" font-size="12.5" fill="#46566e">matrix + monitoring job</text>
-        <text x="620" y="555" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">Pages · daily 05:00 + 30-min cron</text>
+        <text x="620" y="555" text-anchor="middle" font-size="12" fill="#42536b" font-family="ui-monospace, Menlo, monospace">Pages · daily 05:00 + 30-min cron</text>
 
         <rect x="845" y="470" width="300" height="104" rx="20" fill="#ffcecb" stroke="rgba(23,32,54,0.10)" filter="url(#softShadow)"/>
         <rect x="845" y="470" width="300" height="104" rx="20" fill="url(#gloss)"/>
         <text x="995" y="508" text-anchor="middle" font-size="19" font-weight="800" fill="#26324a">External targets</text>
         <text x="995" y="533" text-anchor="middle" font-size="12.5" fill="#46566e">Supabase · Govmap · Ofek</text>
-        <text x="995" y="555" text-anchor="middle" font-size="12" fill="#5b6b82" font-family="ui-monospace, Menlo, monospace">live API + monitoring</text>
+        <text x="995" y="555" text-anchor="middle" font-size="12" fill="#42536b" font-family="ui-monospace, Menlo, monospace">live API + monitoring</text>
 
         <!-- legend -->
-        <g font-family="ui-monospace, Menlo, monospace" font-size="12" fill="#7b8aa1">
+        <g font-family="ui-monospace, Menlo, monospace" font-size="12" fill="#55627b">
           <path d="M 100 608 L 134 608" stroke="#7d8aa3" stroke-width="2.2" fill="none" marker-end="url(#arrow)"/>
           <text x="144" y="612">data &amp; build flow</text>
           <text x="1140" y="612" text-anchor="end">ports shown are local defaults</text>

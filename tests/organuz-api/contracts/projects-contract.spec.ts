@@ -12,6 +12,7 @@ import {
   allureStep,
 } from '../../../src/utils/allure';
 import { Project, PROJECT_REQUIRED_FIELDS } from '../../../src/types/organuz.types';
+import { HttpStatus } from '../../../src/utils/httpStatus';
 
 /** Fields the schema declares as numbers. */
 const NUMERIC_FIELDS: Array<keyof Project> = ['solar_capacity_kw', 'storage_capacity_kwh', 'roi_years'];
@@ -34,12 +35,12 @@ test.describe('Contract: organuz projects', { tag: ['@organuz-api', '@contract']
     let projects: Project[] = [];
 
     await allureStep('Returns 200 + JSON with a non-empty array of projects', async () => {
-      const response = await organuzApi.getProjects();
-      expect(response.status()).toBe(200);
-      expect(response.headers()['content-type']).toContain('application/json');
+      const response = await organuzApi.getProjects<Project[]>();
+      expect(response.status).toBe(HttpStatus.OK);
+      expect(response.contentType).toContain('application/json');
 
-      projects = (await response.json()) as Project[];
-      expect(Array.isArray(projects), 'response body is a JSON array').toBe(true);
+      projects = response.json ?? [];
+      expect(Array.isArray(response.json), 'response body is a JSON array').toBe(true);
       expect(projects.length, 'at least one project row is returned').toBeGreaterThan(0);
     });
 

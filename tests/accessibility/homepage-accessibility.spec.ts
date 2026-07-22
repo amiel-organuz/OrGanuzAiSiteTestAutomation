@@ -1,35 +1,76 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import type { AxeResults } from 'axe-core';
+import { createHash } from 'node:crypto';
 
 /**
  * Highest-priority accessibility coverage for the public Hebrew marketing page.
  *
- * The five existing critical/serious Axe findings are represented as non-growing
- * baselines: an improvement remains green, while any additional affected node or
- * new high-impact rule fails CI. Remove each budget when the corresponding website
- * issue is fixed. The remaining checks are strict semantic regressions.
+ * The five existing critical/serious Axe findings are represented as affected-node
+ * fingerprint allowlists: an improvement remains green, while any newly affected
+ * markup or new high-impact rule fails CI. Remove each fingerprint when the
+ * corresponding website issue is fixed. The remaining checks are strict regressions.
  */
 test.describe('Marketing homepage accessibility', { tag: ['@accessibility', '@critical'] }, () => {
-  test.describe.configure({ mode: 'serial', timeout: 60_000 });
+  test.describe.configure({ mode: 'default', timeout: 60_000 });
 
   let context: BrowserContext;
   let page: Page;
   let axe: AxeResults;
 
-  const knownHighImpactBudgets: Record<string, number> = {
-    'button-name': 2,
-    'color-contrast': 44,
-    'link-name': 1,
-    'nested-interactive': 3,
-    'scrollable-region-focusable': 1,
+  const knownHighImpactFingerprints: Record<string, Readonly<Record<string, number>>> = {
+    'button-name': {
+      '19675d03d6fa9c23': 1,
+      '339b4079fc4ff2df': 1,
+    },
+    'color-contrast': {
+      '4a7eb35a99763728': 1,
+      'a97c9771acd9ccd8': 1,
+      '357eb003a0d7d846': 1,
+      '51c3f4d61d07676a': 1,
+      '8ce8cdb75a460c45': 1,
+      'dcb77d92831c06c0': 1,
+      '418bc82811d72c86': 1,
+      '1ee7e54ed9aa2a03': 1,
+      'c895f42beae429a8': 5,
+      'bc0b7d243edb585d': 5,
+      '448ca08c861b33ea': 5,
+      '3bde79df681c1e85': 5,
+      'd335043a265fbd0c': 1,
+      '80450d13d9867a85': 1,
+      '35e36051adb0dc10': 1,
+      'de8fecb3c8c76342': 1,
+      '1fc9c905e7f09844': 1,
+      'c588fae756fffbad': 1,
+      '1c8e0b3feeb6b1a6': 1,
+      '7eb71b0c1a211084': 1,
+      '760f8c6dda6caea6': 1,
+      '2079c1bea01bc2c7': 1,
+      '09a4bf117404a1b4': 1,
+      'e7734bd1ef739397': 1,
+      '0f05560657199299': 1,
+      '7513f2b0c3feba64': 1,
+      '60bbe85b3c30639d': 1,
+      'f4a8f413d6b945b7': 1,
+    },
+    'link-name': { '10517b6eae2832d4': 1 },
+    'nested-interactive': {
+      'dd2539f9205e523a': 1,
+      '0bb905db3425e448': 1,
+      '7bf205ac204e66c9': 1,
+    },
+    'scrollable-region-focusable': { '0ecaee3e15a4ba26': 1 },
   };
+
+  const knownBrokenAriaTargets = new Set(['#role|aria-controls']);
 
   test.beforeAll(async ({ browser }) => {
     context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
     page = await context.newPage();
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.locator('h1').waitFor({ state: 'visible' });
+    await expect(page.locator('#projects .snap-start')).toHaveCount(5);
+    await expect(page.locator('#blog .rounded-lg.card-hover')).toHaveCount(3);
     axe = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
       .analyze();
@@ -39,21 +80,29 @@ test.describe('Marketing homepage accessibility', { tag: ['@accessibility', '@cr
     await context.close();
   });
 
-  function violationNodeCount(ruleId: string): number {
-    return axe.violations.find((violation) => violation.id === ruleId)?.nodes.length ?? 0;
+  function violationFingerprintCounts(ruleId: string): Record<string, number> {
+    const counts: Record<string, number> = {};
+    for (const node of axe.violations.find((violation) => violation.id === ruleId)?.nodes ?? []) {
+      const fingerprint = createHash('sha256').update(node.html).digest('hex').slice(0, 16);
+      counts[fingerprint] = (counts[fingerprint] ?? 0) + 1;
+    }
+    return counts;
   }
 
   test('A11Y-01 no new critical or serious Axe rule is introduced', async () => {
     const unexpected = axe.violations
       .filter((violation) => violation.impact === 'critical' || violation.impact === 'serious')
       .map((violation) => violation.id)
-      .filter((id) => !(id in knownHighImpactBudgets));
+      .filter((id) => !(id in knownHighImpactFingerprints));
     expect(unexpected).toEqual([]);
   });
 
-  for (const [index, [ruleId, budget]] of Object.entries(knownHighImpactBudgets).entries()) {
-    test(`A11Y-${String(index + 2).padStart(2, '0')} ${ruleId} does not exceed its remediation baseline`, async () => {
-      expect(violationNodeCount(ruleId), `${ruleId} affected-node budget`).toBeLessThanOrEqual(budget);
+  for (const [index, [ruleId, allowedFingerprints]] of Object.entries(knownHighImpactFingerprints).entries()) {
+    test(`A11Y-${String(index + 2).padStart(2, '0')} ${ruleId} contains no nodes outside its remediation baseline`, async () => {
+      const unexpectedNodes = Object.entries(violationFingerprintCounts(ruleId))
+        .filter(([fingerprint, count]) => count > (allowedFingerprints[fingerprint] ?? 0))
+        .map(([fingerprint, count]) => `${fingerprint}: ${count} (allowed ${allowedFingerprints[fingerprint] ?? 0})`);
+      expect(unexpectedNodes, `${ruleId} unexpected node fingerprints`).toEqual([]);
     });
   }
 
@@ -213,7 +262,7 @@ test.describe('Marketing homepage accessibility', { tag: ['@accessibility', '@cr
     expect(mistyped).toBe(0);
   });
 
-  test('A11Y-30 broken ARIA ID references do not exceed the current baseline', async () => {
+  test('A11Y-30 broken ARIA ID references contain no targets outside the current baseline', async () => {
     const existingIds = await page.locator('[id]').evaluateAll((elements) => elements.map((element) => element.id));
     const brokenReferences = await page.locator('[aria-labelledby],[aria-describedby],[aria-controls],[aria-owns],[aria-activedescendant]').evaluateAll(
       (elements, ids: string[]) => {
@@ -223,15 +272,16 @@ test.describe('Marketing homepage accessibility', { tag: ['@accessibility', '@cr
           attributes.flatMap((attribute) =>
             (element.getAttribute(attribute)?.trim().split(/\s+/) ?? [])
               .filter((id: string) => id && !knownIds.has(id))
-              .map((id: string) => `${attribute}:${id}`),
+              .map(() => `${element.id ? `#${element.id}` : element.tagName.toLowerCase()}|${attribute}`),
           ),
         );
       },
       existingIds,
     );
+    const unexpectedReferences = brokenReferences.filter((reference) => !knownBrokenAriaTargets.has(reference));
     expect(
-      brokenReferences.length,
-      `broken ARIA references: ${brokenReferences.join(', ')}`,
-    ).toBeLessThanOrEqual(1);
+      unexpectedReferences,
+      `unexpected broken ARIA references: ${unexpectedReferences.join(', ')}`,
+    ).toEqual([]);
   });
 });

@@ -3,11 +3,15 @@ import type {
   DiscoveredControl,
   DiscoveredForm,
   DiscoveredLink,
+  PageDiagnostics,
   PageExplorer,
   PageExploration,
   PageSnapshot,
   PlaywrightMcpClient,
 } from '../../types/agent.types';
+
+/** Seconds to let a client-rendered (SPA) page settle before snapshotting. */
+const DEFAULT_SETTLE_SECONDS = 1;
 
 /**
  * Page exploration connector.
@@ -40,18 +44,50 @@ const SUBMIT_HINT = /(submit|sign in|log in|login|search|send|continue|save|regi
  * then parses the accessibility snapshot into a {@link PageExploration}.
  */
 export class McpPageExplorer implements PageExplorer {
-  constructor(private readonly client: PlaywrightMcpClient) {}
+  constructor(
+    private readonly client: PlaywrightMcpClient,
+    private readonly settleSeconds: number = DEFAULT_SETTLE_SECONDS,
+  ) {}
 
   async explore(url: string): Promise<PageExploration> {
     logger.step(`PageExplorer(MCP): navigate ${url}`);
     await this.client.navigate(url);
+    // Give a client-rendered page a moment to render before reading the tree.
+    if (this.client.waitForSettle && this.settleSeconds > 0) {
+      await this.client.waitForSettle(this.settleSeconds);
+    }
     const snapshot = await this.client.snapshot();
     const exploration = parseSnapshot(url, snapshot);
+    exploration.diagnostics = await this.collectDiagnostics();
+
     logger.step(
       `PageExplorer(MCP): "${exploration.title}" — ${exploration.links.length} links, ` +
         `${exploration.forms.length} forms, ${exploration.controls.length} controls`,
     );
+
+    // Drift/block guard: a live page that yields no headings, links, or forms is
+    // almost always a bot-block/challenge page or an MCP snapshot-format drift —
+    // not a real "empty" site. Warn loudly rather than emit a hollow plan.
+    if (
+      exploration.headings.length === 0 &&
+      exploration.links.length === 0 &&
+      exploration.forms.length === 0
+    ) {
+      logger.warn(
+        `PageExplorer(MCP): ${url} yielded no headings/links/forms — likely a block/challenge ` +
+          `page or an MCP snapshot-format change. The generated plan will be thin; verify the page manually.`,
+      );
+    }
     return exploration;
+  }
+
+  /** Read console errors + failed requests when the client supports them. */
+  private async collectDiagnostics(): Promise<PageDiagnostics | undefined> {
+    if (!this.client.consoleErrors && !this.client.networkRequests) return undefined;
+    const consoleErrors = this.client.consoleErrors ? await this.client.consoleErrors() : [];
+    const requests = this.client.networkRequests ? await this.client.networkRequests() : [];
+    const failedRequests = requests.filter((r) => r.status >= 400);
+    return { consoleErrors, failedRequests };
   }
 }
 
