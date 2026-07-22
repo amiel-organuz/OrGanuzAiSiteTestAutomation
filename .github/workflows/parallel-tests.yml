@@ -493,7 +493,8 @@ jobs:
 
       # Post the report links to Slack once the whole pipeline has finished.
       # Runs on push/dispatch (not PRs) — the GitHub Pages Allure URL only exists
-      # after deploy-allure publishes it on main/master. Posts to both webhooks;
+      # after deploy-allure publishes it on main/master. Posts to all configured
+      # webhooks (SLACK_WEBHOOK_URL, SLACK_WEBHOOK_BOT_URL, SLACK_ORGANUZ_TESTING_URL);
       # each is optional (unset = skipped) and non-fatal (a bad post never fails
       # the run). Guard lives in the script because secrets can't be used in `if:`.
       - name: Notify Slack with report links
@@ -501,9 +502,11 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_WEBHOOK_BOT_URL: ${{ secrets.SLACK_WEBHOOK_BOT_URL }}
+          SLACK_ORGANUZ_TESTING_URL: ${{ secrets.SLACK_ORGANUZ_TESTING_URL }}
           GRAFANA_LINK_URL: ${{ vars.GRAFANA_URL || 'http://localhost:3001' }}
+          SWAGGER_LINK_URL: ${{ vars.SWAGGER_URL || 'http://localhost:8080' }}
         run: |
-          if [ -z "$SLACK_WEBHOOK_URL" ] && [ -z "$SLACK_WEBHOOK_BOT_URL" ]; then
+          if [ -z "$SLACK_WEBHOOK_URL" ] && [ -z "$SLACK_WEBHOOK_BOT_URL" ] && [ -z "$SLACK_ORGANUZ_TESTING_URL" ]; then
             echo "No Slack webhook secrets set — skipping report notification."
             exit 0
           fi
@@ -516,7 +519,9 @@ jobs:
             ALLURE_LINK="<${RUN_URL}|Allure report (download artifact)>"
           fi
 
-          TEXT=":bar_chart: *Organuz — GitHub Actions test run* finished — <${RUN_URL}|View run>\n• ${ALLURE_LINK}\n• <${GRAFANA_LINK_URL}|Grafana dashboard>"
+          # Playwright HTML report lives in the run's artifacts (uploaded alongside Allure).
+          PLAYWRIGHT_LINK="<${RUN_URL}|Playwright HTML report (download artifact)>"
+          TEXT=":bar_chart: *Organuz — GitHub Actions test run* finished — <${RUN_URL}|View run>\n• ${ALLURE_LINK}\n• <${GRAFANA_LINK_URL}|Grafana dashboard>\n• ${PLAYWRIGHT_LINK}\n• <${SWAGGER_LINK_URL}|Scalar API docs>"
           PAYLOAD=$(printf '{"text":"%s"}' "$TEXT")
 
           post() { # $1 = secret name, $2 = url
@@ -529,3 +534,4 @@ jobs:
           }
           post SLACK_WEBHOOK_URL "$SLACK_WEBHOOK_URL"
           post SLACK_WEBHOOK_BOT_URL "$SLACK_WEBHOOK_BOT_URL"
+          post SLACK_ORGANUZ_TESTING_URL "$SLACK_ORGANUZ_TESTING_URL"

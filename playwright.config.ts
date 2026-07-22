@@ -20,6 +20,21 @@ const includeLowPriorityTests = process.env.INCLUDE_LOW_PRIORITY_TESTS === 'true
 // MONITORING_ENABLED=true (see `npm run test:monitoring`).
 const includeMonitoring = process.env.MONITORING_ENABLED === 'true';
 
+// Debug / human-watch mode: `PW_SLOWMO_MS` slows every browser action by that many
+// milliseconds so a person can follow the run with their eyes (paired with
+// `--headed --workers=1` — see scripts/run-all-tests.sh --debug). 0 = off (normal
+// speed). When on, the test + expect timeouts are widened so the injected per-action
+// delays don't trip them. Only affects browser projects; the browserless API projects
+// ignore it. Negative values are clamped to 0 (off).
+const slowMoMs = Math.max(0, Number(process.env.PW_SLOWMO_MS) || 0);
+const debugMode = slowMoMs > 0;
+const debugTimeout = Math.max(config.playwright.defaultTimeout, 180_000);
+const timeout = debugMode ? debugTimeout : config.playwright.defaultTimeout;
+// Debug forces headed so the browser is actually visible. Resolving `headless` here
+// (in the config) makes it authoritative — it does not depend on the CLI `--headed`
+// flag winning over a project's own `use.headless`. Normal runs stay headless.
+const headless = !debugMode;
+
 // Shared browser context for the product app: the product project (and the auth-setup
 // project, when re-enabled) use the same origin/viewport so saved sessions restore
 // cleanly. baseURL is the calculator app for the selected env (dev / prod).
@@ -27,7 +42,7 @@ const productUse = {
   ...devices['Desktop Chrome'],
   baseURL: config.app.baseUrl,
   viewport: { width: 1920, height: 1080 },
-  headless: true,
+  headless,
 };
 
 export default defineConfig({
@@ -37,8 +52,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 4 : config.playwright.workers,
-  timeout: config.playwright.defaultTimeout,
-  expect: { timeout: config.playwright.defaultTimeout },
+  timeout,
+  expect: { timeout },
 
   reporter: [
     ...(!process.env.PLAYWRIGHT_MERGE_REPORTS
@@ -75,6 +90,8 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     trace: 'on-first-retry',
+    // Slow-motion for debug/human-watch runs (browser projects only; no-op at 0).
+    ...(slowMoMs > 0 ? { launchOptions: { slowMo: slowMoMs } } : {}),
   },
 
   projects: [
@@ -163,7 +180,7 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         baseURL: config.web.baseUrl,
         viewport: { width: 1920, height: 1080 },
-        headless: true,
+        headless,
       },
     },
     // CI-enabled accessibility regression suite for the public marketing site.
@@ -175,7 +192,7 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         baseURL: config.web.baseUrl,
         viewport: { width: 1440, height: 1000 },
-        headless: true,
+        headless,
       },
     },
     // Opt-in external-dependency monitoring; only registered when MONITORING_ENABLED=true
